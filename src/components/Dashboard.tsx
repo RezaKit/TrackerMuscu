@@ -6,10 +6,13 @@ import { getPersonalRecords } from '../utils/records';
 import { exportAllToCSV, downloadCSV, getDateString, formatDate } from '../utils/export';
 import { exportWeekAsText, downloadText } from '../utils/weekExport';
 import { getDaysUntilRace, getCurrentWeek, PLAN } from '../utils/runningPlan';
+import { useCalorieStore } from '../stores/calorieStore';
+import { useRoutineStore } from '../stores/routineStore';
 
 interface DashboardProps {
   onNewSession: () => void;
   onGoToCardio: () => void;
+  onGoToDaily: () => void;
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
 }
 
@@ -25,10 +28,12 @@ const TYPE_LABELS: Record<string, string> = {
   push: 'Push', pull: 'Pull', legs: 'Legs', upper: 'Upper', lower: 'Lower',
 };
 
-export default function Dashboard({ onNewSession, onGoToCardio, showToast }: DashboardProps) {
+export default function Dashboard({ onNewSession, onGoToCardio, onGoToDaily, showToast }: DashboardProps) {
   const { sessions } = useSessionStore();
   const { courses, natations } = useCardioStore();
   const { weights, addWeight } = useBodyWeightStore();
+  const { getDayStats, calorieGoal } = useCalorieStore();
+  const { getCompletion, items: routineItems, getStreak: getRoutineStreak } = useRoutineStore();
   const [weightInput, setWeightInput] = useState('');
   const [showWeightForm, setShowWeightForm] = useState(false);
 
@@ -96,8 +101,11 @@ export default function Dashboard({ onNewSession, onGoToCardio, showToast }: Das
     showToast('Export CSV téléchargé 📥', 'success');
   };
 
+  const { entries: calorieEntries } = useCalorieStore();
+  const { completions: routineCompletions, items: routineItemsFull } = useRoutineStore();
+
   const handleExportWeek = () => {
-    const text = exportWeekAsText(sessions, courses, natations, weights);
+    const text = exportWeekAsText(sessions, courses, natations, weights, calorieEntries, routineCompletions, routineItemsFull);
     const today = new Date();
     const filename = `semaine-${today.toISOString().split('T')[0]}.txt`;
     downloadText(text, filename);
@@ -107,6 +115,12 @@ export default function Dashboard({ onNewSession, onGoToCardio, showToast }: Das
   const daysUntilRace = getDaysUntilRace();
   const currentWeek = getCurrentWeek();
   const currentPlanWeek = currentWeek >= 1 && currentWeek <= PLAN.length ? PLAN[currentWeek - 1] : null;
+
+  const todayCalories = getDayStats(getDateString());
+  const todayRoutine = getCompletion(getDateString());
+  const routineChecked = todayRoutine?.completedItemIds.length || 0;
+  const routineTotal = routineItems.length;
+  const routineStreak = getRoutineStreak();
 
   return (
     <div className="p-4 space-y-4">
@@ -267,6 +281,42 @@ export default function Dashboard({ onNewSession, onGoToCardio, showToast }: Das
           <p className="text-sm text-gray-500">Bats ton premier record 💪</p>
         )}
       </div>
+
+      {/* Daily — calories + routine */}
+      <button
+        onClick={onGoToDaily}
+        className="w-full bg-dark border border-primary/20 rounded-xl p-4 text-left hover:border-primary/40 transition"
+      >
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-xs font-bold text-primary uppercase tracking-wide">🌙 Daily</h2>
+          <span className="text-[10px] text-gray-500">Tap pour gérer →</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-bg-dark rounded-lg p-2.5">
+            <p className="text-[10px] text-gray-500 uppercase mb-1">Calories</p>
+            <p className="text-lg font-black text-primary">
+              {todayCalories.in > 0 ? todayCalories.in : '—'}
+              <span className="text-xs font-normal text-gray-500">{todayCalories.in > 0 ? ' kcal' : ''}</span>
+            </p>
+            {todayCalories.in > 0 && (
+              <p className="text-[10px] text-gray-600">/ {calorieGoal} kcal obj.</p>
+            )}
+          </div>
+          <div className="bg-bg-dark rounded-lg p-2.5">
+            <p className="text-[10px] text-gray-500 uppercase mb-1">Routine soir</p>
+            {routineTotal > 0 ? (
+              <>
+                <p className="text-lg font-black text-primary">
+                  {routineChecked}<span className="text-gray-500 font-normal text-sm">/{routineTotal}</span>
+                </p>
+                {routineStreak > 0 && <p className="text-[10px] text-orange-400">🔥 {routineStreak}j streak</p>}
+              </>
+            ) : (
+              <p className="text-sm text-gray-600">—</p>
+            )}
+          </div>
+        </div>
+      </button>
 
       {/* Cardio shortcut */}
       <button

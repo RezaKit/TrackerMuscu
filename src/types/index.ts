@@ -73,3 +73,29 @@ export interface Record {
   reps: number;
   date: string;
 }
+
+export type MealType = 'petit-dej' | 'dejeuner' | 'diner' | 'collation';
+
+export interface CalorieEntry {
+  id: string;
+  date: string;
+  type: 'in' | 'out';
+  calories: number;
+  label: string;
+  meal?: MealType;
+  createdAt: string;
+}
+
+export interface RoutineItem {
+  id: string;
+  name: string;
+  emoji: string;
+  order: number;
+}
+
+export interface RoutineCompletion {
+  id: string;
+  date: string;
+  completedItemIds: string[];
+  createdAt: string;
+}

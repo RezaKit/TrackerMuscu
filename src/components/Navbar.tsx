@@ -9,7 +9,7 @@ interface NavbarProps {
 const NAV_ITEMS: { id: Page; icon: string; label: string }[] = [
   { id: 'dashboard', icon: '🏠', label: 'Home' },
   { id: 'calendar', icon: '📅', label: 'Calendrier' },
-  { id: 'cardio', icon: '🏃', label: 'Cardio' },
+  { id: 'daily', icon: '🌙', label: 'Daily' },
   { id: 'analytics', icon: '📈', label: 'Stats' },
   { id: 'program', icon: '🏁', label: 'Programme' },
   { id: 'settings', icon: '⚙️', label: 'Réglages' },

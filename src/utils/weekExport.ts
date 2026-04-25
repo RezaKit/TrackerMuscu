@@ -1,4 +1,4 @@
-import type { Session, Course, Natation, BodyWeight } from '../types';
+import type { Session, Course, Natation, BodyWeight, CalorieEntry, RoutineCompletion, RoutineItem } from '../types';
 
 function pad(n: number) {
   return String(n).padStart(2, '0');
@@ -38,7 +38,10 @@ export function exportWeekAsText(
   sessions: Session[],
   courses: Course[],
   natations: Natation[],
-  weights: BodyWeight[]
+  weights: BodyWeight[],
+  calories: CalorieEntry[] = [],
+  routineCompletions: RoutineCompletion[] = [],
+  routineItems: RoutineItem[] = []
 ): string {
   const { start, end, label } = getWeekBounds();
 
@@ -140,6 +143,46 @@ export function exportWeekAsText(
       const diff = weekWeights[weekWeights.length - 1].weight - weekWeights[0].weight;
       const sign = diff > 0 ? '+' : '';
       lines.push(`  → Évolution: ${sign}${diff.toFixed(1)} kg sur la semaine`);
+    }
+  }
+
+  lines.push('');
+
+  // Calories
+  const weekCalories = calories.filter((c) => c.date >= start && c.date <= end);
+  const daysWithCal = Array.from(new Set(weekCalories.map((c) => c.date))).sort();
+  lines.push('🍽️  NUTRITION');
+  lines.push(sep2);
+  if (weekCalories.length === 0) {
+    lines.push('  Aucune donnée nutritionnelle cette semaine.');
+  } else {
+    for (const date of daysWithCal) {
+      const dayEntries = weekCalories.filter((c) => c.date === date);
+      const totalIn = dayEntries.filter((c) => c.type === 'in').reduce((s, c) => s + c.calories, 0);
+      const totalOut = dayEntries.filter((c) => c.type === 'out').reduce((s, c) => s + c.calories, 0);
+      lines.push(`  ${dateToFR(date)} — ${totalIn} kcal ingérées${totalOut > 0 ? ` · ${totalOut} kcal dépensées` : ''}`);
+      dayEntries.filter((c) => c.type === 'in').forEach((e) => {
+        lines.push(`    ${e.label}: ${e.calories} kcal`);
+      });
+    }
+    const avgIn = Math.round(weekCalories.filter((c) => c.type === 'in').reduce((s, c) => s + c.calories, 0) / Math.max(daysWithCal.length, 1));
+    lines.push(`  → Moy. journalière: ${avgIn} kcal`);
+  }
+
+  lines.push('');
+
+  // Routine du soir
+  const weekRoutine = routineCompletions.filter((r) => r.date >= start && r.date <= end).sort((a, b) => a.date.localeCompare(b.date));
+  lines.push('🌙  ROUTINE DU SOIR');
+  lines.push(sep2);
+  if (routineItems.length === 0 || weekRoutine.length === 0) {
+    lines.push('  Aucune routine enregistrée cette semaine.');
+  } else {
+    const fullDays = weekRoutine.filter((r) => r.completedItemIds.length === routineItems.length).length;
+    lines.push(`  ${weekRoutine.length} soir(s) trackés · ${fullDays} routine(s) complète(s)`);
+    for (const r of weekRoutine) {
+      const checked = routineItems.filter((i) => r.completedItemIds.includes(i.id)).map((i) => `${i.emoji}${i.name}`);
+      lines.push(`  ${dateToFR(r.date)}: ${checked.join(', ') || 'rien'}`);
     }
   }
 

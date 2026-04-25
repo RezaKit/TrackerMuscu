@@ -12,10 +12,13 @@ import Analytics from './components/Analytics';
 import Cardio from './components/Cardio';
 import RunningProgram from './components/RunningProgram';
 import Settings from './components/Settings';
+import Daily from './components/Daily';
 import Navbar from './components/Navbar';
 import Toast from './components/Toast';
+import { useCalorieStore } from './stores/calorieStore';
+import { useRoutineStore } from './stores/routineStore';
 
-export type Page = 'dashboard' | 'calendar' | 'analytics' | 'cardio' | 'session' | 'program' | 'settings';
+export type Page = 'dashboard' | 'calendar' | 'analytics' | 'cardio' | 'session' | 'program' | 'settings' | 'daily';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -26,6 +29,8 @@ export default function App() {
   const { loadWeights } = useBodyWeightStore();
   const { loadTemplates } = useTemplateStore();
   const { loadCustomExercises } = useExerciseStore();
+  const { loadEntries } = useCalorieStore();
+  const { loadAll: loadRoutine } = useRoutineStore();
 
   useEffect(() => {
     initDB().then(async () => {
@@ -35,6 +40,8 @@ export default function App() {
         loadWeights(),
         loadTemplates(),
         loadCustomExercises(),
+        loadEntries(),
+        loadRoutine(),
       ]);
     });
   }, []);
@@ -61,6 +68,7 @@ export default function App() {
         <Dashboard
           onNewSession={() => setCurrentPage('session')}
           onGoToCardio={() => setCurrentPage('cardio')}
+          onGoToDaily={() => setCurrentPage('daily')}
           showToast={showToast}
         />
       )}
@@ -80,6 +88,7 @@ export default function App() {
       {currentPage === 'analytics' && <Analytics />}
       {currentPage === 'cardio' && <Cardio showToast={showToast} />}
       {currentPage === 'program' && <RunningProgram />}
+      {currentPage === 'daily' && <Daily showToast={showToast} />}
       {currentPage === 'settings' && <Settings showToast={showToast} />}
 
       <Navbar
