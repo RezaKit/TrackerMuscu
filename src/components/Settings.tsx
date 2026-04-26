@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useExerciseStore } from '../stores/exerciseStore';
 import { useTemplateStore } from '../stores/templateStore';
 import { PRESET_EXERCISES } from '../db/seedExercises';
+import { Icons } from './Icons';
 
 const MUSCLE_GROUPS = Object.keys(PRESET_EXERCISES);
 
@@ -10,6 +11,10 @@ interface SettingsProps {
 }
 
 type Tab = 'exercises' | 'templates';
+
+const TYPE_LABELS: Record<string, string> = {
+  push: 'Push', pull: 'Pull', legs: 'Legs', upper: 'Upper', lower: 'Lower',
+};
 
 export default function Settings({ showToast }: SettingsProps) {
   const [tab, setTab] = useState<Tab>('exercises');
@@ -26,11 +31,11 @@ export default function Settings({ showToast }: SettingsProps) {
     setNewName('');
     setNewMuscle('chest');
     setShowAddForm(false);
-    showToast(`"${newName.trim()}" ajouté ✅`, 'success');
+    showToast(`"${newName.trim()}" ajouté`, 'success');
   };
 
   const handleDeleteExercise = async (id: string, name: string) => {
-    if (!confirm(`Supprimer "${name}" de tes exercices custom ?`)) return;
+    if (!confirm(`Supprimer "${name}" ?`)) return;
     await deleteExercise(id);
     showToast('Exercice supprimé', 'info');
   };
@@ -41,104 +46,94 @@ export default function Settings({ showToast }: SettingsProps) {
     showToast('Template supprimé', 'info');
   };
 
-  const TYPE_LABELS: Record<string, string> = {
-    push: 'Push', pull: 'Pull', legs: 'Legs', upper: 'Upper', lower: 'Lower',
-  };
-
   return (
-    <div className="p-4 pb-28 space-y-4">
-      <h2 className="text-xl font-black text-primary">⚙️ PARAMÈTRES</h2>
-
-      <div className="flex gap-2 bg-dark rounded-xl p-1">
-        <button
-          onClick={() => setTab('exercises')}
-          className={`flex-1 py-2 rounded-lg text-sm font-bold transition ${
-            tab === 'exercises' ? 'bg-primary text-dark' : 'text-gray-400'
-          }`}
-        >
-          💪 Exercices
-        </button>
-        <button
-          onClick={() => setTab('templates')}
-          className={`flex-1 py-2 rounded-lg text-sm font-bold transition ${
-            tab === 'templates' ? 'bg-primary text-dark' : 'text-gray-400'
-          }`}
-        >
-          📋 Templates
-        </button>
+    <div className="page-enter">
+      {/* Header */}
+      <div style={{ padding: '52px 22px 14px' }}>
+        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Configuration</div>
+        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Paramètres</h1>
       </div>
 
+      {/* Tabs */}
+      <div style={{ padding: '6px 16px 14px' }}>
+        <div className="glass" style={{ borderRadius: 16, padding: 4, display: 'flex' }}>
+          {([
+            { id: 'exercises' as const, label: 'Exercices', Icon: Icons.Dumbbell },
+            { id: 'templates' as const, label: 'Templates', Icon: Icons.Save },
+          ]).map(({ id, label, Icon }) => {
+            const on = tab === id;
+            return (
+              <button key={id} onClick={() => setTab(id)} className="tap" style={{
+                flex: 1, border: 'none', borderRadius: 12, padding: '10px',
+                background: on ? 'var(--primary)' : 'transparent',
+                color: on ? '#fff' : 'var(--text-mute)',
+                fontSize: 12, fontWeight: 700, letterSpacing: 0.08, textTransform: 'uppercase',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}>
+                <Icon size={13} /> {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* EXERCISES TAB */}
       {tab === 'exercises' && (
-        <div className="space-y-3">
-          <div className="bg-dark border border-primary/20 rounded-xl p-4">
-            <div className="flex justify-between items-center mb-3">
+        <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="glass" style={{ borderRadius: 22, padding: '16px 16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div>
-                <h3 className="font-bold text-text-light">Mes exercices custom</h3>
-                <p className="text-xs text-gray-500">
+                <div style={{ fontWeight: 700, fontSize: 14 }}>Mes exercices custom</div>
+                <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>
                   {customExercises.length} exercice{customExercises.length !== 1 ? 's' : ''} personnel{customExercises.length !== 1 ? 's' : ''}
-                </p>
+                </div>
               </div>
-              <button
-                onClick={() => setShowAddForm(!showAddForm)}
-                className="bg-primary text-dark px-3 py-1.5 rounded-lg text-sm font-bold"
-              >
-                {showAddForm ? '✕' : '+ Ajouter'}
+              <button onClick={() => setShowAddForm(!showAddForm)} className="tap" style={{
+                border: 'none', borderRadius: 12, padding: '8px 14px',
+                background: showAddForm ? 'rgba(255,255,255,0.06)' : 'var(--primary)',
+                color: '#fff', fontWeight: 700, fontSize: 12,
+              }}>
+                {showAddForm ? 'Fermer' : '+ Ajouter'}
               </button>
             </div>
 
             {showAddForm && (
-              <div className="bg-bg-dark rounded-xl p-3 space-y-2 mb-3 border border-primary/20">
-                <input
-                  type="text"
-                  placeholder="Nom de l'exercice"
-                  value={newName}
+              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: '12px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <input type="text" placeholder="Nom de l'exercice" value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddExercise()}
-                  autoFocus
-                  className="w-full bg-dark border border-primary/40 rounded-lg px-3 py-2 text-text-light text-sm focus:outline-none focus:border-primary"
-                />
-                <select
-                  value={newMuscle}
-                  onChange={(e) => setNewMuscle(e.target.value)}
-                  className="w-full bg-dark border border-primary/40 rounded-lg px-3 py-2 text-text-light text-sm"
-                >
+                  className="input-glass" autoFocus />
+                <select value={newMuscle} onChange={(e) => setNewMuscle(e.target.value)}
+                  className="input-glass" style={{ appearance: 'none' }}>
                   {MUSCLE_GROUPS.map((m) => (
-                    <option key={m} value={m}>
-                      {m.charAt(0).toUpperCase() + m.slice(1)}
-                    </option>
+                    <option key={m} value={m} style={{ background: '#1a1a1f' }}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>
                   ))}
                 </select>
-                <button
-                  onClick={handleAddExercise}
-                  disabled={!newName.trim()}
-                  className="w-full bg-primary text-dark py-2 rounded-lg font-bold text-sm disabled:opacity-30"
-                >
-                  ✓ Créer l'exercice
-                </button>
+                <button onClick={handleAddExercise} disabled={!newName.trim()} className="tap" style={{
+                  border: 'none', borderRadius: 12, padding: '11px',
+                  background: newName.trim() ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
+                  color: '#fff', fontWeight: 700, fontSize: 13, opacity: newName.trim() ? 1 : 0.4,
+                }}>Créer l'exercice</button>
               </div>
             )}
 
             {customExercises.length === 0 ? (
-              <div className="text-center py-6 text-gray-500 text-sm">
-                <p>Aucun exercice custom pour l'instant.</p>
-                <p className="text-xs mt-1">Crée les tiens pour les retrouver dans quick-add.</p>
+              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-mute)', fontSize: 13 }}>
+                Aucun exercice custom. Crée les tiens !
               </div>
             ) : (
-              <div className="space-y-1">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {customExercises.map((ex) => (
-                  <div
-                    key={ex.id}
-                    className="flex justify-between items-center bg-bg-dark rounded-lg px-3 py-2.5"
-                  >
+                  <div key={ex.id} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: '10px 12px',
+                  }}>
                     <div>
-                      <p className="text-sm font-semibold text-text-light">{ex.name}</p>
-                      <p className="text-[10px] text-gray-500">{ex.muscleGroup}</p>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>{ex.name}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--text-mute)', marginTop: 1 }}>{ex.muscleGroup}</div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteExercise(ex.id, ex.name)}
-                      className="text-secondary text-sm px-2 py-1"
-                    >
-                      🗑️
+                    <button onClick={() => handleDeleteExercise(ex.id, ex.name)} className="tap" style={{ background: 'none', border: 'none', color: 'var(--text-mute)', padding: '4px 8px' }}>
+                      <Icons.Trash size={14} />
                     </button>
                   </div>
                 ))}
@@ -146,16 +141,16 @@ export default function Settings({ showToast }: SettingsProps) {
             )}
           </div>
 
-          <div className="bg-dark border border-primary/10 rounded-xl p-4">
-            <h3 className="font-bold text-text-light mb-1">Exercices preset</h3>
-            <p className="text-xs text-gray-500 mb-3">
+          <div className="glass" style={{ borderRadius: 22, padding: '16px 16px' }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Exercices preset</div>
+            <div style={{ fontSize: 11, color: 'var(--text-mute)', marginBottom: 12 }}>
               {Object.values(PRESET_EXERCISES).flat().length} exercices disponibles par défaut
-            </p>
-            <div className="space-y-1">
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {Object.entries(PRESET_EXERCISES).map(([group, exos]) => (
-                <div key={group} className="flex justify-between text-xs">
-                  <span className="text-gray-400 capitalize">{group}</span>
-                  <span className="text-primary font-bold">{exos.length} exos</span>
+                <div key={group} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-soft)', textTransform: 'capitalize' }}>{group}</span>
+                  <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 700, fontFamily: 'var(--mono)' }}>{exos.length}</span>
                 </div>
               ))}
             </div>
@@ -163,54 +158,41 @@ export default function Settings({ showToast }: SettingsProps) {
         </div>
       )}
 
+      {/* TEMPLATES TAB */}
       {tab === 'templates' && (
-        <div className="space-y-3">
+        <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {templates.length === 0 ? (
-            <div className="bg-dark border border-primary/20 rounded-xl p-6 text-center">
-              <p className="text-gray-500 text-sm">Aucun template sauvegardé.</p>
-              <p className="text-xs text-gray-600 mt-1">
-                Pendant une séance, tape "Sauvegarder comme template".
-              </p>
+            <div className="glass" style={{ borderRadius: 22, padding: '32px 22px', textAlign: 'center' }}>
+              <Icons.Save size={32} color="var(--text-faint)" />
+              <div style={{ marginTop: 12, color: 'var(--text-mute)', fontSize: 13 }}>Aucun template sauvegardé.</div>
+              <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-faint)' }}>Sauvegarde-en depuis une séance active.</div>
             </div>
           ) : (
-            <div className="space-y-2">
-              {templates.map((t) => (
-                <div
-                  key={t.id}
-                  className="bg-dark border border-primary/20 rounded-xl p-4"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-text-light">{t.name}</span>
-                        <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">
-                          {TYPE_LABELS[t.type] || t.type}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {t.exerciseNames.map((e, i) => (
-                          <span
-                            key={i}
-                            className="text-[10px] bg-bg-dark text-gray-400 px-2 py-0.5 rounded"
-                          >
-                            {e.name}
-                          </span>
-                        ))}
-                      </div>
-                      <p className="text-[10px] text-gray-600 mt-1">
-                        {t.exerciseNames.length} exercice{t.exerciseNames.length !== 1 ? 's' : ''}
-                      </p>
+            templates.map((t) => (
+              <div key={t.id} className="glass" style={{ borderRadius: 18, padding: '14px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</span>
+                      <span style={{ fontSize: 10, background: 'rgba(255,107,53,0.12)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 999, fontWeight: 700, textTransform: 'uppercase' }}>
+                        {TYPE_LABELS[t.type] || t.type}
+                      </span>
                     </div>
-                    <button
-                      onClick={() => handleDeleteTemplate(t.id, t.name)}
-                      className="text-secondary text-sm ml-2 mt-0.5"
-                    >
-                      🗑️
-                    </button>
+                    <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{t.exerciseNames.length} exercice{t.exerciseNames.length !== 1 ? 's' : ''}</div>
                   </div>
+                  <button onClick={() => handleDeleteTemplate(t.id, t.name)} className="tap" style={{ background: 'none', border: 'none', color: 'var(--text-mute)', marginLeft: 8 }}>
+                    <Icons.Trash size={14} />
+                  </button>
                 </div>
-              ))}
-            </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {t.exerciseNames.map((e, i) => (
+                    <span key={i} style={{ fontSize: 10, background: 'rgba(255,255,255,0.05)', color: 'var(--text-soft)', padding: '3px 8px', borderRadius: 8 }}>
+                      {e.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))
           )}
         </div>
       )}

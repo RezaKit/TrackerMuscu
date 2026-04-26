@@ -1,287 +1,251 @@
 import { useMemo, useState } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 import { useCardioStore } from '../stores/cardioStore';
-import { formatDateLong, getDateString } from '../utils/export';
+import { getDateString } from '../utils/export';
+import { Icons } from './Icons';
 import type { Session } from '../types';
 
-const TYPE_COLORS: Record<string, string> = {
-  push: 'bg-orange-500',
-  pull: 'bg-red-600',
-  legs: 'bg-gray-600',
-  upper: 'bg-orange-600',
-  lower: 'bg-red-700',
+const SESSION_CFG: Record<string, { color: string; dim: string }> = {
+  push:  { color: 'var(--primary)',   dim: 'rgba(255,107,53,0.18)' },
+  pull:  { color: 'var(--secondary)', dim: 'rgba(196,30,58,0.18)' },
+  legs:  { color: '#A78BFA',          dim: 'rgba(167,139,250,0.18)' },
+  upper: { color: '#FB923C',          dim: 'rgba(251,146,60,0.18)' },
+  lower: { color: '#F87171',          dim: 'rgba(248,113,113,0.18)' },
 };
-
-const TYPE_BORDER: Record<string, string> = {
-  push: 'border-orange-500',
-  pull: 'border-red-600',
-  legs: 'border-gray-500',
-  upper: 'border-orange-600',
-  lower: 'border-red-700',
-};
-
-const TYPE_EMOJI: Record<string, string> = {
-  push: '💪', pull: '🏋️', legs: '🦵', upper: '⬆️', lower: '⬇️',
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  push: 'Push', pull: 'Pull', legs: 'Legs', upper: 'Upper', lower: 'Lower',
-};
-
-const MONTH_NAMES = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-];
 
 const DAY_NAMES = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
+function fmtDateLong(iso: string) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+
 export default function Calendar() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [month, setMonth] = useState(new Date());
+  const [selected, setSelected] = useState<string | null>(getDateString());
   const { sessions, deleteSession } = useSessionStore();
   const { courses, natations } = useCardioStore();
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay = new Date(year, month, 1).getDay();
-  const firstDayIndex = firstDay === 0 ? 6 : firstDay - 1;
+  const year = month.getFullYear();
+  const mo = month.getMonth();
+  const daysInMonth = new Date(year, mo + 1, 0).getDate();
+  const firstDay = new Date(year, mo, 1).getDay();
+  const firstDayOffset = (firstDay + 6) % 7;
 
-  const getDateStr = (day: number) =>
-    `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDayOffset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-  const activityMap = useMemo(() => {
-    const map: Record<string, { sessions: Session[]; hasCourse: boolean; hasNat: boolean; courseKm: number }> = {};
-    for (const s of sessions) {
-      if (!map[s.date]) map[s.date] = { sessions: [], hasCourse: false, hasNat: false, courseKm: 0 };
+  const getDateStr = (d: number) =>
+    `${year}-${String(mo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+  const actMap = useMemo(() => {
+    const map: Record<string, { sessions: Session[]; hasCourse: boolean; hasNat: boolean }> = {};
+    sessions.forEach((s) => {
+      if (!map[s.date]) map[s.date] = { sessions: [], hasCourse: false, hasNat: false };
       map[s.date].sessions.push(s);
-    }
-    for (const c of courses) {
-      if (!map[c.date]) map[c.date] = { sessions: [], hasCourse: false, hasNat: false, courseKm: 0 };
+    });
+    courses.forEach((c) => {
+      if (!map[c.date]) map[c.date] = { sessions: [], hasCourse: false, hasNat: false };
       map[c.date].hasCourse = true;
-      map[c.date].courseKm += c.distance;
-    }
-    for (const n of natations) {
-      if (!map[n.date]) map[n.date] = { sessions: [], hasCourse: false, hasNat: false, courseKm: 0 };
+    });
+    natations.forEach((n) => {
+      if (!map[n.date]) map[n.date] = { sessions: [], hasCourse: false, hasNat: false };
       map[n.date].hasNat = true;
-    }
+    });
     return map;
   }, [sessions, courses, natations]);
 
-  const days: (number | null)[] = Array(firstDayIndex).fill(null);
-  for (let i = 1; i <= daysInMonth; i++) days.push(i);
-
   const today = getDateString();
-
-  const selectedInfo = selectedDate ? activityMap[selectedDate] : null;
-  const selectedCourses = selectedDate ? courses.filter((c) => c.date === selectedDate) : [];
-  const selectedNatations = selectedDate ? natations.filter((n) => n.date === selectedDate) : [];
+  const monthLabel = month.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
   const monthSessionCount = sessions.filter((s) =>
-    s.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)
+    s.date.startsWith(`${year}-${String(mo + 1).padStart(2, '0')}`)
   ).length;
 
-  const monthCourseKm = courses
-    .filter((c) => c.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`))
+  const monthKm = courses
+    .filter((c) => c.date.startsWith(`${year}-${String(mo + 1).padStart(2, '0')}`))
     .reduce((s, c) => s + c.distance, 0);
 
-  const prevMonth = () => setCurrentDate(new Date(year, month - 1));
-  const nextMonth = () => setCurrentDate(new Date(year, month + 1));
+  const selInfo = selected ? actMap[selected] : null;
+  const selCourses = selected ? courses.filter((c) => c.date === selected) : [];
+  const selNatations = selected ? natations.filter((n) => n.date === selected) : [];
 
   return (
-    <div className="p-4 pb-28 space-y-4">
+    <div className="page-enter" style={{ paddingBottom: 20 }}>
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-black text-primary">📅 CALENDRIER</h2>
-        <div className="text-right text-xs text-gray-500">
-          <span className="text-primary font-bold">{monthSessionCount}</span> séances
-          {monthCourseKm > 0 && <span> · <span className="text-blue-400 font-bold">{monthCourseKm.toFixed(1)}km</span></span>}
+      <div style={{ padding: '52px 22px 14px' }}>
+        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Historique</div>
+        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Calendrier</h1>
+        <div style={{ display: 'flex', gap: 18, marginTop: 12 }}>
+          <div>
+            <span className="t-num" style={{ fontSize: 22, color: 'var(--primary)' }}>{monthSessionCount}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-mute)', marginLeft: 4, fontWeight: 600 }}>séances</span>
+          </div>
+          <div style={{ width: 1, background: 'var(--line)' }} />
+          <div>
+            <span className="t-num" style={{ fontSize: 22 }}>{monthKm.toFixed(1)}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-mute)', marginLeft: 4, fontWeight: 600 }}>km</span>
+          </div>
         </div>
       </div>
 
-      {/* Month navigation */}
-      <div className="bg-dark border border-primary/20 rounded-xl overflow-hidden">
-        <div className="flex justify-between items-center px-4 py-3 border-b border-primary/10">
-          <button
-            onClick={prevMonth}
-            className="w-9 h-9 rounded-xl bg-bg-dark text-primary flex items-center justify-center active:scale-95 transition text-lg"
-          >
-            ‹
-          </button>
-          <div className="text-center">
-            <h3 className="font-black text-base">{MONTH_NAMES[month]}</h3>
-            <p className="text-xs text-gray-500">{year}</p>
-          </div>
-          <button
-            onClick={nextMonth}
-            className="w-9 h-9 rounded-xl bg-bg-dark text-primary flex items-center justify-center active:scale-95 transition text-lg"
-          >
-            ›
-          </button>
+      {/* Month nav */}
+      <div style={{ padding: '6px 16px 14px' }}>
+        <div className="glass" style={{ borderRadius: 18, padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <button onClick={() => setMonth(new Date(year, mo - 1))} className="tap" style={{
+            background: 'transparent', border: 'none', width: 36, height: 36, borderRadius: 12,
+            color: 'var(--text-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}><Icons.ChevronLeft size={18} /></button>
+          <span style={{ fontSize: 14, fontWeight: 700, textTransform: 'capitalize', letterSpacing: 0.1 }}>{monthLabel}</span>
+          <button onClick={() => setMonth(new Date(year, mo + 1))} className="tap" style={{
+            background: 'transparent', border: 'none', width: 36, height: 36, borderRadius: 12,
+            color: 'var(--text-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}><Icons.ChevronRight size={18} /></button>
         </div>
+      </div>
 
-        {/* Day headers */}
-        <div className="grid grid-cols-7 px-2 pt-3 pb-1">
+      {/* Grid */}
+      <div style={{ padding: '0 16px 14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 8 }}>
           {DAY_NAMES.map((d, i) => (
-            <div key={i} className="text-center text-[10px] font-black text-gray-600 uppercase">
-              {d}
-            </div>
+            <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--text-mute)', letterSpacing: 0.12 }}>{d}</div>
           ))}
         </div>
-
-        {/* Days grid */}
-        <div className="grid grid-cols-7 gap-1 p-2">
-          {days.map((day, idx) => {
-            if (!day) return <div key={idx} />;
-            const dateStr = getDateStr(day);
-            const info = activityMap[dateStr];
-            const isToday = dateStr === today;
-            const isSelected = dateStr === selectedDate;
-            const mainSession = info?.sessions[0];
-            const hasMultiple = info?.sessions.length > 1;
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5 }}>
+          {cells.map((d, i) => {
+            if (!d) return <div key={i} style={{ aspectRatio: '1' }} />;
+            const iso = getDateStr(d);
+            const info = actMap[iso];
+            const sess = info?.sessions[0];
+            const cfg = sess ? SESSION_CFG[sess.type] : null;
+            const isToday = iso === today;
+            const isSel = iso === selected;
 
             return (
-              <button
-                key={idx}
-                onClick={() => setSelectedDate(dateStr === selectedDate ? null : dateStr)}
-                className={`relative aspect-square rounded-xl text-xs flex flex-col items-center justify-center transition active:scale-90 ${
-                  mainSession
-                    ? `${TYPE_COLORS[mainSession.type]} text-white font-black shadow-sm`
-                    : info?.hasCourse
-                    ? 'bg-blue-500/20 border border-blue-500/40 text-blue-300 font-bold'
-                    : info?.hasNat
-                    ? 'bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-bold'
-                    : isToday
-                    ? 'bg-bg-dark border-2 border-primary text-primary font-black'
-                    : 'bg-bg-dark text-gray-500'
-                } ${isSelected ? 'ring-2 ring-white/60 scale-95' : ''}`}
-              >
-                <span className="leading-none">{day}</span>
-                {/* Indicators */}
-                <div className="absolute bottom-0.5 flex gap-0.5 justify-center">
-                  {mainSession && (info?.hasCourse || info?.hasNat) && (
-                    <div className="w-1 h-1 rounded-full bg-white/70" />
-                  )}
-                  {info?.hasCourse && !mainSession && info?.hasNat && (
-                    <div className="w-1 h-1 rounded-full bg-cyan-400" />
-                  )}
-                  {hasMultiple && (
-                    <div className="w-1 h-1 rounded-full bg-white/80" />
-                  )}
-                </div>
+              <button key={i} onClick={() => setSelected(iso === selected ? null : iso)} className="tap" style={{
+                aspectRatio: '1', padding: 0, borderRadius: 12,
+                background: cfg ? cfg.dim : 'rgba(255,255,255,0.03)',
+                border: isSel ? '2px solid #fff' : isToday ? '2px solid var(--primary)' : '1px solid rgba(255,255,255,0.05)',
+                position: 'relative', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                color: 'var(--text)',
+              }}>
+                {cfg && (
+                  <div style={{
+                    position: 'absolute', top: 4, right: 4,
+                    width: 5, height: 5, borderRadius: '50%',
+                    background: cfg.color, boxShadow: `0 0 6px ${cfg.color}`,
+                  }} />
+                )}
+                <span className="t-num" style={{ fontSize: 16, color: cfg ? '#fff' : 'var(--text-soft)' }}>{d}</span>
+                {(info?.hasCourse || info?.hasNat) && (
+                  <div style={{ position: 'absolute', bottom: 3, display: 'flex', gap: 2 }}>
+                    {info.hasCourse && <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--info)' }} />}
+                    {info.hasNat && <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--cyan)' }} />}
+                  </div>
+                )}
               </button>
             );
           })}
         </div>
+      </div>
 
-        {/* Legend */}
-        <div className="border-t border-primary/10 px-3 py-2 grid grid-cols-3 gap-x-3 gap-y-1">
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-            <div className="w-2.5 h-2.5 rounded-md bg-orange-500" />Push
+      {/* Legend */}
+      <div style={{ padding: '6px 22px 16px', display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        {Object.entries(SESSION_CFG).map(([k, v]) => (
+          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ width: 7, height: 7, borderRadius: 2, background: v.color }} />
+            <span style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 600, letterSpacing: 0.06, textTransform: 'uppercase' }}>{k}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-            <div className="w-2.5 h-2.5 rounded-md bg-red-600" />Pull
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-            <div className="w-2.5 h-2.5 rounded-md bg-gray-600" />Legs
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-            <div className="w-2.5 h-2.5 rounded-md bg-blue-500/40 border border-blue-500/60" />Course
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-            <div className="w-2.5 h-2.5 rounded-md bg-cyan-500/40 border border-cyan-500/60" />Natation
-          </div>
+        ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)' }} />
+          <span style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 600, letterSpacing: 0.06, textTransform: 'uppercase' }}>Course</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--cyan)' }} />
+          <span style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 600, letterSpacing: 0.06, textTransform: 'uppercase' }}>Natation</span>
         </div>
       </div>
 
-      {/* Selected day detail */}
-      {selectedDate && (
-        <div className="bg-dark border border-primary/30 rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-primary/10">
-            <h3 className="font-black text-primary capitalize">{formatDateLong(selectedDate)}</h3>
+      {/* Day detail */}
+      {selected && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 22px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12 }}>{fmtDateLong(selected)}</div>
           </div>
-
-          <div className="p-3 space-y-2">
-            {selectedInfo?.sessions.map((sess) => (
-              <div
-                key={sess.id}
-                className={`bg-bg-dark rounded-xl border-l-4 ${TYPE_BORDER[sess.type]} p-3`}
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2">
-                    <span>{TYPE_EMOJI[sess.type]}</span>
-                    <div>
-                      <p className="font-black text-primary text-sm">{TYPE_LABELS[sess.type]}</p>
-                      <p className="text-[10px] text-gray-500">
-                        {sess.exercises.length} exos · {sess.exercises.reduce((t, e) => t + e.sets.length, 0)} sets
-                      </p>
-                    </div>
+          <div style={{ padding: '6px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {selInfo?.sessions.map((sess) => {
+              const cfg = SESSION_CFG[sess.type];
+              return (
+                <div key={sess.id} className="glass" style={{ borderRadius: 22, padding: '14px 16px', borderLeft: `3px solid ${cfg?.color || 'var(--primary)'}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{
+                      fontSize: 10.5, fontWeight: 700, letterSpacing: 0.16, padding: '4px 10px', borderRadius: 999,
+                      background: cfg?.dim || 'rgba(255,107,53,0.12)', color: cfg?.color || 'var(--primary)',
+                      textTransform: 'uppercase',
+                    }}>{sess.type}</span>
+                    <button className="tap" onClick={() => {
+                      if (confirm('Supprimer cette séance ?')) deleteSession(sess.id);
+                    }} style={{ background: 'transparent', border: 'none', color: 'var(--text-mute)' }}>
+                      <Icons.Trash size={14} />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (confirm('Supprimer cette séance ?')) {
-                        deleteSession(sess.id);
-                        setSelectedDate(null);
-                      }
-                    }}
-                    className="text-secondary/70 text-sm hover:text-secondary transition"
-                  >
-                    🗑️
-                  </button>
-                </div>
-
-                <div className="space-y-1.5">
-                  {sess.exercises.map((ex) => (
-                    <div key={ex.id} className="text-xs">
-                      <p className="text-gray-300 font-semibold">{ex.exerciseName}</p>
-                      <div className="flex gap-1 flex-wrap mt-0.5">
-                        {ex.sets.map((s, i) => (
-                          <span key={i} className="text-[10px] bg-dark px-2 py-0.5 rounded text-gray-400">
-                            {s.weight}kg×{s.reps}
-                          </span>
-                        ))}
+                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {sess.exercises.map((e) => (
+                      <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                        <span style={{ fontWeight: 600 }}>{e.exerciseName}</span>
+                        <span className="t-mono" style={{ color: 'var(--text-mute)' }}>
+                          {e.sets.map((s) => `${s.weight}×${s.reps}`).join(', ')}
+                        </span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            {selectedCourses.map((c) => (
-              <div key={c.id} className="bg-bg-dark rounded-xl border-l-4 border-blue-500 p-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🏃</span>
-                  <div>
-                    <p className="font-bold text-blue-400">{c.distance} km</p>
-                    <p className="text-[10px] text-gray-500">
-                      {c.time} min · {c.distance > 0 ? (c.time / c.distance).toFixed(1) : '-'} min/km
-                    </p>
+                    ))}
                   </div>
                 </div>
-                {c.notes && <p className="text-xs text-gray-500 italic mt-1">{c.notes}</p>}
-              </div>
-            ))}
+              );
+            })}
 
-            {selectedNatations.map((n) => (
-              <div key={n.id} className="bg-bg-dark rounded-xl border-l-4 border-cyan-500 p-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🏊</span>
+            {selCourses.map((c) => (
+              <div key={c.id} className="glass" style={{ borderRadius: 22, padding: '14px 16px', borderLeft: '3px solid var(--info)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Icons.Run size={18} color="var(--info)" />
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.16, color: 'var(--info)', textTransform: 'uppercase' }}>Course</span>
+                </div>
+                <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+                  <div><div className="t-num" style={{ fontSize: 26 }}>{c.distance}</div><div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>km</div></div>
+                  <div><div className="t-num" style={{ fontSize: 26 }}>{c.time}</div><div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>min</div></div>
                   <div>
-                    <p className="font-bold text-cyan-400">{n.distance} m</p>
-                    <p className="text-[10px] text-gray-500">
-                      {n.time} min{n.style ? ` · ${n.style}` : ''}
-                    </p>
+                    <div className="t-num" style={{ fontSize: 26 }}>{c.distance > 0 ? (c.time / c.distance).toFixed(2) : '--'}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>min/km</div>
                   </div>
                 </div>
-                {n.notes && <p className="text-xs text-gray-500 italic mt-1">{n.notes}</p>}
               </div>
             ))}
 
-            {!selectedInfo?.sessions.length && selectedCourses.length === 0 && selectedNatations.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">Aucune activité ce jour</p>
+            {selNatations.map((n) => (
+              <div key={n.id} className="glass" style={{ borderRadius: 22, padding: '14px 16px', borderLeft: '3px solid var(--cyan)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Icons.Swim size={18} color="var(--cyan)" />
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.16, color: 'var(--cyan)', textTransform: 'uppercase' }}>
+                    Natation{(n as any).style ? ` · ${(n as any).style}` : ''}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+                  <div><div className="t-num" style={{ fontSize: 26 }}>{n.distance}</div><div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>m</div></div>
+                  <div><div className="t-num" style={{ fontSize: 26 }}>{n.time}</div><div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>min</div></div>
+                </div>
+              </div>
+            ))}
+
+            {!selInfo?.sessions.length && !selCourses.length && !selNatations.length && (
+              <div style={{ textAlign: 'center', color: 'var(--text-mute)', fontSize: 13, padding: '20px 0' }}>
+                Aucune activité ce jour.
+              </div>
             )}
           </div>
-        </div>
+        </>
       )}
     </div>
   );

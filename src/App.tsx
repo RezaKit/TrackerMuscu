@@ -59,44 +59,68 @@ export default function App() {
 
   const handleSessionEnd = () => {
     setCurrentPage('dashboard');
-    showToast('Séance enregistrée ✅', 'success');
+    showToast('Séance enregistrée', 'success');
   };
 
+  const inSession = !!currentSession && currentPage === 'session';
+
   return (
-    <div className="min-h-screen bg-bg-dark text-text-light pb-24">
-      {currentPage === 'dashboard' && (
-        <Dashboard
-          onNewSession={() => setCurrentPage('session')}
-          onGoToCardio={() => setCurrentPage('cardio')}
-          onGoToDaily={() => setCurrentPage('daily')}
-          showToast={showToast}
+    <div style={{
+      height: '100%',
+      background: 'var(--bg-0)',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Ambient animated background */}
+      <div className="ambient-bg" />
+
+      {/* Page content */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        overflowY: 'auto', overflowX: 'hidden',
+        scrollbarWidth: 'none',
+        paddingBottom: inSession ? 0 : 120,
+        zIndex: 1,
+      }}>
+        {currentPage === 'dashboard' && (
+          <Dashboard
+            onNewSession={() => setCurrentPage('session')}
+            onGoToCardio={() => setCurrentPage('cardio')}
+            onGoToDaily={() => setCurrentPage('daily')}
+            onGoToSettings={() => setCurrentPage('settings')}
+            onGoToStats={() => setCurrentPage('analytics')}
+            showToast={showToast}
+          />
+        )}
+
+        {currentPage === 'session' && (
+          <SessionForm
+            onSessionEnd={handleSessionEnd}
+            onCancel={() => {
+              useSessionStore.getState().cancelSession();
+              setCurrentPage('dashboard');
+            }}
+            showToast={showToast}
+          />
+        )}
+
+        {currentPage === 'calendar' && <Calendar />}
+        {currentPage === 'analytics' && <Analytics showToast={showToast} />}
+        {currentPage === 'cardio' && <Cardio showToast={showToast} />}
+        {currentPage === 'program' && <RunningProgram />}
+        {currentPage === 'daily' && <Daily showToast={showToast} />}
+        {currentPage === 'settings' && <Settings showToast={showToast} />}
+      </div>
+
+      {/* Navbar */}
+      {!inSession && (
+        <Navbar
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
         />
       )}
 
-      {currentPage === 'session' && (
-        <SessionForm
-          onSessionEnd={handleSessionEnd}
-          onCancel={() => {
-            useSessionStore.getState().cancelSession();
-            setCurrentPage('dashboard');
-          }}
-          showToast={showToast}
-        />
-      )}
-
-      {currentPage === 'calendar' && <Calendar />}
-      {currentPage === 'analytics' && <Analytics />}
-      {currentPage === 'cardio' && <Cardio showToast={showToast} />}
-      {currentPage === 'program' && <RunningProgram />}
-      {currentPage === 'daily' && <Daily showToast={showToast} />}
-      {currentPage === 'settings' && <Settings showToast={showToast} />}
-
-      <Navbar
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-        hasActiveSession={!!currentSession}
-      />
-
+      {/* Toast */}
       {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
   );

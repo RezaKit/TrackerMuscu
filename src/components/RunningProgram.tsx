@@ -1,239 +1,158 @@
-import { useMemo } from 'react';
-import { useCardioStore } from '../stores/cardioStore';
-import { PLAN, getCurrentWeek, getDaysUntilRace, getWeekProgress } from '../utils/runningPlan';
+import { getDaysUntilRace, getCurrentWeek, PLAN } from '../utils/runningPlan';
+import { Icons } from './Icons';
 
 const PHASE_COLORS: Record<string, string> = {
-  'Découverte': 'text-blue-400',
-  'Fondation': 'text-cyan-400',
-  'Construction': 'text-green-400',
-  'Endurance': 'text-yellow-400',
-  'Spécifique': 'text-orange-400',
-  'Peak': 'text-primary',
-  'Affûtage': 'text-secondary',
+  'Découverte':    '#60A5FA',
+  'Fondation':     '#22D3EE',
+  'Construction':  '#4ADE80',
+  'Endurance':     '#FACC15',
+  'Spécifique':    '#FB923C',
+  'Simulation':    '#F87171',
+  'Affûtage':      '#C084FC',
 };
 
-const PHASE_BG: Record<string, string> = {
-  'Découverte': 'border-blue-400/40 bg-blue-400/5',
-  'Fondation': 'border-cyan-400/40 bg-cyan-400/5',
-  'Construction': 'border-green-400/40 bg-green-400/5',
-  'Endurance': 'border-yellow-400/40 bg-yellow-400/5',
-  'Spécifique': 'border-orange-400/40 bg-orange-400/5',
-  'Peak': 'border-primary/40 bg-primary/5',
-  'Affûtage': 'border-secondary/40 bg-secondary/5',
-};
-
-function formatDateShort(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-}
+const PHASES_META = [
+  { name: 'Découverte', weeks: [1, 4] },
+  { name: 'Fondation', weeks: [5, 8] },
+  { name: 'Construction', weeks: [9, 12] },
+  { name: 'Endurance', weeks: [13, 16] },
+  { name: 'Spécifique', weeks: [17, 20] },
+  { name: 'Simulation', weeks: [21, 23] },
+  { name: 'Affûtage', weeks: [24, 27] },
+];
 
 export default function RunningProgram() {
-  const { courses } = useCardioStore();
+  const days = getDaysUntilRace();
   const currentWeek = getCurrentWeek();
-  const daysUntilRace = getDaysUntilRace();
-  const progress = getWeekProgress();
 
-  const completedWeeks = useMemo(() => {
-    const done = new Set<number>();
-    for (const week of PLAN) {
-      const weekEnd = new Date(week.sundayDate + 'T23:59:59');
-      const weekStart = new Date(week.sundayDate);
-      weekStart.setDate(weekStart.getDate() - 6);
-      const hasCourse = courses.some((c) => {
-        const d = new Date(c.date + 'T00:00:00');
-        return d >= weekStart && d <= weekEnd;
-      });
-      if (hasCourse) done.add(week.week);
-    }
-    return done;
-  }, [courses]);
+  const startDate = new Date(2026, 3, 26);
+  const raceDate = new Date(2026, 10, 1);
+  const totalDays = Math.round((raceDate.getTime() - startDate.getTime()) / 86400000);
+  const elapsed = Math.max(0, totalDays - days);
+  const pct = Math.max(0, Math.min(100, (elapsed / totalDays) * 100));
 
-  const raceOver = daysUntilRace === 0;
+  const curPlan = currentWeek >= 1 && currentWeek <= PLAN.length
+    ? PLAN[currentWeek - 1]
+    : PLAN[0];
+
+  const phaseColor = PHASE_COLORS[curPlan.phase] || 'var(--primary)';
 
   return (
-    <div className="p-4 pb-28 space-y-4">
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-xl font-black text-primary">🏁 PROGRAMME</h2>
-          <p className="text-xs text-gray-500">Semi-Marathon · 1er Novembre 2026</p>
-        </div>
-        <div className="text-right">
-          <p className="text-2xl font-black text-primary">{daysUntilRace}</p>
-          <p className="text-[10px] text-gray-500 uppercase">jours restants</p>
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      <div className="bg-dark border border-primary/20 rounded-xl p-4 space-y-3">
-        <div className="flex justify-between text-xs text-gray-400">
-          <span>Semaine {Math.max(1, currentWeek)} / {PLAN.length}</span>
-          <span>{progress}% du programme</span>
-        </div>
-        <div className="w-full h-3 bg-bg-dark rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-[10px] text-gray-600">
-          <span>Apr 27</span>
-          <span className="text-primary font-bold">🏁 Nov 1</span>
+    <div className="page-enter">
+      {/* Header */}
+      <div style={{ padding: '52px 22px 14px' }}>
+        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>1er Novembre 2026</div>
+        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Semi.</h1>
+        <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span className="t-num" style={{ fontSize: 60, color: 'var(--primary)' }}>{days}</span>
+          <span style={{ fontSize: 13, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.1 }}>jours restants</span>
         </div>
       </div>
 
-      {/* Phases legend */}
-      <div className="bg-dark border border-primary/10 rounded-xl p-3">
-        <div className="grid grid-cols-4 gap-1 text-[10px]">
-          {['Découverte', 'Fondation', 'Construction', 'Endurance'].map((p) => (
-            <div key={p} className="flex items-center gap-1">
-              <div className={`w-1.5 h-1.5 rounded-full ${PHASE_COLORS[p].replace('text-', 'bg-')}`} />
-              <span className="text-gray-500">{p.slice(0, 6)}.</span>
-            </div>
-          ))}
-          {['Spécifique', 'Peak', 'Affûtage'].map((p) => (
-            <div key={p} className="flex items-center gap-1">
-              <div className={`w-1.5 h-1.5 rounded-full ${PHASE_COLORS[p].replace('text-', 'bg-')}`} />
-              <span className="text-gray-500">{p.slice(0, 6)}.</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Current week highlight */}
-      {currentWeek >= 1 && currentWeek <= PLAN.length && (() => {
-        const w = PLAN[currentWeek - 1];
-        const done = completedWeeks.has(w.week);
-        return (
-          <div className={`border-2 rounded-xl p-4 space-y-2 ${done ? 'border-green-500/50 bg-green-500/5' : 'border-primary bg-primary/5'}`}>
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-[10px] text-primary font-bold uppercase tracking-widest">
-                  {done ? '✅ Semaine actuelle — Terminée' : '⚡ Semaine actuelle'}
-                </p>
-                <p className="font-black text-lg text-text-light">Semaine {w.week} · {formatDateShort(w.sundayDate)}</p>
-              </div>
-              <div className="text-right">
-                <p className={`text-3xl font-black ${PHASE_COLORS[w.phase]}`}>{w.longRunKm}</p>
-                <p className="text-[10px] text-gray-500">km dimanche</p>
-              </div>
-            </div>
-            <p className={`text-xs font-bold ${PHASE_COLORS[w.phase]}`}>{w.phase}</p>
-            <p className="text-xs text-gray-400">{w.description}</p>
-            {w.optionalKm && (
-              <div className="bg-bg-dark rounded-lg px-3 py-2 text-xs text-gray-400">
-                + Option : sortie courte de <span className="text-primary font-bold">{w.optionalKm}km</span> en semaine (mercredi idéalement)
-              </div>
-            )}
-            {w.isPeak && (
-              <div className="bg-primary/20 rounded-lg px-3 py-2 text-xs text-primary font-bold text-center">
-                🔥 SEMAINE SIMULATION — Va au bout des 21km !
-              </div>
-            )}
+      {/* Progress */}
+      <div style={{ padding: '6px 16px 14px' }}>
+        <div className="glass" style={{ borderRadius: 18, padding: '14px 16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, letterSpacing: 0.1, color: 'var(--text-mute)', textTransform: 'uppercase', marginBottom: 8 }}>
+            <span>Semaine {Math.max(1, currentWeek)} / {PLAN.length}</span>
+            <span>{Math.round(pct)}%</span>
           </div>
-        );
-      })()}
-
-      {/* Race day card */}
-      {raceOver ? (
-        <div className="bg-gradient-to-r from-primary to-secondary rounded-xl p-5 text-center">
-          <p className="text-3xl font-black text-white">🏅 COURSE TERMINÉE !</p>
-          <p className="text-white/80 text-sm mt-1">Félicitations pour ton Semi-Marathon</p>
-        </div>
-      ) : daysUntilRace <= 7 ? (
-        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 border border-primary rounded-xl p-4 text-center">
-          <p className="text-2xl font-black text-primary">🏁 LA COURSE APPROCHE !</p>
-          <p className="text-sm text-gray-300">Semi-Marathon · 1er Novembre · 21.1km</p>
-          <p className="text-xs text-gray-500 mt-1">{daysUntilRace} jour{daysUntilRace !== 1 ? 's' : ''} restant{daysUntilRace !== 1 ? 's' : ''}</p>
-        </div>
-      ) : null}
-
-      {/* Full plan */}
-      <div>
-        <h3 className="text-xs text-gray-500 uppercase font-bold mb-2">Plan complet — 27 semaines</h3>
-        <div className="space-y-1.5">
-          {PLAN.map((week) => {
-            const isCurrent = week.week === currentWeek;
-            const isPast = week.week < currentWeek;
-            const done = completedWeeks.has(week.week);
-
-            return (
-              <div
-                key={week.week}
-                className={`rounded-xl border px-3 py-2.5 flex items-center gap-3 transition ${
-                  isCurrent
-                    ? 'border-primary bg-primary/10'
-                    : done
-                    ? 'border-green-500/20 bg-green-500/5'
-                    : isPast
-                    ? 'border-gray-700/30 bg-bg-dark opacity-60'
-                    : `${PHASE_BG[week.phase]}`
-                }`}
-              >
-                <div className="text-center min-w-[28px]">
-                  {done ? (
-                    <span className="text-green-400 text-base">✓</span>
-                  ) : week.isPeak ? (
-                    <span className="text-base">🔥</span>
-                  ) : week.isRecovery ? (
-                    <span className="text-base">💤</span>
-                  ) : week.isTaper ? (
-                    <span className="text-base">🎯</span>
-                  ) : (
-                    <span className={`text-xs font-black ${isCurrent ? 'text-primary' : 'text-gray-500'}`}>
-                      {week.week}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-bold ${PHASE_COLORS[week.phase]}`}>{week.phase}</span>
-                    <span className="text-[10px] text-gray-600">{formatDateShort(week.sundayDate)}</span>
-                  </div>
-                  {week.isRecovery && (
-                    <p className="text-[10px] text-gray-500">Récupération</p>
-                  )}
-                </div>
-
-                <div className="text-right flex items-center gap-2">
-                  {week.optionalKm && (
-                    <span className="text-[9px] text-gray-600">+{week.optionalKm}km opt.</span>
-                  )}
-                  <div className="text-right">
-                    <p className={`text-base font-black ${isCurrent ? 'text-primary' : done ? 'text-green-400' : 'text-gray-300'}`}>
-                      {week.longRunKm}
-                    </p>
-                    <p className="text-[9px] text-gray-600">km</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Race day */}
-          <div className="rounded-xl border border-primary/40 bg-gradient-to-r from-primary/10 to-secondary/10 px-3 py-3 flex items-center gap-3">
-            <span className="text-xl">🏁</span>
-            <div className="flex-1">
-              <p className="font-black text-primary text-sm">SEMI-MARATHON</p>
-              <p className="text-[10px] text-gray-400">Dim 1 Novembre 2026</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xl font-black text-primary">21.1</p>
-              <p className="text-[9px] text-gray-500">km</p>
-            </div>
+          <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: pct + '%', background: 'linear-gradient(90deg, var(--primary), var(--secondary))', borderRadius: 999 }} />
+          </div>
+          <div style={{ display: 'flex', gap: 3, marginTop: 10 }}>
+            {PHASES_META.map((p) => (
+              <div key={p.name} style={{
+                flex: p.weeks[1] - p.weeks[0] + 1, height: 4, borderRadius: 2,
+                background: PHASE_COLORS[p.name], opacity: 0.7,
+              }} />
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Tips */}
-      <div className="bg-dark border border-primary/10 rounded-xl p-4 space-y-2">
-        <h3 className="text-xs font-bold text-primary uppercase">Conseils clés</h3>
-        <div className="space-y-1 text-xs text-gray-400">
-          <p>• Allure confort = tu peux parler en courant</p>
-          <p>• Hydrate-toi avant, pendant (si +60min), après</p>
-          <p>• Max 2 sorties/semaine pour éviter les blessures</p>
-          <p>• Si douleur : arrête, repos, consulte si ça persiste</p>
-          <p>• Le taper (semaines 24-27) est normal — fais confiance</p>
+      {/* Current week card */}
+      <div style={{ padding: '6px 22px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12 }}>Cette semaine</div>
+      <div style={{ padding: '6px 16px 16px' }}>
+        <div className="glass-strong" style={{
+          borderRadius: 24, padding: '18px 20px',
+          background: `linear-gradient(135deg, ${phaseColor}20 0%, rgba(0,0,0,0.4) 100%)`,
+          border: `1px solid ${phaseColor}33`,
+          position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', right: -20, bottom: -20, color: phaseColor, opacity: 0.15 }}>
+            <Icons.Run size={140} stroke={1.4} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: phaseColor, boxShadow: `0 0 12px ${phaseColor}` }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: phaseColor, letterSpacing: 0.18, textTransform: 'uppercase' }}>
+              S{curPlan.week} · {curPlan.phase}
+            </span>
+          </div>
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span className="t-num" style={{ fontSize: 76, color: '#fff', lineHeight: 0.85 }}>{curPlan.longRunKm}</span>
+            <span style={{ fontSize: 14, color: 'var(--text-soft)', fontWeight: 600 }}>km dimanche</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 8, fontStyle: 'italic' }}>
+            "{curPlan.description}"
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, padding: '5px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', color: 'var(--text-soft)', letterSpacing: 0.1, textTransform: 'uppercase' }}>
+              {new Date(curPlan.sundayDate + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            </div>
+            {curPlan.optionalKm && (
+              <div style={{ fontSize: 10.5, fontWeight: 700, padding: '5px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', color: 'var(--text-soft)', letterSpacing: 0.1, textTransform: 'uppercase' }}>
+                + {curPlan.optionalKm}km en semaine
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* All weeks */}
+      <div style={{ padding: '6px 22px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12 }}>{PLAN.length} semaines</div>
+      <div style={{ padding: '6px 16px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {PLAN.map((w) => {
+          const isCur = w.week === currentWeek;
+          const isPast = w.week < currentWeek;
+          const wColor = PHASE_COLORS[w.phase] || 'var(--primary)';
+          return (
+            <div key={w.week} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '10px 12px', borderRadius: 12,
+              background: isCur ? `${wColor}14` : 'transparent',
+              border: isCur ? `1px solid ${wColor}40` : '1px solid transparent',
+              opacity: isPast ? 0.45 : 1,
+            }}>
+              <div style={{ width: 30, fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: isCur ? wColor : 'var(--text-mute)' }}>
+                S{String(w.week).padStart(2, '0')}
+              </div>
+              <div style={{ width: 4, alignSelf: 'stretch', background: wColor, borderRadius: 2 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{w.phase}{w.isPeak ? ' · Peak' : ''}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 600 }}>
+                  {new Date(w.sundayDate + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                </div>
+              </div>
+              <div className="t-num" style={{ fontSize: 22, color: isCur ? wColor : 'var(--text-soft)' }}>{w.longRunKm}</div>
+              <span style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700 }}>km</span>
+              {w.isPeak && <Icons.Flame size={14} color="var(--secondary)" />}
+              {w.isTaper && <Icons.Moon size={14} color="var(--info)" />}
+            </div>
+          );
+        })}
+
+        {/* Race Day */}
+        <div className="glass-strong" style={{
+          marginTop: 12, borderRadius: 22, padding: '18px 20px',
+          background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
+          textAlign: 'center', position: 'relative', overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.2)',
+        }}>
+          <Icons.Flag size={36} color="#fff" />
+          <div className="t-display" style={{ fontSize: 36, color: '#fff', marginTop: 4, lineHeight: 1 }}>Race Day</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 600, marginTop: 4 }}>
+            1 NOVEMBRE 2026 · 21.1 KM
+          </div>
         </div>
       </div>
     </div>

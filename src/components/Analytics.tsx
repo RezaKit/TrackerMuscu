@@ -1,251 +1,235 @@
 import { useMemo, useState } from 'react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, AreaChart, Area,
-} from 'recharts';
 import { useSessionStore } from '../stores/sessionStore';
 import { useCardioStore } from '../stores/cardioStore';
 import { useBodyWeightStore } from '../stores/bodyweightStore';
+import { Icons } from './Icons';
 
-type Tab = 'muscle' | 'cardio' | 'bodyweight';
+interface AnalyticsProps {
+  showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
+}
 
-const CUSTOM_TOOLTIP = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
+type Tab = 'muscu' | 'cardio' | 'poids';
+
+function fmtDate(iso: string) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
+
+// ── Custom SVG area chart ─────────────────────────────────
+function Chart({ data, accessor, unit, color, label }: {
+  data: any[]; accessor: (d: any) => number; unit: string; color: string; label: string;
+}) {
+  if (!data || data.length === 0) {
     return (
-      <div className="bg-dark border border-primary/40 rounded-lg px-3 py-2 text-xs">
-        <p className="text-primary font-bold">{label}</p>
-        {payload.map((p: any) => (
-          <p key={p.dataKey} style={{ color: p.color }}>
-            {p.value} {p.name}
-          </p>
-        ))}
+      <div className="glass" style={{ borderRadius: 22, padding: 30, textAlign: 'center', color: 'var(--text-mute)', fontSize: 13 }}>
+        Aucune donnée
       </div>
     );
   }
-  return null;
-};
+  const W = 340, H = 130, pad = { l: 6, r: 6, t: 12, b: 16 };
+  const values = data.map(accessor);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const xi = (i: number) => pad.l + (i / Math.max(1, data.length - 1)) * (W - pad.l - pad.r);
+  const yi = (v: number) => pad.t + (1 - (v - min) / range) * (H - pad.t - pad.b);
+  const path = values.map((v, i) => `${i ? 'L' : 'M'}${xi(i).toFixed(1)} ${yi(v).toFixed(1)}`).join(' ');
+  const area = path + ` L${xi(values.length - 1)} ${H - pad.b} L${xi(0)} ${H - pad.b} Z`;
+  const gradId = `grad-${color.replace(/[^a-z0-9]/gi, '')}`;
 
-export default function Analytics() {
+  return (
+    <div className="glass" style={{ borderRadius: 22, padding: '14px 14px 8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, letterSpacing: 0.12, textTransform: 'uppercase' }}>{label}</span>
+        <span className="t-mono" style={{ fontSize: 11, color }}>{values[values.length - 1]} {unit}</span>
+      </div>
+      <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.4" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0.25, 0.5, 0.75].map((g) => (
+          <line key={g} x1={pad.l} x2={W - pad.r}
+            y1={pad.t + g * (H - pad.t - pad.b)} y2={pad.t + g * (H - pad.t - pad.b)}
+            stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+        ))}
+        <path d={area} fill={`url(#${gradId})`} />
+        <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {values.map((v, i) => (
+          <circle key={i} cx={xi(i)} cy={yi(v)} r={2.5} fill="#0E0E10" stroke={color} strokeWidth="1.5" />
+        ))}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--text-mute)', marginTop: -4 }}>
+        <span>{data[0]?.date ? fmtDate(data[0].date) : ''}</span>
+        <span>{data[data.length - 1]?.date ? fmtDate(data[data.length - 1].date) : ''}</span>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, unit, accent, icon }: {
+  label: string; value: string | number; unit?: string; accent?: string; icon?: React.ReactNode;
+}) {
+  return (
+    <div className="glass" style={{ padding: '14px 14px 16px', borderRadius: 22, flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden' }}>
+      {icon && (
+        <div style={{ position: 'absolute', top: 12, right: 12, color: accent || 'var(--text-mute)', opacity: 0.7 }}>{icon}</div>
+      )}
+      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.12, textTransform: 'uppercase', color: 'var(--text-mute)', marginBottom: 6 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+        <span className="t-num" style={{ fontSize: 34, color: accent || 'var(--text)' }}>{value}</span>
+        {unit && <span style={{ fontSize: 12, color: 'var(--text-mute)', fontWeight: 600 }}>{unit}</span>}
+      </div>
+    </div>
+  );
+}
+
+export default function Analytics({ showToast }: AnalyticsProps) {
   const { sessions } = useSessionStore();
   const { courses, natations } = useCardioStore();
-  const { weights } = useBodyWeightStore();
+  const { weights, addWeight } = useBodyWeightStore();
 
-  const [tab, setTab] = useState<Tab>('muscle');
-  const [selectedExercise, setSelectedExercise] = useState('');
+  const [tab, setTab] = useState<Tab>('muscu');
+  const [selectedExo, setSelectedExo] = useState('');
+  const [weightInput, setWeightInput] = useState('');
 
-  const allExercises = useMemo(() => {
+  const allExos = useMemo(() => {
     const s = new Set<string>();
     sessions.forEach((sess) => sess.exercises.forEach((ex) => s.add(ex.exerciseName)));
     return Array.from(s).sort();
   }, [sessions]);
 
-  const exerciseData = useMemo(() => {
-    if (!selectedExercise) return null;
-    const history: Record<string, { weights: number[]; reps: number[] }> = {};
-    sessions.forEach((sess) => {
-      sess.exercises.forEach((ex) => {
-        if (ex.exerciseName === selectedExercise) {
-          if (!history[sess.date]) history[sess.date] = { weights: [], reps: [] };
-          ex.sets.forEach((s) => {
-            history[sess.date].weights.push(s.weight);
-            history[sess.date].reps.push(s.reps);
-          });
-        }
-      });
-    });
-
-    const data = Object.entries(history)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, { weights: ws, reps }]) => {
-        const maxW = Math.max(...ws);
-        const maxR = Math.max(...reps);
-        const d = new Date(date + 'T00:00:00');
-        return {
-          date: d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-          weight: maxW,
-          reps: maxR,
-          oneRM: Math.round(maxW * (1 + maxR / 30)),
-        };
-      });
-
-    const allWeights = data.map((d) => d.weight);
-    const maxW = Math.max(...allWeights);
-    const progressKg = data.length >= 2 ? data[data.length - 1].weight - data[0].weight : 0;
-    const maxOneRM = Math.max(...data.map((d) => d.oneRM));
-
-    return { data, stats: { max: maxW, count: data.length, progressKg, maxOneRM } };
-  }, [sessions, selectedExercise]);
-
-  const cardioData = useMemo(() => {
-    const courseChart = [...courses]
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map((c) => ({
-        date: new Date(c.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-        distance: c.distance,
-        pace: c.distance > 0 ? parseFloat((c.time / c.distance).toFixed(2)) : 0,
-      }));
-
-    const natChart = [...natations]
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map((n) => ({
-        date: new Date(n.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-        distance: n.distance,
-        pace: n.distance > 0 ? parseFloat((n.time / (n.distance / 100)).toFixed(2)) : 0,
-      }));
-
-    return { courseChart, natChart };
-  }, [courses, natations]);
-
-  const weightChart = useMemo(() => {
-    return [...weights]
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map((w) => ({
-        date: new Date(w.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-        weight: w.weight,
-      }));
-  }, [weights]);
-
   const globalStats = useMemo(() => {
-    const totalVolume = sessions.reduce(
-      (sum, sess) =>
-        sum + sess.exercises.reduce(
-          (es, ex) => es + ex.sets.reduce((ss, s) => ss + s.weight * s.reps, 0), 0
-        ), 0
-    );
+    const totalVolume = sessions.reduce((sum, sess) =>
+      sum + sess.exercises.reduce((es, ex) =>
+        es + ex.sets.reduce((ss, s) => ss + s.weight * s.reps, 0), 0), 0);
     return {
-      totalSessions: sessions.length,
-      totalVolume,
-      totalCourseKm: courses.reduce((s, c) => s + c.distance, 0),
-      totalNatM: natations.reduce((s, n) => s + n.distance, 0),
+      sessions: sessions.length,
+      volume: totalVolume,
+      courseKm: courses.reduce((s, c) => s + c.distance, 0),
+      swimM: natations.reduce((s, n) => s + n.distance, 0),
     };
   }, [sessions, courses, natations]);
 
+  const exoData = useMemo(() => {
+    if (!selectedExo) return null;
+    const points: { date: string; max: number }[] = [];
+    [...sessions].sort((a, b) => a.date.localeCompare(b.date)).forEach((s) => {
+      const ex = s.exercises.find((e) => e.exerciseName === selectedExo);
+      if (ex && ex.sets.length) {
+        const max = Math.max(...ex.sets.map((st) => st.weight));
+        points.push({ date: s.date, max });
+      }
+    });
+    return points;
+  }, [selectedExo, sessions]);
+
+  const exoStats = useMemo(() => {
+    if (!exoData || !exoData.length) return null;
+    const vals = exoData.map((p) => p.max);
+    const exoMax = Math.max(...vals);
+    const progress = vals[vals.length - 1] - vals[0];
+    const oneRM = Math.round(exoMax * 1.0333);
+    return { max: exoMax, progress, oneRM, count: exoData.length };
+  }, [exoData]);
+
+  const courseData = useMemo(() =>
+    [...courses].sort((a, b) => a.date.localeCompare(b.date)), [courses]);
+  const swimData = useMemo(() =>
+    [...natations].sort((a, b) => a.date.localeCompare(b.date)), [natations]);
+  const weightData = useMemo(() =>
+    [...weights].sort((a, b) => a.date.localeCompare(b.date)), [weights]);
+
+  const handleAddWeight = async () => {
+    const v = parseFloat(weightInput);
+    if (!isNaN(v) && v > 0) {
+      await addWeight(v);
+      setWeightInput('');
+      showToast(`Poids enregistré: ${v} kg`, 'success');
+    }
+  };
+
+  const TABS: { id: Tab; label: string; Icon: (p: any) => JSX.Element }[] = [
+    { id: 'muscu',  label: 'Muscu',  Icon: Icons.Dumbbell },
+    { id: 'cardio', label: 'Cardio', Icon: Icons.Run },
+    { id: 'poids',  label: 'Poids',  Icon: Icons.Scale },
+  ];
+
   return (
-    <div className="p-4 pb-28 space-y-4">
-      <h2 className="text-xl font-black text-primary">📈 ANALYTIQUES</h2>
+    <div className="page-enter">
+      {/* Header */}
+      <div style={{ padding: '52px 22px 14px' }}>
+        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Progression</div>
+        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Stats</h1>
+      </div>
 
       {/* Global stats */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="bg-dark border border-primary/20 rounded-xl p-3">
-          <p className="text-[10px] text-gray-500 uppercase">Séances</p>
-          <p className="text-2xl font-black text-primary">{globalStats.totalSessions}</p>
-        </div>
-        <div className="bg-dark border border-primary/20 rounded-xl p-3">
-          <p className="text-[10px] text-gray-500 uppercase">Volume total</p>
-          <p className="text-2xl font-black text-primary">
-            {(globalStats.totalVolume / 1000).toFixed(1)}
-            <span className="text-sm font-normal text-gray-500">k kg</span>
-          </p>
-        </div>
-        <div className="bg-dark border border-primary/20 rounded-xl p-3">
-          <p className="text-[10px] text-gray-500 uppercase">Course</p>
-          <p className="text-2xl font-black text-primary">
-            {globalStats.totalCourseKm.toFixed(1)}
-            <span className="text-sm font-normal text-gray-500"> km</span>
-          </p>
-        </div>
-        <div className="bg-dark border border-primary/20 rounded-xl p-3">
-          <p className="text-[10px] text-gray-500 uppercase">Natation</p>
-          <p className="text-2xl font-black text-primary">
-            {globalStats.totalNatM}
-            <span className="text-sm font-normal text-gray-500"> m</span>
-          </p>
+      <div style={{ padding: '6px 16px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <StatCard label="Séances" value={globalStats.sessions} icon={<Icons.Dumbbell size={14} />} />
+        <StatCard label="Volume" value={(globalStats.volume / 1000).toFixed(1)} unit="t" accent="var(--primary)" icon={<Icons.Trophy size={14} />} />
+        <StatCard label="Course" value={globalStats.courseKm.toFixed(1)} unit="km" icon={<Icons.Run size={14} />} />
+        <StatCard label="Natation" value={(globalStats.swimM / 1000).toFixed(1)} unit="km" icon={<Icons.Swim size={14} />} />
+      </div>
+
+      {/* Tabs */}
+      <div style={{ padding: '0 16px 14px' }}>
+        <div className="glass" style={{ borderRadius: 16, padding: 4, display: 'flex' }}>
+          {TABS.map(({ id, label, Icon }) => {
+            const on = tab === id;
+            return (
+              <button key={id} onClick={() => setTab(id)} className="tap" style={{
+                flex: 1, border: 'none', borderRadius: 12, padding: '10px',
+                background: on ? 'var(--primary)' : 'transparent',
+                color: on ? '#fff' : 'var(--text-mute)',
+                fontSize: 12, fontWeight: 700, letterSpacing: 0.08, textTransform: 'uppercase',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}>
+                <Icon size={13} /> {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Tab selector */}
-      <div className="flex gap-1 bg-dark rounded-xl p-1">
-        {(['muscle', 'cardio', 'bodyweight'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${
-              tab === t ? 'bg-primary text-dark' : 'text-gray-400'
-            }`}
-          >
-            {t === 'muscle' ? '🏋️ Muscu' : t === 'cardio' ? '🏃 Cardio' : '⚖️ Poids'}
-          </button>
-        ))}
-      </div>
-
-      {/* MUSCLE TAB */}
-      {tab === 'muscle' && (
-        <div className="space-y-3">
-          <div className="bg-dark border border-primary/20 rounded-xl p-3">
-            <label className="text-xs text-gray-500 uppercase font-bold block mb-2">Exercice</label>
-            <select
-              value={selectedExercise}
-              onChange={(e) => setSelectedExercise(e.target.value)}
-              className="w-full bg-bg-dark border border-primary/30 rounded-lg px-3 py-2 text-text-light text-sm focus:outline-none focus:border-primary"
-            >
+      {/* MUSCU TAB */}
+      {tab === 'muscu' && (
+        <div style={{ paddingBottom: 20 }}>
+          <div style={{ padding: '0 16px 12px' }}>
+            <select value={selectedExo} onChange={(e) => setSelectedExo(e.target.value)} className="input-glass" style={{ appearance: 'none' }}>
               <option value="">-- Choisir un exercice --</option>
-              {allExercises.map((ex) => (
-                <option key={ex} value={ex}>{ex}</option>
-              ))}
+              {allExos.map((n) => <option key={n} value={n} style={{ background: '#1a1a1f' }}>{n}</option>)}
             </select>
           </div>
 
-          {selectedExercise && exerciseData && exerciseData.data.length > 0 && (
+          {selectedExo && exoData && exoStats && (
             <>
-              <div className="grid grid-cols-4 gap-1.5">
-                <div className="bg-dark border border-primary/20 rounded-xl p-2 text-center">
-                  <p className="text-[10px] text-gray-500">Max</p>
-                  <p className="text-base font-black text-primary">{exerciseData.stats.max}kg</p>
-                </div>
-                <div className="bg-dark border border-primary/20 rounded-xl p-2 text-center">
-                  <p className="text-[10px] text-gray-500">1RM est.</p>
-                  <p className="text-base font-black text-primary">{exerciseData.stats.maxOneRM}kg</p>
-                </div>
-                <div className="bg-dark border border-primary/20 rounded-xl p-2 text-center">
-                  <p className="text-[10px] text-gray-500">Progrès</p>
-                  <p className={`text-base font-black ${exerciseData.stats.progressKg >= 0 ? 'text-green-400' : 'text-secondary'}`}>
-                    {exerciseData.stats.progressKg >= 0 ? '+' : ''}{exerciseData.stats.progressKg}kg
-                  </p>
-                </div>
-                <div className="bg-dark border border-primary/20 rounded-xl p-2 text-center">
-                  <p className="text-[10px] text-gray-500">Sessions</p>
-                  <p className="text-base font-black text-primary">{exerciseData.stats.count}</p>
-                </div>
+              <div style={{ padding: '0 16px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <StatCard label="Max" value={exoStats.max} unit="kg" accent="var(--primary)" />
+                <StatCard label="1RM est." value={exoStats.oneRM} unit="kg" />
+                <StatCard label="Progression" value={(exoStats.progress >= 0 ? '+' : '') + exoStats.progress} unit="kg" accent={exoStats.progress >= 0 ? 'var(--ok)' : 'var(--secondary)'} />
+                <StatCard label="Sessions" value={exoStats.count} />
               </div>
-
-              <div className="bg-dark border border-primary/20 rounded-xl p-3">
-                <p className="text-xs text-gray-500 font-bold mb-3 uppercase">Poids max par séance (kg)</p>
-                <ResponsiveContainer width="100%" height={180}>
-                  <AreaChart data={exerciseData.data}>
-                    <defs>
-                      <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#FF6B35" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#FF6B35" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                    <XAxis dataKey="date" stroke="#666" style={{ fontSize: '10px' }} />
-                    <YAxis stroke="#666" style={{ fontSize: '10px' }} domain={['auto', 'auto']} />
-                    <Tooltip content={<CUSTOM_TOOLTIP />} />
-                    <Area
-                      type="monotone"
-                      dataKey="weight"
-                      name="kg"
-                      stroke="#FF6B35"
-                      fill="url(#weightGrad)"
-                      strokeWidth={2}
-                      dot={{ fill: '#FF6B35', r: 3 }}
-                      activeDot={{ r: 5 }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+              <div style={{ padding: '0 16px 14px' }}>
+                <Chart data={exoData} accessor={(p) => p.max} unit="kg" color="var(--primary)" label="Poids max" />
               </div>
-
-              {exerciseData.stats.progressKg > 0 && (
-                <div className="bg-dark border border-green-500/30 rounded-xl p-3 text-xs text-green-400">
-                  📈 +{exerciseData.stats.progressKg}kg sur {exerciseData.stats.count} séances — belle progression !
+              {exoStats.progress > 0 && (
+                <div style={{ padding: '0 16px 14px' }}>
+                  <div className="glass" style={{ borderRadius: 18, padding: '14px 16px', background: 'rgba(74,222,128,0.08)', borderColor: 'rgba(74,222,128,0.2)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <Icons.TrendUp size={22} color="var(--ok)" />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700 }}>+{exoStats.progress}kg sur {exoStats.count} séances</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-soft)' }}>Belle progression — continue.</div>
+                    </div>
+                  </div>
                 </div>
               )}
             </>
           )}
 
-          {allExercises.length === 0 && (
-            <div className="bg-dark border border-primary/10 rounded-xl p-6 text-center text-gray-500 text-sm">
+          {allExos.length === 0 && (
+            <div style={{ padding: '40px 22px', textAlign: 'center', color: 'var(--text-mute)', fontSize: 13 }}>
               Lance des séances pour voir tes stats !
             </div>
           )}
@@ -254,131 +238,76 @@ export default function Analytics() {
 
       {/* CARDIO TAB */}
       {tab === 'cardio' && (
-        <div className="space-y-3">
-          {cardioData.courseChart.length > 0 && (
-            <div className="bg-dark border border-primary/20 rounded-xl p-3">
-              <p className="text-xs text-gray-500 font-bold mb-3 uppercase">Course — Distance (km)</p>
-              <ResponsiveContainer width="100%" height={160}>
-                <AreaChart data={cardioData.courseChart}>
-                  <defs>
-                    <linearGradient id="courseGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#60a5fa" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="date" stroke="#666" style={{ fontSize: '10px' }} />
-                  <YAxis stroke="#666" style={{ fontSize: '10px' }} />
-                  <Tooltip content={<CUSTOM_TOOLTIP />} />
-                  <Area type="monotone" dataKey="distance" name="km" stroke="#60a5fa" fill="url(#courseGrad)" strokeWidth={2} dot={{ fill: '#60a5fa', r: 3 }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+        <div style={{ paddingBottom: 20 }}>
+          {courseData.length > 0 ? (
+            <>
+              <div style={{ padding: '0 16px 12px' }}>
+                <Chart data={courseData} accessor={(r) => r.distance} unit="km" color="var(--info)" label="Course · Distance" />
+              </div>
+              <div style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12 }}>Historique course</div>
+                {[...courseData].reverse().map((r) => (
+                  <div key={r.id} className="glass" style={{ borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(96,165,250,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--info)' }}>
+                      <Icons.Run size={16} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700 }}>{r.distance} km · {r.time} min</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{fmtDate(r.date)} · {r.distance > 0 ? (r.time / r.distance).toFixed(2) : '--'} min/km</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: '20px 22px', textAlign: 'center', color: 'var(--text-mute)', fontSize: 13 }}>Aucune course enregistrée.</div>
           )}
-
-          {cardioData.courseChart.length > 0 && (
-            <div className="bg-dark border border-primary/20 rounded-xl p-3">
-              <p className="text-xs text-gray-500 font-bold mb-3 uppercase">Allure course (min/km)</p>
-              <ResponsiveContainer width="100%" height={140}>
-                <LineChart data={cardioData.courseChart}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="date" stroke="#666" style={{ fontSize: '10px' }} />
-                  <YAxis stroke="#666" style={{ fontSize: '10px' }} reversed />
-                  <Tooltip content={<CUSTOM_TOOLTIP />} />
-                  <Line type="monotone" dataKey="pace" name="min/km" stroke="#FF6B35" strokeWidth={2} dot={{ fill: '#FF6B35', r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {cardioData.natChart.length > 0 && (
-            <div className="bg-dark border border-primary/20 rounded-xl p-3">
-              <p className="text-xs text-gray-500 font-bold mb-3 uppercase">Natation — Distance (m)</p>
-              <ResponsiveContainer width="100%" height={140}>
-                <AreaChart data={cardioData.natChart}>
-                  <defs>
-                    <linearGradient id="natGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="date" stroke="#666" style={{ fontSize: '10px' }} />
-                  <YAxis stroke="#666" style={{ fontSize: '10px' }} />
-                  <Tooltip content={<CUSTOM_TOOLTIP />} />
-                  <Area type="monotone" dataKey="distance" name="m" stroke="#22d3ee" fill="url(#natGrad)" strokeWidth={2} dot={{ fill: '#22d3ee', r: 3 }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {cardioData.courseChart.length === 0 && cardioData.natChart.length === 0 && (
-            <div className="bg-dark border border-primary/10 rounded-xl p-6 text-center text-gray-500 text-sm">
-              Ajoute des sorties course/natation pour voir tes stats !
+          {swimData.length > 0 && (
+            <div style={{ padding: '0 16px 14px' }}>
+              <Chart data={swimData} accessor={(r) => r.distance} unit="m" color="var(--cyan)" label="Natation · Distance" />
             </div>
           )}
         </div>
       )}
 
-      {/* BODYWEIGHT TAB */}
-      {tab === 'bodyweight' && (
-        <div className="space-y-3">
-          {weightChart.length >= 2 ? (
-            <>
-              <div className="bg-dark border border-primary/20 rounded-xl p-3">
-                <p className="text-xs text-gray-500 font-bold mb-3 uppercase">Poids corporel (kg)</p>
-                <ResponsiveContainer width="100%" height={200}>
-                  <AreaChart data={weightChart}>
-                    <defs>
-                      <linearGradient id="weightBodyGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#C41E3A" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#C41E3A" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                    <XAxis dataKey="date" stroke="#666" style={{ fontSize: '10px' }} />
-                    <YAxis stroke="#666" style={{ fontSize: '10px' }} domain={['auto', 'auto']} />
-                    <Tooltip content={<CUSTOM_TOOLTIP />} />
-                    <Area type="monotone" dataKey="weight" name="kg" stroke="#C41E3A" fill="url(#weightBodyGrad)" strokeWidth={2} dot={{ fill: '#C41E3A', r: 3 }} activeDot={{ r: 5 }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-
-              {(() => {
-                const first = weightChart[0].weight;
-                const last = weightChart[weightChart.length - 1].weight;
-                const diff = last - first;
-                const min = Math.min(...weightChart.map((w) => w.weight));
-                return (
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-dark border border-primary/20 rounded-xl p-3 text-center">
-                      <p className="text-[10px] text-gray-500">Actuel</p>
-                      <p className="text-lg font-black text-primary">{last}kg</p>
-                    </div>
-                    <div className="bg-dark border border-primary/20 rounded-xl p-3 text-center">
-                      <p className="text-[10px] text-gray-500">Min</p>
-                      <p className="text-lg font-black text-green-400">{min}kg</p>
-                    </div>
-                    <div className="bg-dark border border-primary/20 rounded-xl p-3 text-center">
-                      <p className="text-[10px] text-gray-500">Évolution</p>
-                      <p className={`text-lg font-black ${diff <= 0 ? 'text-green-400' : 'text-secondary'}`}>
-                        {diff > 0 ? '+' : ''}{diff.toFixed(1)}kg
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()}
-            </>
-          ) : weightChart.length === 1 ? (
-            <div className="bg-dark border border-primary/20 rounded-xl p-4 text-center">
-              <p className="text-3xl font-black text-primary">{weightChart[0].weight} kg</p>
-              <p className="text-xs text-gray-500 mt-1">Ajoute d'autres mesures pour voir la courbe</p>
-            </div>
-          ) : (
-            <div className="bg-dark border border-primary/10 rounded-xl p-6 text-center text-gray-500 text-sm">
-              Enregistre ton poids depuis le dashboard pour voir la courbe !
+      {/* POIDS TAB */}
+      {tab === 'poids' && (
+        <div style={{ paddingBottom: 20 }}>
+          {weightData.length >= 1 && (
+            <div style={{ padding: '0 16px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              <StatCard label="Actuel" value={weightData[weightData.length - 1].weight.toFixed(1)} unit="kg" accent="var(--primary)" />
+              <StatCard label="Min" value={Math.min(...weightData.map((w) => w.weight)).toFixed(1)} unit="kg" />
+              <StatCard
+                label="Évol."
+                value={(weightData[weightData.length - 1].weight - weightData[0].weight).toFixed(1)}
+                unit="kg"
+                accent={weightData[weightData.length - 1].weight <= weightData[0].weight ? 'var(--ok)' : 'var(--secondary)'}
+              />
             </div>
           )}
+          {weightData.length >= 2 && (
+            <div style={{ padding: '0 16px 14px' }}>
+              <Chart data={weightData} accessor={(w) => w.weight} unit="kg" color="var(--secondary)" label="Poids corporel" />
+            </div>
+          )}
+          <div style={{ padding: '0 16px 14px' }}>
+            <div className="glass" style={{ borderRadius: 18, padding: '14px 16px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', marginBottom: 10, letterSpacing: 0.12 }}>Ajouter mesure</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="number" inputMode="decimal" placeholder="kg"
+                  value={weightInput} onChange={(e) => setWeightInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddWeight()}
+                  className="input-glass" style={{ flex: 1, padding: '10px 14px', fontSize: 18, fontFamily: 'var(--display)' }}
+                />
+                <button onClick={handleAddWeight} disabled={!weightInput} className="tap" style={{
+                  border: 'none', borderRadius: 14, padding: '0 20px',
+                  background: weightInput ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
+                  color: '#fff', fontWeight: 700, opacity: weightInput ? 1 : 0.4,
+                }}>✓</button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
