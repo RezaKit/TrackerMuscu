@@ -2,21 +2,29 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Tracker Muscu - Suivi d'entraînement minimaliste" />
-    <meta name="theme-color" content="#1a1a1a" />
-    <title>Tracker Muscu</title>
+
+    <!-- PWA / iOS -->
+    <meta name="theme-color" content="#0D0D11" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Tracker" />
+    <link rel="apple-touch-icon" href="/TrackerMuscu/apple-touch-icon.png" />
     <link rel="manifest" href="/TrackerMuscu/manifest.json" />
-    <script type="module" crossorigin src="/TrackerMuscu/assets/index-ea5bd03c.js"></script>
-    <link rel="stylesheet" href="/TrackerMuscu/assets/index-7281a3c4.css">
+
+    <title>Tracker Muscu</title>
+    <script type="module" crossorigin src="/TrackerMuscu/assets/index-68be9177.js"></script>
+    <link rel="stylesheet" href="/TrackerMuscu/assets/index-908f3f6c.css">
   </head>
-  <body class="bg-dark text-text-light">
+  <body>
     <div id="root"></div>
     
     <script>
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/service-worker.ts');
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/TrackerMuscu/service-worker.js');
+        });
       }
     </script>
   </body>
