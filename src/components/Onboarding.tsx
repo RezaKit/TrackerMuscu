@@ -125,35 +125,42 @@ export default function Onboarding({ onDone }: OnboardingProps) {
         pointerEvents: 'none',
       }} />
 
-      {/* Progress dots */}
-      <div style={{ display: 'flex', gap: 6, marginTop: 16, marginBottom: 0, position: 'relative', zIndex: 1 }}>
-        {Array.from({ length: TOTAL_SLIDES }).map((_, i) => (
-          <div key={i} style={{
-            width: i === slide ? 22 : 7, height: 7, borderRadius: 999,
-            background: i <= slide ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-            transition: 'all 0.3s ease',
-          }} />
-        ))}
+      {/* Header row: back + dots (in normal flow, no absolute) */}
+      <div style={{
+        width: '100%', maxWidth: 400,
+        display: 'flex', alignItems: 'center',
+        marginTop: 10, marginBottom: 6,
+        position: 'relative', zIndex: 1, minHeight: 32,
+      }}>
+        {slide > 0 ? (
+          <button onClick={back} style={{
+            background: 'none', border: 'none', color: 'var(--text-mute)',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            padding: '4px 8px 4px 0',
+            display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
+          }}>← Retour</button>
+        ) : (
+          <div style={{ width: 60, flexShrink: 0 }} />
+        )}
+        <div style={{ flex: 1, display: 'flex', gap: 6, justifyContent: 'center' }}>
+          {Array.from({ length: TOTAL_SLIDES }).map((_, i) => (
+            <div key={i} style={{
+              width: i === slide ? 22 : 7, height: 7, borderRadius: 999,
+              background: i <= slide ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+              transition: 'all 0.3s ease',
+            }} />
+          ))}
+        </div>
+        <div style={{ width: 60, flexShrink: 0 }} />
       </div>
-
-      {/* Back button */}
-      {slide > 0 && (
-        <button onClick={back} style={{
-          position: 'absolute', top: 'calc(env(safe-area-inset-top, 24px) + 8px)', left: 20,
-          background: 'none', border: 'none', color: 'var(--text-mute)',
-          fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '8px',
-          display: 'flex', alignItems: 'center', gap: 4,
-        }}>
-          ← Retour
-        </button>
-      )}
 
       {/* Slide content */}
       <div style={{
         flex: 1, width: '100%', maxWidth: 400,
         display: 'flex', flexDirection: 'column',
         justifyContent: slide > 0 ? 'flex-start' : 'center',
-        paddingTop: slide > 0 ? 52 : 0,
+        overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none',
         position: 'relative', zIndex: 1,
         ...slideStyle,
       }}>
