@@ -151,7 +151,9 @@ export default function Onboarding({ onDone }: OnboardingProps) {
       {/* Slide content */}
       <div style={{
         flex: 1, width: '100%', maxWidth: 400,
-        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+        display: 'flex', flexDirection: 'column',
+        justifyContent: slide > 0 ? 'flex-start' : 'center',
+        paddingTop: slide > 0 ? 52 : 0,
         position: 'relative', zIndex: 1,
         ...slideStyle,
       }}>

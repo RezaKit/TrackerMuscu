@@ -496,10 +496,17 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
             <input type="text" placeholder="😴" value={newEmoji}
               onChange={(e) => setNewEmoji(e.target.value)}
               className="input-glass" style={{ width: 56, textAlign: 'center', fontSize: 18 }} />
-            <input type="text" placeholder="Nom de l'habitude" value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-              autoFocus className="input-glass" style={{ flex: 1 }} />
+            <div style={{ flex: 1, position: 'relative' }}>
+              <input type="text" placeholder="Nom de l'habitude" value={newName}
+                onChange={(e) => setNewName(e.target.value.slice(0, 15))}
+                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+                autoFocus className="input-glass" style={{ width: '100%' }} />
+              <span style={{
+                position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                fontSize: 10, fontWeight: 700,
+                color: newName.length >= 13 ? 'var(--primary)' : 'var(--text-faint)',
+              }}>{15 - newName.length}</span>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => setShowAddForm(false)} className="tap" style={{

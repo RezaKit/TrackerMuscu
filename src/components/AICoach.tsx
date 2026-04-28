@@ -206,6 +206,55 @@ function dayDiff(dateStr: string): number {
   return (Date.now() - new Date(dateStr).getTime()) / 86400000;
 }
 
+function formatError(msg: string): string {
+  if (msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate limit')) {
+    const m = msg.match(/retry in ([\d.]+)s/i);
+    const secs = m ? Math.ceil(parseFloat(m[1])) : null;
+    return secs
+      ? `Quota Gemini atteint ☕ Réessaie dans ${secs}s.`
+      : 'Quota Gemini atteint. Réessaie dans quelques instants.';
+  }
+  if (msg.includes('503') || msg.toLowerCase().includes('unavailable')) return 'Serveur Gemini indisponible. Réessaie dans 30s.';
+  if ((msg.includes('401') || msg.includes('403')) && !msg.includes('API_KEY')) return 'Accès refusé. Vérifie ta clé API.';
+  if (msg.includes('400') && msg.toLowerCase().includes('api_key')) return 'Clé API invalide. Vérifie dans Paramètres → Clé API.';
+  if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('failed to fetch')) return 'Connexion impossible. Vérifie ton réseau.';
+  return 'Une erreur est survenue. Réessaie.';
+}
+
+function parseInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*\n]+?\*\*)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.startsWith('**') && p.endsWith('**')
+          ? <strong key={i} style={{ color: 'var(--text)', fontWeight: 700 }}>{p.slice(2, -2)}</strong>
+          : p || null
+      )}
+    </>
+  );
+}
+
+function renderMarkdown(text: string): React.ReactNode {
+  const lines = text.split('\n');
+  const nodes: React.ReactNode[] = [];
+  lines.forEach((line, i) => {
+    const listMatch = line.match(/^\s*[\*\-•]\s+(.+)/);
+    if (listMatch) {
+      nodes.push(
+        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 3 }}>
+          <span style={{ color: 'var(--primary)', flexShrink: 0, fontSize: 15, lineHeight: '1.55' }}>·</span>
+          <span>{parseInline(listMatch[1])}</span>
+        </div>
+      );
+    } else if (line.trim() === '') {
+      nodes.push(<div key={i} style={{ height: 5 }} />);
+    } else {
+      nodes.push(<div key={i}>{parseInline(line)}</div>);
+    }
+  });
+  return <>{nodes}</>;
+}
+
 function buildContext(sessions: any[], weights: any[], entries: any[], courses: any[], templates: any[]) {
   const today = new Date().toISOString().split('T')[0];
 
@@ -463,11 +512,7 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. Franç
 
       setMessages([...updated, { role: 'assistant', content: result.text || '❌ Réponse vide. Réessaie.' }]);
     } catch (e: any) {
-      const msg = e.message || '';
-      const reply = msg.includes('400') && msg.includes('API_KEY')
-        ? '❌ Clé API invalide. Vérifie dans Paramètres.'
-        : `❌ Erreur: ${msg || 'Vérifie ta connexion.'}`;
-      setMessages([...updated, { role: 'assistant', content: reply }]);
+      setMessages([...updated, { role: 'assistant', content: `⚠️ ${formatError(e.message || '')}` }]);
     }
     setLoading(false);
   };
@@ -491,29 +536,36 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. Franç
     try {
       const result = await callGemini(continuationContents, systemText, apiKey);
 
+      const addSuccess = (prev: Message[]) => {
+        const already = prev.slice(-5).some((m) => m.content === successMsg);
+        return already ? prev : [...prev, { role: 'assistant' as const, content: successMsg }];
+      };
+
       if (result.functionCall) {
-        // Chaîne la prochaine action
         const { name, args } = result.functionCall;
         const { label, preview } = buildActionPreview(name, args);
-        setMessages((prev) => [...prev, { role: 'assistant', content: successMsg }]);
+        setMessages(addSuccess);
         setPendingAction({ type: name, args, label, preview, contentsAtCall: continuationContents });
       } else {
-        // Gemini a répondu par du texte — backup : forcer un function call au cas où il y a encore une action
         let chained = false;
         try {
           const forced = await callGemini(continuationContents, systemText, apiKey, 0, true);
           if (forced.functionCall) {
             const { name, args } = forced.functionCall;
             const { label, preview } = buildActionPreview(name, args);
-            setMessages((prev) => [...prev, { role: 'assistant', content: successMsg }]);
+            setMessages(addSuccess);
             setPendingAction({ type: name, args, label, preview, contentsAtCall: continuationContents });
             chained = true;
           }
-        } catch { /* ignore backup failure */ }
+        } catch { /* ignore */ }
 
         if (!chained) {
           const text = result.text?.trim();
-          setMessages((prev) => [...prev, { role: 'assistant', content: text || successMsg }]);
+          setMessages((prev) => {
+            const base = addSuccess(prev);
+            if (text && text !== successMsg) return [...base, { role: 'assistant', content: text }];
+            return base;
+          });
         }
       }
     } catch {
@@ -746,13 +798,17 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. Franç
             )}
             <div style={{
               maxWidth: '82%',
-              background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--primary-deep))' : 'rgba(255,255,255,0.06)',
+              background: msg.role === 'user'
+                ? 'linear-gradient(135deg, var(--primary), var(--primary-deep))'
+                : msg.content.startsWith('⚠️')
+                  ? 'rgba(251,146,60,0.08)'
+                  : 'rgba(255,255,255,0.06)',
+              border: msg.content.startsWith('⚠️') ? '1px solid rgba(251,146,60,0.25)' : 'none',
               borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
               padding: '10px 14px', fontSize: 13.5, lineHeight: 1.55,
               color: msg.role === 'user' ? '#fff' : 'var(--text-soft)',
-              whiteSpace: 'pre-wrap',
             }}>
-              {msg.content}
+              {msg.role === 'user' ? msg.content : renderMarkdown(msg.content)}
             </div>
           </div>
         ))}

@@ -737,19 +737,29 @@ function RoutineSheet({ open, onClose, showToast }: { open: boolean; onClose: ()
         </div>
 
         <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12, marginBottom: 8 }}>Rituel</div>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <div style={{
+          display: 'flex', gap: 8, marginBottom: 20,
+          overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none', overscrollBehavior: 'contain',
+          margin: '0 -18px 20px', padding: '0 18px 4px',
+        }}>
           {items.map((item) => {
             const on = completion?.completedItemIds.includes(item.id) ?? false;
             return (
               <button key={item.id} onClick={() => toggleItem(today, item.id)} className="tap glass" style={{
-                flex: 1, border: `1px solid ${on ? 'rgba(255,107,53,0.5)' : 'var(--glass-border)'}`,
+                flexShrink: 0, width: 80,
+                border: `1px solid ${on ? 'rgba(255,107,53,0.5)' : 'var(--glass-border)'}`,
                 background: on ? 'rgba(255,107,53,0.12)' : 'var(--glass-bg)',
-                borderRadius: 16, padding: '14px 6px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                borderRadius: 16, padding: '10px 4px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                 color: on ? 'var(--primary)' : 'var(--text-mute)',
               }}>
-                <span style={{ fontSize: 22, opacity: on ? 1 : 0.5 }}>{item.emoji}</span>
-                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.1, textTransform: 'uppercase' }}>{item.name}</span>
+                <span style={{ fontSize: 18, opacity: on ? 1 : 0.5 }}>{item.emoji}</span>
+                <span style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: 0.1, textTransform: 'uppercase',
+                  width: '100%', textAlign: 'center', padding: '0 4px',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{item.name}</span>
               </button>
             );
           })}
