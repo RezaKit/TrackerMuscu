@@ -15,7 +15,7 @@ export default function Toast({ message, type }: ToastProps) {
   const c = COLORS[type];
   return (
     <div style={{
-      position: 'fixed', top: 60, left: 16, right: 16, zIndex: 200,
+      position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: 16, right: 16, zIndex: 300,
       animation: 'toastIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
     }}>
       <div className="glass-strong" style={{

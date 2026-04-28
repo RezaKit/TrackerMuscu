@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { db } from '../db/db';
 import type { Template, SessionType } from '../types';
+import { PRESET_TEMPLATES } from '../db/seedTemplates';
+
+const PRESET_IDS = new Set(PRESET_TEMPLATES.map((t) => t.id));
 
 interface TemplateStore {
   templates: Template[];
@@ -14,8 +17,15 @@ export const useTemplateStore = create<TemplateStore>((set) => ({
   templates: [],
 
   loadTemplates: async () => {
+    // Upsert preset templates (toujours à jour même si on les modifie)
+    await db.templates.bulkPut(PRESET_TEMPLATES);
     const templates = await db.templates.toArray();
-    set({ templates });
+    // Presets en premier, templates user ensuite
+    const sorted = [
+      ...templates.filter((t) => PRESET_IDS.has(t.id)),
+      ...templates.filter((t) => !PRESET_IDS.has(t.id)),
+    ];
+    set({ templates: sorted });
   },
 
   createTemplate: async (name, type, exercises) => {

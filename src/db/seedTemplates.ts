@@ -1,0 +1,68 @@
+import type { Template } from '../types';
+
+export const PRESET_TEMPLATES: Template[] = [
+  {
+    id: 'preset-push',
+    name: 'PUSH',
+    type: 'push',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    exerciseNames: [
+      { name: 'Développé couché Smith',       muscleGroup: 'chest' },
+      { name: 'Développé incliné Smith',       muscleGroup: 'chest' },
+      { name: 'Fly câble haut',                muscleGroup: 'chest' },
+      { name: 'Fly câble bas',                 muscleGroup: 'chest' },
+      { name: 'Développé épaule machine',      muscleGroup: 'shoulders' },
+      { name: 'Élévations latérales câble',    muscleGroup: 'shoulders' },
+      { name: 'Face Pull corde',               muscleGroup: 'shoulders' },
+      { name: 'Pushdown corde',                muscleGroup: 'triceps' },
+      { name: 'Extension triceps câble bas',   muscleGroup: 'triceps' },
+      { name: 'Skull Crushers',                muscleGroup: 'triceps' },
+    ],
+  },
+  {
+    id: 'preset-pull',
+    name: 'PULL',
+    type: 'pull',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    exerciseNames: [
+      { name: 'Tractions rest-pause',    muscleGroup: 'back' },
+      { name: 'Lat Pulldown prise large', muscleGroup: 'back' },
+      { name: 'Seated Row',              muscleGroup: 'back' },
+      { name: 'Curl EZ prise marteau',   muscleGroup: 'biceps' },
+      { name: 'Curl câble barre droite', muscleGroup: 'biceps' },
+      { name: 'Machine curl biceps',     muscleGroup: 'biceps' },
+    ],
+  },
+  {
+    id: 'preset-legs',
+    name: 'JAMBES',
+    type: 'legs',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    exerciseNames: [
+      { name: 'Hack Squat',            muscleGroup: 'legs' },
+      { name: 'Leg Extension',         muscleGroup: 'legs' },
+      { name: 'Leg Curl assis',        muscleGroup: 'legs' },
+      { name: 'Mollets debout machine', muscleGroup: 'calves' },
+      { name: 'Back Extension',        muscleGroup: 'core' },
+    ],
+  },
+  {
+    id: 'preset-upper',
+    name: 'UPPER',
+    type: 'upper',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    exerciseNames: [
+      { name: 'Tractions rest-pause',      muscleGroup: 'back' },
+      { name: 'Développé couché Smith',    muscleGroup: 'chest' },
+      { name: 'Seated Row',               muscleGroup: 'back' },
+      { name: 'Développé incliné Smith',   muscleGroup: 'chest' },
+      { name: 'Lat Pulldown prise large',  muscleGroup: 'back' },
+      { name: 'Développé épaule machine',  muscleGroup: 'shoulders' },
+      { name: 'Élévations latérales câble', muscleGroup: 'shoulders' },
+      { name: 'Fly câble haut',            muscleGroup: 'chest' },
+      { name: 'Face Pull corde',           muscleGroup: 'shoulders' },
+      { name: 'Skull Crushers',            muscleGroup: 'triceps' },
+      { name: 'Curl EZ prise marteau',     muscleGroup: 'biceps' },
+    ],
+  },
+];

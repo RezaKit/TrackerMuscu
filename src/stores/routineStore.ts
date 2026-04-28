@@ -3,12 +3,11 @@ import { db } from '../db/db';
 import type { RoutineItem, RoutineCompletion } from '../types';
 
 const DEFAULT_ITEMS: RoutineItem[] = [
-  { id: 'r1', name: 'Étirements', emoji: '🧘', order: 0 },
-  { id: 'r2', name: 'Lecture', emoji: '📚', order: 1 },
-  { id: 'r3', name: 'No écrans 30min', emoji: '📵', order: 2 },
-  { id: 'r4', name: 'Au lit avant 23h', emoji: '🛌', order: 3 },
-  { id: 'r5', name: 'Méditation', emoji: '🧠', order: 4 },
-  { id: 'r6', name: 'Journaling', emoji: '✍️', order: 5 },
+  { id: 'r1', name: 'No écran 30min', emoji: '📵', order: 0 },
+  { id: 'r2', name: 'Tisane', emoji: '🍵', order: 1 },
+  { id: 'r3', name: 'Méditation', emoji: '🧘', order: 2 },
+  { id: 'r4', name: 'Affaire de sport', emoji: '👟', order: 3 },
+  { id: 'r5', name: 'Lit avant 23h', emoji: '🛌', order: 4 },
 ];
 
 interface RoutineStore {
@@ -28,7 +27,10 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
 
   loadAll: async () => {
     let items = await db.routineItems.toArray();
-    if (items.length === 0) {
+    // Seed ou migration depuis les anciens defaults
+    const isOldDefaults = items.length === 0 || items.some(i => i.id === 'r6');
+    if (isOldDefaults) {
+      await db.routineItems.clear();
       await db.routineItems.bulkPut(DEFAULT_ITEMS);
       items = DEFAULT_ITEMS;
     }

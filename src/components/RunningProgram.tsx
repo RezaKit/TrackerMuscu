@@ -40,7 +40,7 @@ export default function RunningProgram() {
   return (
     <div className="page-enter">
       {/* Header */}
-      <div style={{ padding: '52px 22px 14px' }}>
+      <div style={{ padding: '14px 22px 14px' }}>
         <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>1er Novembre 2026</div>
         <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Semi.</h1>
         <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', gap: 8 }}>

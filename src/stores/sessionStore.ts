@@ -9,6 +9,7 @@ interface SessionStore {
   createSession: (type: SessionType) => void;
   cancelSession: () => void;
   endSession: () => Promise<Session | null>;
+  planSession: (date: string, type: SessionType, exercises?: Array<{ name: string; muscleGroup: string }>, notes?: string) => Promise<Session>;
 
   addExercise: (exerciseName: string, muscleGroup: string) => void;
   deleteExercise: (exerciseId: string) => void;
@@ -21,6 +22,8 @@ interface SessionStore {
 
   loadSessions: () => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
+  updateSessionNotes: (id: string, notes: string) => Promise<void>;
+  rescheduleSession: (id: string, newDate: string) => Promise<void>;
 }
 
 export const useSessionStore = create<SessionStore>((set, get) => ({
@@ -171,6 +174,32 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     return completed;
   },
 
+  planSession: async (date, type, exercises = [], notes) => {
+    const sessionId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const session: Session = {
+      id: sessionId,
+      date,
+      type,
+      exercises: exercises.map((ex) => ({
+        id: crypto.randomUUID(),
+        sessionId,
+        exerciseName: ex.name,
+        muscleGroup: ex.muscleGroup,
+        sets: [],
+        createdAt: now,
+      })),
+      completed: false,
+      notes,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.sessions.put(session);
+    const sessions = await db.sessions.toArray();
+    set({ sessions });
+    return session;
+  },
+
   loadSessions: async () => {
     const sessions = await db.sessions.toArray();
     set({ sessions });
@@ -178,6 +207,22 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   deleteSession: async (id) => {
     await db.sessions.delete(id);
+    const sessions = await db.sessions.toArray();
+    set({ sessions });
+  },
+
+  updateSessionNotes: async (id, notes) => {
+    const existing = await db.sessions.get(id);
+    if (!existing) return;
+    await db.sessions.put({ ...existing, notes, updatedAt: new Date().toISOString() });
+    const sessions = await db.sessions.toArray();
+    set({ sessions });
+  },
+
+  rescheduleSession: async (id, newDate) => {
+    const existing = await db.sessions.get(id);
+    if (!existing) return;
+    await db.sessions.put({ ...existing, date: newDate, updatedAt: new Date().toISOString() });
     const sessions = await db.sessions.toArray();
     set({ sessions });
   },

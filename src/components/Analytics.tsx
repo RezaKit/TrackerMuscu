@@ -3,12 +3,13 @@ import { useSessionStore } from '../stores/sessionStore';
 import { useCardioStore } from '../stores/cardioStore';
 import { useBodyWeightStore } from '../stores/bodyweightStore';
 import { Icons } from './Icons';
+import ProgressGallery from './ProgressGallery';
 
 interface AnalyticsProps {
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
 }
 
-type Tab = 'muscu' | 'cardio' | 'poids';
+type Tab = 'muscu' | 'cardio' | 'poids' | 'photos';
 
 function fmtDate(iso: string) {
   const d = new Date(iso + 'T00:00:00');
@@ -155,12 +156,13 @@ export default function Analytics({ showToast }: AnalyticsProps) {
     { id: 'muscu',  label: 'Muscu',  Icon: Icons.Dumbbell },
     { id: 'cardio', label: 'Cardio', Icon: Icons.Run },
     { id: 'poids',  label: 'Poids',  Icon: Icons.Scale },
+    { id: 'photos', label: 'Photos', Icon: Icons.Camera },
   ];
 
   return (
     <div className="page-enter">
       {/* Header */}
-      <div style={{ padding: '52px 22px 14px' }}>
+      <div style={{ padding: '14px 22px 14px' }}>
         <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Progression</div>
         <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Stats</h1>
       </div>
@@ -267,6 +269,13 @@ export default function Analytics({ showToast }: AnalyticsProps) {
               <Chart data={swimData} accessor={(r) => r.distance} unit="m" color="var(--cyan)" label="Natation · Distance" />
             </div>
           )}
+        </div>
+      )}
+
+      {/* PHOTOS TAB */}
+      {tab === 'photos' && (
+        <div style={{ padding: '0 16px 20px' }}>
+          <ProgressGallery showToast={showToast} />
         </div>
       )}
 

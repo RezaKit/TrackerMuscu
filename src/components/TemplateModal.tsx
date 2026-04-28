@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useTemplateStore } from '../stores/templateStore';
 import { Icons } from './Icons';
 import type { SessionType } from '../types';
@@ -12,9 +13,9 @@ export default function TemplateModal({ sessionType, onSelect, onClose }: Templa
   const { templates, deleteTemplate } = useTemplateStore();
   const filtered = templates.filter((t) => t.type === sessionType);
 
-  return (
+  return createPortal(
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 100,
+      position: 'fixed', inset: 0, zIndex: 9000,
       display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
     }}>
       <div onClick={onClose} style={{
@@ -39,7 +40,11 @@ export default function TemplateModal({ sessionType, onSelect, onClose }: Templa
           }}><Icons.X size={18} /></button>
         </div>
 
-        <div style={{ overflowY: 'auto', padding: '8px 18px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{
+          overflowY: 'auto', padding: '8px 18px 24px', display: 'flex', flexDirection: 'column', gap: 10,
+          WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain',
+          paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+        }}>
           {filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-mute)', fontSize: 13 }}>
               Aucun template pour ce type.<br />Crée-en un en fin de séance!
@@ -73,6 +78,7 @@ export default function TemplateModal({ sessionType, onSelect, onClose }: Templa
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

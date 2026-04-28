@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSessionStore } from '../stores/sessionStore';
 import { useCardioStore } from '../stores/cardioStore';
 import { useBodyWeightStore } from '../stores/bodyweightStore';
 import { getPersonalRecords } from '../utils/records';
 import { exportWeekAsText, downloadText } from '../utils/weekExport';
-import { getDaysUntilRace, getCurrentWeek, PLAN } from '../utils/runningPlan';
+import { scheduleSync } from '../utils/cloudSync';
 import { useCalorieStore } from '../stores/calorieStore';
 import { useRoutineStore } from '../stores/routineStore';
 import { getDateString } from '../utils/export';
@@ -12,11 +13,13 @@ import { Icons } from './Icons';
 
 interface DashboardProps {
   onNewSession: () => void;
-  onGoToCardio: () => void;
-  onGoToDaily: () => void;
   onGoToSettings: () => void;
   onGoToStats: () => void;
+  onGoToCoach: () => void;
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
+  user?: { email?: string } | null;
+  onShowAuth?: () => void;
+  onSignOut?: () => void;
 }
 
 const SESSION_CFG: Record<string, { color: string; dim: string }> = {
@@ -44,8 +47,8 @@ function Sheet({ open, onClose, title, height = '80%', children }: {
   open: boolean; onClose: () => void; title?: string; height?: string; children: React.ReactNode;
 }) {
   if (!open) return null;
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9000, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
       <div onClick={onClose} style={{
         position: 'absolute', inset: 0,
         background: 'rgba(0,0,0,0.6)',
@@ -70,9 +73,14 @@ function Sheet({ open, onClose, title, height = '80%', children }: {
             }}><Icons.X size={18} /></button>
           </div>
         )}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>{children}</div>
+        <div style={{
+          flex: 1, overflowY: 'auto', overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -88,6 +96,7 @@ function CaloriesSheet({ open, onClose, showToast }: { open: boolean; onClose: (
   const handleSave = async () => {
     if (calIn > 0) await addEntry(calIn, 'Total mangé', 'in', today, 'dejeuner');
     if (calOut > 0) await addEntry(calOut, 'Total dépensé', 'out', today);
+    scheduleSync();
     showToast('Calories enregistrées', 'success');
     onClose();
   };
@@ -143,6 +152,7 @@ function WeightSheet({ open, onClose, showToast }: { open: boolean; onClose: () 
 
   const handleSave = async () => {
     await addWeight(val);
+    scheduleSync();
     showToast(`Poids enregistré: ${val.toFixed(1)} kg`, 'success');
     onClose();
   };
@@ -184,7 +194,7 @@ function CardioSheet({ kind, open, onClose, showToast }: { kind: 'run' | 'swim';
 
   const handleSave = async () => {
     const d = parseFloat(dist), m = parseFloat(mins);
-    if (!d || !m) return;
+    if (!d || d <= 0 || !m || m <= 0) return;
     if (isRun) {
       await addCourse(d, m, today);
       showToast(`Course: ${d} km · ${m} min`, 'success');
@@ -192,6 +202,7 @@ function CardioSheet({ kind, open, onClose, showToast }: { kind: 'run' | 'swim';
       await addNatation(d, m, today, style);
       showToast(`Natation: ${d} m · ${m} min`, 'success');
     }
+    scheduleSync();
     setDist(''); setMins('');
     onClose();
   };
@@ -244,7 +255,7 @@ function CardioSheet({ kind, open, onClose, showToast }: { kind: 'run' | 'swim';
 }
 
 // ── Main Dashboard ─────────────────────────────────────────
-export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, showToast }: DashboardProps) {
+export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, onGoToCoach, showToast, user, onShowAuth, onSignOut }: DashboardProps) {
   const { sessions } = useSessionStore();
   const { courses, natations } = useCardioStore();
   const { weights } = useBodyWeightStore();
@@ -289,10 +300,6 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, s
 
   const records = useMemo(() => getPersonalRecords(sessions).slice(0, 1), [sessions]);
 
-  const daysUntilRace = getDaysUntilRace();
-  const currentWeek = getCurrentWeek();
-  const planWeek = currentWeek >= 1 && currentWeek <= PLAN.length ? PLAN[currentWeek - 1] : null;
-
   const calStats = getDayStats(today);
   const calNet = calStats.in - calStats.out;
 
@@ -303,15 +310,15 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, s
   const { completions: routineCompletions, items: routineItemsFull } = useRoutineStore();
 
   const handleExportWeek = () => {
-    const text = exportWeekAsText(sessions, courses, natations, weights, calorieEntries, routineCompletions, routineItemsFull);
-    const filename = `semaine-${today}.txt`;
-    downloadText(text, filename);
-    showToast('Résumé semaine exporté', 'success');
+    try {
+      const text = exportWeekAsText(sessions, courses, natations, weights, calorieEntries, routineCompletions, routineItemsFull);
+      const filename = `semaine-${today}.txt`;
+      downloadText(text, filename);
+      showToast('Résumé semaine exporté', 'success');
+    } catch {
+      showToast('Erreur lors de l\'export', 'info');
+    }
   };
-
-  const totalProgramDays = Math.round((new Date(2026, 10, 1).getTime() - new Date(2026, 3, 26).getTime()) / 86400000);
-  const elapsed = totalProgramDays - daysUntilRace;
-  const progressPct = Math.max(0, Math.min(100, (elapsed / totalProgramDays) * 100));
 
   const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -319,7 +326,7 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, s
     <div className="page-enter" style={{ position: 'relative', minHeight: '100%' }}>
 
       {/* Header */}
-      <div style={{ padding: '52px 22px 14px' }}>
+      <div style={{ padding: '14px 22px 14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 600, textTransform: 'capitalize' }}>
@@ -331,13 +338,34 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, s
               WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
             }}>TRACKER</h1>
           </div>
-          <button onClick={onGoToSettings} className="tap glass" style={{
-            width: 40, height: 40, borderRadius: 14, border: '1px solid var(--glass-border)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--text-soft)', marginTop: 2,
-          }}>
-            <Icons.Settings size={18} />
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
+            {user ? (
+              <button onClick={onSignOut} className="tap glass" style={{
+                borderRadius: 12, border: '1px solid rgba(74,222,128,0.3)',
+                padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(74,222,128,0.08)',
+              }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ok)', flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: 'var(--ok)', fontWeight: 700, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.email?.split('@')[0]}
+                </span>
+              </button>
+            ) : (
+              <button onClick={onShowAuth} className="tap glass" style={{
+                borderRadius: 12, border: '1px solid var(--glass-border)',
+                padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-faint)', flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700 }}>Se connecter</span>
+              </button>
+            )}
+            <button onClick={onGoToSettings} className="tap glass" style={{
+              width: 40, height: 40, borderRadius: 14, border: '1px solid var(--glass-border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-soft)',
+            }}>
+              <Icons.Settings size={18} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -393,34 +421,6 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, s
           </div>
         </button>
       </div>
-
-      {/* Race countdown */}
-      {daysUntilRace > 0 && planWeek && (
-        <div style={{ padding: '0 16px 14px' }}>
-          <div className="glass" style={{ borderRadius: 22, padding: '16px 18px', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', right: -30, top: -20, color: 'var(--secondary)', opacity: 0.18 }}>
-              <Icons.Flag size={120} stroke={1.4} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-mute)', letterSpacing: 0.12, fontWeight: 700, textTransform: 'uppercase' }}>
-                  Semi-Marathon · S{planWeek.week} · {planWeek.phase}
-                </div>
-                <div style={{ fontSize: 14, color: 'var(--text)', marginTop: 4, fontWeight: 600 }}>
-                  {planWeek.longRunKm} km dimanche
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div className="t-num" style={{ fontSize: 38, color: 'var(--primary)' }}>{daysUntilRace}</div>
-                <div style={{ fontSize: 10, color: 'var(--text-mute)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: 0.1 }}>jours</div>
-              </div>
-            </div>
-            <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: progressPct + '%', background: 'linear-gradient(90deg, var(--primary), var(--secondary))', borderRadius: 999 }} />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 7-day stats */}
       <SectionLabel action={
@@ -592,6 +592,31 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, s
             <span style={{ fontSize: 14, fontWeight: 600 }}>+ {item.label}</span>
           </button>
         ))}
+      </div>
+
+      {/* AI Coach banner */}
+      <div style={{ padding: '0 16px 14px' }}>
+        <button onClick={onGoToCoach} className="tap" style={{
+          width: '100%', borderRadius: 20, padding: '14px 18px',
+          background: 'linear-gradient(135deg, rgba(255,107,53,0.1) 0%, rgba(196,30,58,0.1) 100%)',
+          border: '1px solid rgba(255,107,53,0.2)',
+          display: 'flex', alignItems: 'center', gap: 14,
+        }}>
+          <div style={{
+            width: 42, height: 42, borderRadius: 14, flexShrink: 0,
+            background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icons.Bot size={22} color="#fff" />
+          </div>
+          <div style={{ flex: 1, textAlign: 'left' }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Coach IA</div>
+            <div style={{ fontSize: 11, color: 'var(--text-mute)', marginTop: 1 }}>
+              Bilan semaine · Conseils · Nutrition · Technique
+            </div>
+          </div>
+          <Icons.ChevronRight size={16} color="var(--primary)" />
+        </button>
       </div>
 
       {/* Export */}

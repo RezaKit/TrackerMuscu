@@ -75,7 +75,7 @@ export default function Calendar() {
   return (
     <div className="page-enter" style={{ paddingBottom: 20 }}>
       {/* Header */}
-      <div style={{ padding: '52px 22px 14px' }}>
+      <div style={{ padding: '14px 22px 14px' }}>
         <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Historique</div>
         <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Calendrier</h1>
         <div style={{ display: 'flex', gap: 18, marginTop: 12 }}>
@@ -221,6 +221,9 @@ export default function Calendar() {
                     <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>min/km</div>
                   </div>
                 </div>
+                {typeof c.notes === 'string' && c.notes && (
+                  <div style={{ fontSize: 11, color: 'var(--text-soft)', marginTop: 8, fontStyle: 'italic' }}>{c.notes}</div>
+                )}
               </div>
             ))}
 
@@ -236,6 +239,9 @@ export default function Calendar() {
                   <div><div className="t-num" style={{ fontSize: 26 }}>{n.distance}</div><div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>m</div></div>
                   <div><div className="t-num" style={{ fontSize: 26 }}>{n.time}</div><div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>min</div></div>
                 </div>
+                {typeof (n as any).notes === 'string' && (n as any).notes && (
+                  <div style={{ fontSize: 11, color: 'var(--text-soft)', marginTop: 8, fontStyle: 'italic' }}>{(n as any).notes}</div>
+                )}
               </div>
             ))}
 

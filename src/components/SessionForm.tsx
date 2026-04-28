@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 import { useTemplateStore } from '../stores/templateStore';
 import { useExerciseStore } from '../stores/exerciseStore';
+import { useAuthStore } from '../stores/authStore';
 import { PRESET_EXERCISES } from '../db/seedExercises';
 import ExerciseTracker from './ExerciseTracker';
 import TemplateModal from './TemplateModal';
+import RestTimer from './RestTimer';
+import PostSessionPhoto from './PostSessionPhoto';
 import { Icons } from './Icons';
 import type { SessionType } from '../types';
 
@@ -30,6 +33,7 @@ export default function SessionForm({ onSessionEnd, onCancel, showToast }: Sessi
   const { getAllExercises, createExercise } = useExerciseStore();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [timerTrigger, setTimerTrigger] = useState(0);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showCustomForm, setShowCustomForm] = useState(false);
@@ -37,7 +41,9 @@ export default function SessionForm({ onSessionEnd, onCancel, showToast }: Sessi
   const [customMuscle, setCustomMuscle] = useState('chest');
   const [saveTemplateName, setSaveTemplateName] = useState('');
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [photoSession, setPhotoSession] = useState<{ type: SessionType; date: string } | null>(null);
 
+  const { user } = useAuthStore();
   const allExercises = getAllExercises();
 
   const handleAddExercise = (name: string, muscleGroup: string) => {
@@ -57,8 +63,17 @@ export default function SessionForm({ onSessionEnd, onCancel, showToast }: Sessi
   };
 
   const handleEndSession = async () => {
+    if (!currentSession) return;
+    const savedType = currentSession.type;
+    const savedDate = currentSession.date;
     const completed = await endSession();
-    if (completed) onSessionEnd();
+    if (completed) {
+      if (user) {
+        setPhotoSession({ type: savedType, date: savedDate });
+      } else {
+        onSessionEnd();
+      }
+    }
   };
 
   const handleSaveTemplate = async () => {
@@ -76,10 +91,21 @@ export default function SessionForm({ onSessionEnd, onCancel, showToast }: Sessi
     showToast('Template chargé', 'info');
   };
 
+  // ── Post-session photo modal ───────────────────────────────
+  if (photoSession) {
+    return (
+      <PostSessionPhoto
+        sessionType={photoSession.type}
+        date={photoSession.date}
+        onDone={() => { setPhotoSession(null); onSessionEnd(); }}
+      />
+    );
+  }
+
   // ── Type picker ────────────────────────────────────────────
   if (!currentSession) {
     return (
-      <div className="page-enter" style={{ padding: '52px 16px 24px' }}>
+      <div className="page-enter" style={{ padding: '14px 16px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, padding: '0 6px' }}>
           <div>
             <div style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.16 }}>Commencer</div>
@@ -174,7 +200,11 @@ export default function SessionForm({ onSessionEnd, onCancel, showToast }: Sessi
             <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-faint)' }}>Ajoute des exercices ci-dessous</div>
           </div>
         ) : (
-          <ExerciseTracker exercises={currentSession.exercises} showToast={showToast} />
+          <ExerciseTracker
+            exercises={currentSession.exercises}
+            showToast={showToast}
+            onSetAdded={() => setTimerTrigger((t) => t + 1)}
+          />
         )}
       </div>
 
@@ -325,6 +355,9 @@ export default function SessionForm({ onSessionEnd, onCancel, showToast }: Sessi
           </button>
         </div>
       )}
+
+      {/* Rest timer — floating pill, auto-starts after each set */}
+      <RestTimer trigger={timerTrigger} />
 
       {showTemplateModal && (
         <TemplateModal

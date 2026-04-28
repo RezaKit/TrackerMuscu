@@ -40,8 +40,18 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body, #root {
+html {
   height: 100%;
+  /* Remplit toute la hauteur écran sur iOS PWA */
+  height: -webkit-fill-available;
+  background: var(--bg-0);
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  min-height: 100%;
+  min-height: -webkit-fill-available;
   background: var(--bg-0);
   color: var(--text);
   font-family: var(--body);
@@ -50,7 +60,24 @@ html, body, #root {
   overflow: hidden;
 }
 
-button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+#root {
+  /* Couvre tout l'écran y compris sous Dynamic Island et home indicator */
+  position: fixed;
+  inset: 0;
+  background: var(--bg-0);
+  overflow: hidden;
+}
+
+button {
+  font-family: inherit; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; /* évite le double-tap zoom iOS */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none; /* pas de menu contexte iOS au long-press */
+}
+input, select, textarea { touch-action: manipulation; font-size: 16px; }
+/* font-size 16px évite le zoom auto iOS sur focus input */
 input, textarea, select { font-family: inherit; }
 
 /* ── Typography ─────────────────────────────────────────── */
@@ -86,6 +113,7 @@ input, textarea, select { font-family: inherit; }
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   height: 100%;
+  touch-action: pan-y; /* permet le scroll même sur les boutons enfants */
 }
 .scroll-area::-webkit-scrollbar { display: none; }
 
@@ -95,28 +123,32 @@ input, textarea, select { font-family: inherit; }
   content: '';
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.55;
+  filter: blur(90px);
+  opacity: 0.28;
+  will-change: transform;
 }
 .ambient-bg::before {
   width: 380px; height: 380px;
   background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
   top: -120px; left: -100px;
-  animation: drift1 22s ease-in-out infinite;
+  animation: drift1 32s ease-in-out infinite;
 }
 .ambient-bg::after {
   width: 320px; height: 320px;
   background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
   bottom: -100px; right: -80px;
-  animation: drift2 26s ease-in-out infinite;
+  animation: drift2 38s ease-in-out infinite;
 }
 @keyframes drift1 {
-  0%, 100% { transform: translate(0,0) scale(1); }
-  50% { transform: translate(40px,60px) scale(1.15); }
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  50% { transform: translate3d(18px,24px,0) scale(1.05); }
 }
 @keyframes drift2 {
-  0%, 100% { transform: translate(0,0) scale(1); }
-  50% { transform: translate(-50px,-40px) scale(1.1); }
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  50% { transform: translate3d(-18px,-16px,0) scale(1.04); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ambient-bg::before, .ambient-bg::after { animation: none; }
 }
 
 /* ── Tap feedback ───────────────────────────────────────── */
@@ -138,10 +170,11 @@ input, textarea, select { font-family: inherit; }
 }
 
 /* ── Page enter ─────────────────────────────────────────── */
+/* Pas de transform → évite de créer un stacking context qui piégerait les modals */
 .page-enter { animation: pageEnter 0.32s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* ── Pulse glow ─────────────────────────────────────────── */

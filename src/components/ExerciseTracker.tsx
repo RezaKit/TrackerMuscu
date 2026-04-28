@@ -1,18 +1,22 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSessionStore } from '../stores/sessionStore';
 import { getExerciseHistory, isNewRecord } from '../utils/records';
 import { Icons } from './Icons';
+import { EXERCISE_INFO } from '../db/exerciseInfo';
 import type { ExerciseLog } from '../types';
 
 interface ExerciseTrackerProps {
   exercises: ExerciseLog[];
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
+  onSetAdded?: () => void;
 }
 
-export default function ExerciseTracker({ exercises, showToast }: ExerciseTrackerProps) {
+export default function ExerciseTracker({ exercises, showToast, onSetAdded }: ExerciseTrackerProps) {
   const { addSet, editSet, deleteSet, deleteExercise, sessions } = useSessionStore();
   const [expandedId, setExpandedId] = useState<string | null>(exercises[exercises.length - 1]?.id || null);
   const [editingSet, setEditingSet] = useState<{ exId: string; idx: number } | null>(null);
+  const [infoName, setInfoName] = useState<string | null>(null);
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   const [editWeight, setEditWeight] = useState('');
@@ -26,6 +30,7 @@ export default function ExerciseTracker({ exercises, showToast }: ExerciseTracke
     addSet(exerciseId, w, r);
     setWeight('');
     setReps('');
+    onSetAdded?.();
     if (wasRecord && w > 0) showToast(`Nouveau PR — ${exerciseName}: ${w}kg`, 'record');
   };
 
@@ -46,6 +51,41 @@ export default function ExerciseTracker({ exercises, showToast }: ExerciseTracke
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Modal info exercice */}
+      {infoName && createPortal(
+        <div onClick={() => setInfoName(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 9000,
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'flex-end', padding: '0',
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', background: 'rgba(18,18,22,0.98)',
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '24px 24px 0 0',
+            padding: '24px 22px calc(40px + env(safe-area-inset-bottom, 0px))',
+            maxHeight: '80vh', overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain',
+          }}>
+            <div style={{ width: 36, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 999, margin: '0 auto 20px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,107,53,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                <Icons.Info size={16} />
+              </div>
+              <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--primary)' }}>{infoName}</span>
+            </div>
+            <p style={{ fontSize: 14, color: 'var(--text-soft)', lineHeight: 1.6 }}>
+              {EXERCISE_INFO[infoName]}
+            </p>
+            <button onClick={() => setInfoName(null)} style={{
+              marginTop: 20, width: '100%', background: 'rgba(255,255,255,0.06)',
+              border: 'none', borderRadius: 14, padding: '14px', color: 'var(--text-mute)',
+              fontWeight: 700, fontSize: 14,
+            }}>Fermer</button>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {exercises.map((exercise, exIdx) => {
         const isExpanded = expandedId === exercise.id;
         const history = getHistory(exercise.exerciseName);
@@ -63,6 +103,12 @@ export default function ExerciseTracker({ exercises, showToast }: ExerciseTracke
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="t-mono" style={{ fontSize: 11, color: 'var(--text-faint)', fontWeight: 700 }}>{String(exIdx + 1).padStart(2, '0')}</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>{exercise.exerciseName}</span>
+                  {EXERCISE_INFO[exercise.exerciseName] && (
+                    <button onClick={(e) => { e.stopPropagation(); setInfoName(exercise.exerciseName); }}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-faint)', padding: '2px', lineHeight: 0 }}>
+                      <Icons.Info size={14} />
+                    </button>
+                  )}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-mute)', marginTop: 2 }}>
                   {exercise.sets.length} sets{maxWeight > 0 && ` · max ${maxWeight}kg`} · {exercise.muscleGroup}

@@ -2,19 +2,27 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Tracker Muscu - Suivi d'entraînement minimaliste" />
-    <meta name="theme-color" content="#1a1a1a" />
-    <title>Tracker Muscu</title>
+
+    <!-- PWA / iOS -->
+    <meta name="theme-color" content="#0D0D11" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Tracker" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
+
+    <title>Tracker Muscu</title>
   </head>
-  <body class="bg-dark text-text-light">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/service-worker.ts');
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js');
+        });
       }
     </script>
   </body>

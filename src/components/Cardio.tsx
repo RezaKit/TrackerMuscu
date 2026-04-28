@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useCardioStore } from '../stores/cardioStore';
 import { getDateString } from '../utils/export';
 import { Icons } from './Icons';
+import { scheduleSync } from '../utils/cloudSync';
 
 interface CardioProps {
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
@@ -27,7 +28,7 @@ export default function Cardio({ showToast }: CardioProps) {
   const handleAdd = async () => {
     const d = parseFloat(distance);
     const t = parseFloat(time);
-    if (!d || !t) return;
+    if (!d || d <= 0 || !t || t <= 0) return;
     if (tab === 'course') {
       await addCourse(d, t, date, notes || undefined);
       showToast(`Course: ${d}km`, 'success');
@@ -35,6 +36,7 @@ export default function Cardio({ showToast }: CardioProps) {
       await addNatation(d, t, date, style, notes || undefined);
       showToast(`Natation: ${d}m`, 'success');
     }
+    scheduleSync();
     setDistance(''); setTime(''); setNotes(''); setDate(getDateString());
     setShowForm(false);
   };
@@ -46,7 +48,7 @@ export default function Cardio({ showToast }: CardioProps) {
   return (
     <div className="page-enter">
       {/* Header */}
-      <div style={{ padding: '52px 22px 14px' }}>
+      <div style={{ padding: '14px 22px 14px' }}>
         <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Cardio</div>
         <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Entraînement</h1>
       </div>

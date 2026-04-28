@@ -23,17 +23,30 @@ const MEAL_COLORS: Record<MealType, string> = {
 
 interface DailyProps {
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
+  onBack?: () => void;
 }
 
-export default function Daily({ showToast }: DailyProps) {
+export default function Daily({ showToast, onBack }: DailyProps) {
   const [tab, setTab] = useState<Tab>('calories');
   const today = getDateString();
 
   return (
     <div className="page-enter">
-      <div style={{ padding: '52px 22px 14px' }}>
-        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Suivi quotidien</div>
-        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Daily</h1>
+      <div style={{ padding: '16px 22px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Suivi quotidien</div>
+          <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Daily</h1>
+        </div>
+        {onBack && (
+          <button onClick={onBack} className="tap" style={{
+            background: 'rgba(255,255,255,0.06)', border: 'none',
+            borderRadius: 14, padding: '10px 16px', marginTop: 4,
+            color: 'var(--text-mute)', fontSize: 13, fontWeight: 700,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <Icons.ChevronLeft size={16} /> Retour
+          </button>
+        )}
       </div>
 
       <div style={{ padding: '6px 16px 14px' }}>
@@ -443,6 +456,7 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
               background: checked ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.04)',
               outline: checked ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(255,255,255,0.06)',
               transition: 'background 0.2s',
+              touchAction: 'manipulation',
             }}>
               <div style={{
                 width: 24, height: 24, borderRadius: '50%', flexShrink: 0,

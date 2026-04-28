@@ -10,18 +10,19 @@ const TABS: { id: Page; label: string; Icon: (props: any) => JSX.Element }[] = [
   { id: 'dashboard', label: 'Home',       Icon: Icons.Home },
   { id: 'calendar',  label: 'Calendrier', Icon: Icons.Calendar },
   { id: 'analytics', label: 'Stats',      Icon: Icons.Stats },
-  { id: 'program',   label: 'Programme',  Icon: Icons.Flag },
+  { id: 'params',    label: 'Paramètres', Icon: Icons.Settings },
 ];
 
 export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
   return (
     <div style={{
       position: 'fixed', left: 0, right: 0, bottom: 0,
-      paddingBottom: 28, paddingTop: 10, zIndex: 30,
+      paddingBottom: 'env(safe-area-inset-bottom, 8px)',
+      paddingTop: 4, zIndex: 30,
       pointerEvents: 'none',
     }}>
       <div style={{
-        margin: '0 14px', height: 70, position: 'relative',
+        margin: '0 14px', height: 60, position: 'relative',
         pointerEvents: 'auto',
       }}>
         {/* Glass pill */}
@@ -72,9 +73,9 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
           onClick={() => onPageChange('session')}
           className="tap pulse-glow"
           style={{
-            position: 'absolute', left: '50%', top: -18,
+            position: 'absolute', left: '50%', top: -16,
             transform: 'translateX(-50%)',
-            width: 64, height: 64, borderRadius: '50%',
+            width: 58, height: 58, borderRadius: '50%',
             border: '2px solid rgba(255,255,255,0.15)',
             background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
