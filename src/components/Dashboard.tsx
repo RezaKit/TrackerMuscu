@@ -74,7 +74,7 @@ function Sheet({ open, onClose, title, height = '80%', children }: {
           </div>
         )}
         <div style={{
-          flex: 1, overflowY: 'auto', overflowX: 'hidden',
+          flex: 1, overflowY: 'auto',
           WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}>{children}</div>
@@ -741,7 +741,6 @@ function RoutineSheet({ open, onClose, showToast }: { open: boolean; onClose: ()
           display: 'flex', gap: 8, marginBottom: 20,
           overflowX: 'auto', WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none', overscrollBehavior: 'contain',
-          margin: '0 -18px 20px', padding: '0 18px 4px',
         }}>
           {items.map((item) => {
             const on = completion?.completedItemIds.includes(item.id) ?? false;

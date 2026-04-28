@@ -504,7 +504,7 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
               <span style={{
                 position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
                 fontSize: 10, fontWeight: 700,
-                color: newName.length >= 13 ? 'var(--primary)' : 'var(--text-faint)',
+                color: newName.length >= 13 ? 'var(--primary)' : 'var(--text-mute)',
               }}>{15 - newName.length}</span>
             </div>
           </div>
