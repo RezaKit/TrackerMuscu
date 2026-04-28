@@ -202,6 +202,23 @@ input, textarea, select { font-family: inherit; }
   box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
 }
 
+/* ── iOS time input fix : kills native min-width that breaks side-by-side layout ── */
+.time-input {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0 !important;
+  max-width: 100%;
+}
+.time-input::-webkit-date-and-time-value {
+  text-align: center;
+  margin: 0;
+  min-width: 0;
+}
+.time-input::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
 /* ── Switch ─────────────────────────────────────────────── */
 .switch {
   width: 44px; height: 26px; border-radius: 999px;

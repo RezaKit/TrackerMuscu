@@ -714,16 +714,16 @@ function RoutineSheet({ open, onClose, showToast }: { open: boolean; onClose: ()
     <Sheet open={open} onClose={onClose} title="Routine du soir" height="78%">
       <div style={{ padding: '8px 18px 24px' }}>
         <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12, marginBottom: 8 }}>Sommeil</div>
-        <div className="glass" style={{ borderRadius: 18, padding: 16, marginBottom: 16 }}>
-          <div style={{ display: 'flex', gap: 12 }}>
+        <div className="glass" style={{ borderRadius: 18, padding: 14, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             {[
               { label: 'Couché', val: bedtime, set: setBedtime },
               { label: 'Levé', val: wake, set: setWake },
             ].map((f) => (
-              <div key={f.label} style={{ flex: 1 }}>
-                <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 6 }}>{f.label}</div>
-                <input type="time" value={f.val} onChange={(e) => f.set(e.target.value)} className="input-glass"
-                  style={{ padding: 12, textAlign: 'center', fontWeight: 600, fontSize: 18, fontFamily: 'var(--mono)' }} />
+              <div key={f.label} style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 6 }}>{f.label}</div>
+                <input type="time" value={f.val} onChange={(e) => f.set(e.target.value)} className="input-glass time-input"
+                  style={{ padding: '10px 4px', textAlign: 'center', fontWeight: 700, fontSize: 15, fontFamily: 'var(--mono)', width: '100%', minWidth: 0, boxSizing: 'border-box' }} />
               </div>
             ))}
           </div>

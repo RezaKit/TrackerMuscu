@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GAIN·OS — Merci pour ton inscription !</title>
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #FF6B35;
+      --bg: #050505;
+      --glass-border: rgba(255,255,255,0.08);
+      --text: #F5F5F7;
+      --text-mute: #76767E;
+      --bebas: 'Bebas Neue', sans-serif;
+      --inter: 'Inter', sans-serif;
+    }
+    body {
+      font-family: var(--inter);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      text-align: center;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: radial-gradient(circle at 50% 40%, rgba(255,107,53,0.1) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--glass-border);
+      border-radius: 28px;
+      padding: 48px 32px;
+      max-width: 400px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+    .icon {
+      font-size: 56px;
+      margin-bottom: 20px;
+      display: block;
+      animation: bounce 0.6s ease;
+    }
+    @keyframes bounce {
+      0% { transform: scale(0.5); opacity: 0; }
+      70% { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    h1 {
+      font-family: var(--bebas);
+      font-size: 48px;
+      letter-spacing: 0.02em;
+      margin-bottom: 12px;
+    }
+    h1 span { color: var(--primary); }
+    p {
+      font-size: 15px;
+      color: var(--text-mute);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .highlight {
+      background: rgba(255,107,53,0.1);
+      border: 1px solid rgba(255,107,53,0.25);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin: 24px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      color: var(--text-mute);
+      font-size: 13px;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 2px;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--text); }
+    .logo {
+      font-family: var(--bebas);
+      font-size: 18px;
+      letter-spacing: 0.04em;
+      margin-bottom: 32px;
+      opacity: 0.5;
+    }
+    .logo span { color: var(--primary); }
+  </style>
+</head>
+<body>
+  <div class="logo">GAIN<span>·</span>OS</div>
+
+  <div class="card">
+    <span class="icon">🎉</span>
+    <h1>C'est<br/><span>noté !</span></h1>
+
+    <p>Tu es sur la liste. On t'enverra un email dès que GAIN·OS sera disponible.</p>
+
+    <div class="highlight">
+      🔥 -30% à vie garanti pour les 500 premiers inscrits.<br/>
+      Ta place est réservée.
+    </div>
+
+    <p>En attendant, continue de t'entraîner — tes gains, eux, ne s'arrêtent pas.</p>
+
+    <a href="/index.html" class="back-link">← Retour à l'accueil</a>
+  </div>
+</body>
+</html>

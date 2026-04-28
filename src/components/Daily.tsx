@@ -500,11 +500,15 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
               <input type="text" placeholder="Nom de l'habitude" value={newName}
                 onChange={(e) => setNewName(e.target.value.slice(0, 15))}
                 onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                autoFocus className="input-glass" style={{ width: '100%' }} />
+                maxLength={15}
+                autoFocus className="input-glass" style={{ width: '100%', paddingRight: 44 }} />
               <span style={{
                 position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                fontSize: 10, fontWeight: 700,
-                color: newName.length >= 13 ? 'var(--primary)' : 'var(--text-mute)',
+                fontSize: 12, fontWeight: 800,
+                padding: '3px 8px', borderRadius: 8, lineHeight: 1,
+                background: newName.length >= 13 ? 'rgba(255,107,53,0.2)' : 'rgba(255,255,255,0.08)',
+                color: newName.length >= 13 ? 'var(--primary)' : 'var(--text-soft)',
+                pointerEvents: 'none',
               }}>{15 - newName.length}</span>
             </div>
           </div>

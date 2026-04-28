@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GAIN·OS — L'app que j'aurais voulu trouver.</title>
+  <meta name="description" content="Coach IA qui connaît tes vraies données. Calendrier, records, multi-sport. Construit par un lifter pour des lifters." />
+  <meta property="og:title" content="GAIN·OS" />
+  <meta property="og:description" content="-30% à vie pour les 500 premiers." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --p: #FF6B35;
+      --p2: #FF8C42;
+      --red: #C41E3A;
+      --bg: #050505;
+      --bg1: #0B0B0B;
+      --bg2: #131313;
+      --paper: #F5F1EA;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.14);
+      --t: #F5F5F7;
+      --tm: #84848C;
+      --tf: #44444A;
+      --bebas: 'Bebas Neue', sans-serif;
+      --anton: 'Anton', sans-serif;
+      --serif: 'Instrument Serif', serif;
+      --inter: 'Inter', sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--inter);
+      background: var(--bg);
+      color: var(--t);
+      overflow-x: hidden;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ─── Grain noise ─── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: 0.6;
+    }
+
+    /* ─── Marquee top strip ─── */
+    .top-strip {
+      background: var(--p); color: #fff;
+      padding: 8px 0; overflow: hidden; position: relative; z-index: 100;
+      border-bottom: 1px solid rgba(0,0,0,0.2);
+    }
+    .strip-track {
+      display: flex; gap: 40px; width: max-content;
+      animation: scroll 38s linear infinite;
+      font-family: var(--inter);
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      align-items: center;
+    }
+    .strip-track > span { display: flex; align-items: center; gap: 40px; flex-shrink: 0; }
+    .strip-track i { font-style: normal; opacity: 0.4; }
+    @keyframes scroll {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    /* ─── Nav ─── */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 40px;
+      background: rgba(5,5,5,0.7);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-family: var(--bebas);
+      font-size: 26px;
+      letter-spacing: 0.04em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .logo em {
+      font-style: normal;
+      width: 5px; height: 5px;
+      background: var(--p);
+      display: inline-block;
+      border-radius: 50%;
+      margin: 0 2px;
+      box-shadow: 0 0 8px var(--p);
+    }
+    .logo .v {
+      font-family: var(--inter);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--tm);
+      background: rgba(255,255,255,0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+      letter-spacing: 0;
+    }
+    .nav-cta {
+      font-family: var(--inter);
+      background: var(--t); color: var(--bg);
+      font-weight: 700; font-size: 13px;
+      padding: 10px 22px;
+      border-radius: 99px;
+      border: none; cursor: pointer;
+      transition: opacity .2s, transform .1s;
+    }
+    .nav-cta:hover { opacity: 0.85; }
+    .nav-cta:active { transform: scale(0.97); }
+
+    /* ─── HERO ─── */
+    .hero {
+      padding: 80px 40px 100px;
+      max-width: 1300px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .hero-meta {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 36px;
+      font-family: var(--inter);
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--tm);
+    }
+    .hero-meta .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--p); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.7); opacity: 0.5; } }
+    .hero-meta .sep { color: var(--tf); }
+
+    h1.hero-h1 {
+      font-family: var(--anton);
+      font-size: clamp(60px, 11vw, 168px);
+      line-height: 0.88;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      margin-bottom: 36px;
+      max-width: 1100px;
+    }
+    h1.hero-h1 em {
+      font-family: var(--serif);
+      font-style: italic;
+      text-transform: none;
+      font-weight: 400;
+      color: var(--p);
+      letter-spacing: 0;
+    }
+    h1.hero-h1 .strike {
+      position: relative; display: inline-block; color: var(--tf);
+    }
+    h1.hero-h1 .strike::after {
+      content: ''; position: absolute; left: -2%; right: -2%; top: 50%;
+      height: 5px; background: var(--p); transform: rotate(-2deg);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 80px;
+      align-items: end;
+      margin-top: 20px;
+    }
+
+    .hero-sub {
+      font-family: var(--serif);
+      font-size: 26px;
+      font-style: italic;
+      color: var(--tm);
+      line-height: 1.45;
+      max-width: 540px;
+      margin-bottom: 32px;
+    }
+    .hero-sub strong { font-style: normal; color: var(--t); font-family: var(--inter); font-weight: 700; }
+
+    /* Form */
+    .form-block { max-width: 460px; }
+    .offer-tag {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 7px 14px;
+      border: 1px solid var(--p);
+      border-radius: 99px;
+      font-size: 11px; font-weight: 800;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--p);
+      margin-bottom: 14px;
+    }
+    .offer-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--p); }
+
+    .email-row {
+      display: flex; gap: 0;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border2);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color .2s;
+    }
+    .email-row:focus-within { border-color: var(--p); }
+    .email-row input {
+      flex: 1; min-width: 0;
+      background: transparent; border: none; outline: none;
+      padding: 18px 20px;
+      font-size: 15px; color: var(--t);
+      font-family: var(--inter);
+    }
+    .email-row input::placeholder { color: var(--tf); }
+    .btn-go {
+      background: var(--p); color: #fff;
+      border: none; padding: 0 24px;
+      font-size: 14px; font-weight: 800;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      cursor: pointer; font-family: var(--inter);
+      transition: background .2s, transform .1s;
+      white-space: nowrap;
+    }
+    .btn-go:hover { background: #E55A24; }
+    .btn-go:active { transform: scale(0.97); }
+    .btn-go:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .consent {
+      display: flex; align-items: flex-start; gap: 10px;
+      margin-top: 14px;
+    }
+    .consent input { width: 15px; height: 15px; accent-color: var(--p); margin-top: 2px; flex-shrink: 0; cursor: pointer; }
+    .consent label { font-size: 11px; color: var(--tm); line-height: 1.55; cursor: pointer; }
+    .consent label a { color: var(--p); text-decoration: underline; text-decoration-color: rgba(255,107,53,0.4); }
+
+    .form-msg {
+      margin-top: 12px;
+      padding: 10px 14px; border-radius: 10px;
+      font-size: 12px; font-weight: 600; display: none;
+    }
+    .form-msg.error { background: rgba(196,30,58,0.1); color: #F87171; border: 1px solid rgba(196,30,58,0.2); display: block; }
+    .form-msg.already { background: rgba(255,107,53,0.08); color: var(--p); border: 1px solid rgba(255,107,53,0.2); display: block; }
+
+    .success-state {
+      display: none; padding: 32px 24px;
+      background: rgba(255,107,53,0.06);
+      border: 1px dashed rgba(255,107,53,0.3);
+      border-radius: 16px; text-align: center;
+    }
+    .success-state.show { display: block; }
+    .success-state h3 { font-family: var(--bebas); font-size: 36px; letter-spacing: 0.02em; margin-bottom: 8px; }
+    .success-state h3 em { font-family: var(--serif); font-style: italic; color: var(--p); font-weight: 400; }
+    .success-state p { font-size: 13px; color: var(--tm); }
+
+    /* ─── Hero phone ─── */
+    .hero-visual {
+      position: relative;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 460px;
+    }
+    .stamp {
+      position: absolute;
+      top: -20px; right: 20px;
+      font-family: var(--anton);
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      color: var(--p);
+      border: 2px solid var(--p);
+      padding: 6px 12px;
+      border-radius: 4px;
+      transform: rotate(8deg);
+      text-transform: uppercase;
+      animation: stampShake 4s ease-in-out infinite;
+    }
+    @keyframes stampShake {
+      0%,100% { transform: rotate(8deg); }
+      50% { transform: rotate(6deg) scale(1.02); }
+    }
+
+    .phone {
+      width: 280px; height: 560px;
+      background: #0A0A0A;
+      border-radius: 48px;
+      border: 1.5px solid rgba(255,255,255,0.12);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.04),
+        0 50px 140px rgba(0,0,0,0.85),
+        0 0 100px rgba(255,107,53,0.08);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 96px; height: 28px; background: #000; border-radius: 99px; z-index: 10;
+    }
+
+    .pscreen {
+      flex: 1; padding: 52px 14px 14px; background: #050505;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .ps-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px;
+    }
+    .ps-hello { font-size: 12px; font-weight: 700; }
+    .ps-streak {
+      font-size: 10px; font-weight: 700;
+      background: rgba(255,107,53,0.18); color: var(--p);
+      padding: 4px 10px; border-radius: 99px;
+    }
+    .ps-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px; padding: 12px;
+      margin-bottom: 10px;
+    }
+    .ps-lbl {
+      font-size: 9px; color: var(--tm); text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 700;
+    }
+    .ps-pills { display: flex; gap: 5px; flex-wrap: wrap; }
+    .ps-pill {
+      font-size: 8px; font-weight: 800; padding: 4px 10px;
+      border-radius: 99px; text-transform: uppercase;
+    }
+    .ps-pill.push { background: rgba(255,107,53,0.2); color: var(--p); }
+    .ps-pill.pull { background: rgba(196,30,58,0.2); color: var(--red); }
+    .ps-pill.legs { background: rgba(167,139,250,0.2); color: #A78BFA; }
+    .ps-pill.full { background: rgba(251,146,60,0.2); color: #FB923C; }
+
+    .ps-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+    .ps-bar-l { font-size: 8px; color: var(--tm); width: 22px; font-weight: 700; }
+    .ps-bar-t { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+    .ps-bar-f { height: 100%; background: linear-gradient(90deg, var(--p), var(--p2)); border-radius: 99px; }
+    .ps-bar-v { font-size: 8px; color: var(--t); font-weight: 800; width: 22px; text-align: right; }
+
+    .ps-rec {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,107,53,0.08);
+      border: 1px solid rgba(255,107,53,0.2);
+      border-radius: 12px; padding: 8px 10px;
+    }
+    .ps-rec-i { font-size: 14px; }
+    .ps-rec-n { font-size: 9px; font-weight: 800; color: var(--t); }
+    .ps-rec-v { font-size: 8px; color: var(--tm); }
+
+    /* Floating notification cards */
+    .float-note {
+      position: absolute;
+      background: rgba(15,15,15,0.95);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px; padding: 12px 14px;
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      white-space: nowrap;
+      font-size: 12px; font-weight: 800;
+      z-index: 5;
+    }
+    .float-note .sub { font-size: 10px; font-weight: 500; color: var(--tm); margin-top: 2px; }
+    .fn-1 { top: 60px; right: -40px; animation: floatA 6s ease-in-out infinite; }
+    .fn-2 { bottom: 80px; left: -50px; animation: floatB 7s ease-in-out infinite; animation-delay: 1s; }
+    @keyframes floatA { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    @keyframes floatB { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
+    .fn-orange { color: var(--p); }
+    .fn-green { color: #4ADE80; }
+
+    /* ─── MANIFESTO ─── */
+    .manifesto {
+      padding: 120px 40px;
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .manifesto::before {
+      content: '';
+      position: absolute; left: 40px; top: 60px;
+      width: 60px; height: 4px; background: var(--p);
+    }
+    .manifesto-eyebrow {
+      font-family: var(--inter);
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--p);
+      margin-bottom: 28px;
+      padding-top: 24px;
+    }
+    .manifesto-h2 {
+      font-family: var(--anton);
+      font-size: clamp(40px, 6vw, 76px);
+      line-height: 0.95;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      margin-bottom: 36px;
+    }
+    .manifesto-h2 em {
+      font-family: var(--serif); font-style: italic;
+      text-transform: none; color: var(--p); font-weight: 400;
+      letter-spacing: 0;
+    }
+    .manifesto-text {
+      font-size: 19px;
+      line-height: 1.65;
+      color: var(--tm);
+    }
+    .manifesto-text p { margin-bottom: 22px; }
+    .manifesto-text strong { color: var(--t); font-weight: 700; }
+    .manifesto-text mark {
+      background: linear-gradient(180deg, transparent 60%, rgba(255,107,53,0.3) 60%);
+      color: var(--t); padding: 0 2px;
+    }
+
+    .signature {
+      margin-top: 48px;
+      display: flex; align-items: center; gap: 16px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
+    }
+    .sig-avatar {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--p), var(--red));
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--anton);
+      font-size: 22px; color: #fff;
+      letter-spacing: 0.05em;
+    }
+    .sig-name {
+      font-family: var(--serif); font-style: italic;
+      font-size: 22px; color: var(--t);
+    }
+    .sig-role { font-size: 13px; color: var(--tm); margin-top: 2px; }
+
+    /* ─── BENEFITS (not "features") ─── */
+    .benefits {
+      padding: 100px 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+      border-top: 1px solid var(--border);
+    }
+    .benefits-h2 {
+      font-family: var(--anton);
+      font-size: clamp(40px, 5vw, 64px);
+      line-height: 0.95;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      max-width: 700px;
+      margin-bottom: 16px;
+    }
+    .benefits-h2 em {
+      font-family: var(--serif); font-style: italic;
+      text-transform: none; color: var(--p); font-weight: 400;
+      letter-spacing: 0;
+    }
+    .benefits-sub {
+      font-size: 16px; color: var(--tm);
+      max-width: 540px; margin-bottom: 60px;
+    }
+
+    .benefit-list {
+      display: flex; flex-direction: column;
+      gap: 0;
+      border-top: 1px solid var(--border);
+    }
+    .benefit-row {
+      display: grid;
+      grid-template-columns: 80px 1fr 1.4fr;
+      gap: 32px;
+      padding: 32px 16px;
+      border-bottom: 1px solid var(--border);
+      align-items: start;
+      transition: background .2s;
+    }
+    .benefit-row:hover { background: rgba(255,107,53,0.02); }
+    .benefit-num {
+      font-family: var(--anton);
+      font-size: 28px; color: var(--tf);
+      letter-spacing: 0.08em;
+    }
+    .benefit-title {
+      font-family: var(--inter);
+      font-size: 22px; font-weight: 700;
+      color: var(--t);
+      letter-spacing: -0.01em;
+    }
+    .benefit-title em { font-family: var(--serif); font-style: italic; color: var(--p); font-weight: 400; }
+    .benefit-desc {
+      font-size: 15px; color: var(--tm); line-height: 1.65;
+    }
+    .benefit-desc strong { color: var(--t); }
+
+    /* ─── PHONE SHOWCASE: big editorial ─── */
+    .showcase {
+      padding: 120px 40px;
+      max-width: 1400px; margin: 0 auto;
+      border-top: 1px solid var(--border);
+    }
+    .showcase-h {
+      font-family: var(--anton);
+      font-size: clamp(36px, 4.5vw, 56px);
+      line-height: 0.95;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      max-width: 700px;
+    }
+    .showcase-h em { font-family: var(--serif); font-style: italic; color: var(--p); font-weight: 400; text-transform: none; letter-spacing: 0; }
+    .showcase-sub {
+      font-size: 16px; color: var(--tm);
+      max-width: 520px; margin-bottom: 60px;
+    }
+
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 40px;
+    }
+    .sc-card {
+      background: var(--bg1);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+      min-height: 420px;
+      display: flex; flex-direction: column;
+      transition: border-color .3s, transform .3s;
+    }
+    .sc-card:hover { border-color: rgba(255,107,53,0.25); transform: translateY(-4px); }
+    .sc-card.large { grid-column: span 2; min-height: 480px; }
+
+    .sc-tag {
+      font-family: var(--inter);
+      font-size: 11px; font-weight: 800;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--p);
+      margin-bottom: 16px;
+    }
+    .sc-title {
+      font-family: var(--anton);
+      font-size: 38px;
+      line-height: 1;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .sc-title em { font-family: var(--serif); font-style: italic; color: var(--p); font-weight: 400; text-transform: none; letter-spacing: 0; }
+    .sc-desc {
+      font-size: 14px; color: var(--tm); line-height: 1.65;
+      margin-bottom: 24px;
+      max-width: 380px;
+    }
+
+    /* AI chat preview */
+    .chat-preview {
+      margin-top: auto;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .chat-msg {
+      padding: 10px 14px; border-radius: 14px;
+      font-size: 13px; line-height: 1.55;
+      max-width: 88%;
+    }
+    .chat-user {
+      background: rgba(255,107,53,0.15);
+      border: 1px solid rgba(255,107,53,0.2);
+      align-self: flex-end;
+      color: var(--t);
+    }
+    .chat-ai {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      align-self: flex-start;
+    }
+    .chat-ai b { color: var(--p); }
+    .chat-typing {
+      align-self: flex-start;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 12px 16px; border-radius: 14px;
+      display: flex; gap: 4px;
+    }
+    .chat-typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--tm); animation: blink 1.4s ease-in-out infinite; }
+    .chat-typing span:nth-child(2) { animation-delay: .2s; }
+    .chat-typing span:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* Chart card */
+    .chart-card { display: flex; align-items: flex-end; gap: 8px; flex: 1; min-height: 180px; padding: 16px 0; }
+    .chart-col {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; gap: 6px; height: 100%; justify-content: flex-end;
+    }
+    .chart-bar {
+      width: 100%; border-radius: 6px 6px 0 0;
+      background: linear-gradient(180deg, rgba(255,107,53,0.4), rgba(255,107,53,0.15));
+      transition: height .3s;
+    }
+    .chart-bar.active {
+      background: linear-gradient(180deg, var(--p2), var(--p));
+      box-shadow: 0 0 30px rgba(255,107,53,0.4);
+    }
+    .chart-lbl { font-size: 9px; color: var(--tf); font-weight: 700; text-transform: uppercase; }
+
+    /* Records card */
+    .rec-list { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
+    .rec-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .rec-name { font-size: 14px; font-weight: 700; }
+    .rec-meta { font-size: 11px; color: var(--tm); margin-top: 2px; }
+    .rec-val {
+      font-family: var(--anton);
+      font-size: 24px; color: var(--p);
+      letter-spacing: 0.04em;
+    }
+    .rec-val small { font-size: 12px; color: var(--tm); margin-left: 4px; }
+
+    /* Calendar mini */
+    .cal-mini {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      gap: 4px; margin-top: 16px;
+    }
+    .cal-d {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700;
+      color: var(--tf);
+    }
+    .cal-d.s { background: rgba(255,107,53,0.18); color: var(--p); }
+    .cal-d.t { background: var(--p); color: #fff; }
+    .cal-d.r { background: rgba(255,255,255,0.03); }
+    .cal-h {
+      font-size: 9px; color: var(--tf); font-weight: 800;
+      text-align: center; text-transform: uppercase;
+    }
+
+    /* ─── OFFER section ─── */
+    .offer {
+      padding: 120px 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      position: relative;
+    }
+    .offer::before {
+      content: '';
+      position: absolute; top: 50%; left: 50%;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(255,107,53,0.08), transparent 60%);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .offer-eyebrow {
+      font-family: var(--inter);
+      font-size: 12px; font-weight: 800;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--p); margin-bottom: 24px;
+    }
+    .offer-h {
+      font-family: var(--anton);
+      font-size: clamp(48px, 7vw, 88px);
+      line-height: 0.92;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+    .offer-h em { font-family: var(--serif); font-style: italic; color: var(--p); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+    .offer-numbers {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 32px; margin: 60px auto;
+      max-width: 800px;
+    }
+    .offer-num-block {
+      padding: 28px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: rgba(255,255,255,0.02);
+    }
+    .offer-num {
+      font-family: var(--anton);
+      font-size: clamp(48px, 6vw, 72px);
+      line-height: 1;
+      color: var(--p);
+      letter-spacing: -0.02em;
+    }
+    .offer-num-lbl {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--tm); margin-top: 8px;
+    }
+
+    .offer-explain {
+      font-family: var(--serif); font-style: italic;
+      font-size: 20px; color: var(--tm);
+      line-height: 1.55;
+      max-width: 580px;
+      margin: 0 auto 40px;
+    }
+    .offer-explain strong { color: var(--t); font-style: normal; font-family: var(--inter); font-weight: 700; }
+
+    /* ─── FAQ ─── */
+    .faq-section {
+      padding: 100px 40px;
+      max-width: 900px;
+      margin: 0 auto;
+      border-top: 1px solid var(--border);
+    }
+    .faq-h {
+      font-family: var(--anton);
+      font-size: clamp(36px, 5vw, 56px);
+      line-height: 0.95;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      margin-bottom: 48px;
+    }
+    .faq-h em { font-family: var(--serif); font-style: italic; color: var(--p); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+    details.faq {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      cursor: pointer;
+    }
+    details.faq:last-child { border-bottom: 1px solid var(--border); }
+    details.faq summary {
+      list-style: none;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 18px; font-weight: 700;
+      transition: color .2s;
+    }
+    details.faq summary::-webkit-details-marker { display: none; }
+    details.faq summary::after {
+      content: '+'; font-family: var(--anton);
+      font-size: 28px; color: var(--p);
+      transition: transform .3s;
+    }
+    details.faq[open] summary::after { transform: rotate(45deg); }
+    details.faq[open] summary { color: var(--p); }
+    details.faq p {
+      margin-top: 16px;
+      font-size: 15px; color: var(--tm);
+      line-height: 1.7;
+    }
+    details.faq p strong { color: var(--t); }
+    details.faq p a { color: var(--p); text-decoration: underline; text-decoration-color: rgba(255,107,53,0.4); }
+
+    /* ─── FINAL CTA ─── */
+    .final-cta {
+      padding: 140px 40px;
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      position: relative;
+    }
+    .final-cta h2 {
+      font-family: var(--anton);
+      font-size: clamp(56px, 9vw, 124px);
+      line-height: 0.9;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .final-cta h2 em { font-family: var(--serif); font-style: italic; color: var(--p); font-weight: 400; text-transform: none; letter-spacing: 0; }
+    .final-cta p {
+      font-family: var(--serif); font-style: italic;
+      font-size: 22px; color: var(--tm);
+      max-width: 540px; margin: 0 auto 40px;
+      line-height: 1.5;
+    }
+    .final-cta .form-block {
+      max-width: 480px; margin: 0 auto;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      padding: 40px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 16px;
+      font-size: 12px; color: var(--tf);
+    }
+    footer .f-links { display: flex; gap: 24px; }
+    footer .f-links a:hover { color: var(--tm); }
+    footer .made {
+      font-family: var(--serif); font-style: italic;
+      color: var(--tm);
+    }
+
+    /* ─── Animation helpers ─── */
+    .fade { opacity: 0; transform: translateY(30px); transition: opacity .8s ease, transform .8s ease; }
+    .fade.in { opacity: 1; transform: translateY(0); }
+
+    /* ─── Mobile ─── */
+    @media (max-width: 900px) {
+      nav { padding: 14px 20px; }
+      .hero { padding: 60px 20px 80px; }
+      .hero-grid { grid-template-columns: 1fr; gap: 48px; }
+      .hero-visual { display: none; }
+      h1.hero-h1 { font-size: clamp(54px, 14vw, 88px); }
+      .manifesto { padding: 80px 20px; }
+      .manifesto::before { left: 20px; }
+      .benefits, .showcase, .offer, .faq-section, .final-cta { padding: 80px 20px; }
+      .benefit-row { grid-template-columns: 1fr; gap: 8px; padding: 24px 0; }
+      .benefit-num { font-size: 22px; }
+      .benefit-title { font-size: 18px; }
+      .showcase-grid { grid-template-columns: 1fr; gap: 24px; }
+      .sc-card.large { grid-column: span 1; }
+      .sc-card { padding: 28px; min-height: auto; }
+      .sc-title { font-size: 30px; }
+      .offer-numbers { grid-template-columns: 1fr; gap: 16px; }
+      footer { padding: 28px 20px; flex-direction: column; align-items: flex-start; }
+      .nav-cta { padding: 8px 16px; font-size: 12px; }
+      .top-strip { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Marquee strip -->
+<div class="top-strip">
+  <div class="strip-track">
+    <span>
+      <i>★</i> 500 places only · -30% à vie · Coach IA inclus · Construit par un lifter · v1 bientôt · Pré-inscriptions ouvertes <i>★</i>
+      <i>★</i> 500 places only · -30% à vie · Coach IA inclus · Construit par un lifter · v1 bientôt · Pré-inscriptions ouvertes <i>★</i>
+      <i>★</i> 500 places only · -30% à vie · Coach IA inclus · Construit par un lifter · v1 bientôt · Pré-inscriptions ouvertes <i>★</i>
+      <i>★</i> 500 places only · -30% à vie · Coach IA inclus · Construit par un lifter · v1 bientôt · Pré-inscriptions ouvertes <i>★</i>
+    </span>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">GAIN<em></em>OS<span class="v">v1</span></div>
+  <a href="#inscription"><button class="nav-cta">Réserver ma place</button></a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-meta">
+    <div class="dot"></div>
+    <span>Disponible bientôt</span>
+    <span class="sep">/</span>
+    <span>Pré-inscriptions</span>
+    <span class="sep">/</span>
+    <span>iOS · Android · PWA</span>
+  </div>
+
+  <h1 class="hero-h1">
+    Pas une <span class="strike">énième</span><br/>
+    app fitness.<br/>
+    <em>La dernière</em> dont<br/>
+    tu auras besoin.
+  </h1>
+
+  <div class="hero-grid">
+    <div>
+      <p class="hero-sub">
+        Coach IA qui connaît tes <strong>vraies données</strong>.
+        Calendrier, records, multi-sport, photos de progression. <strong>Tout dans une app.</strong>
+        Construite par un lifter, pas par une boîte.
+      </p>
+
+      <div class="form-block" id="hero-block">
+        <div class="offer-tag">-30% à vie · 500 premiers</div>
+
+        <form id="hero-form">
+          <div class="email-row">
+            <input type="email" id="hero-email" placeholder="ton@email.com" required autocomplete="email" />
+            <button type="submit" class="btn-go" id="hero-btn">Rejoindre</button>
+          </div>
+          <div class="consent">
+            <input type="checkbox" id="hero-consent" required />
+            <label for="hero-consent">
+              J'accepte de recevoir des infos. Données protégées, jamais revendues.
+              <a href="/confidentialite.html" target="_blank">Confidentialité</a>
+            </label>
+          </div>
+          <div class="form-msg" id="hero-msg"></div>
+        </form>
+
+        <div class="success-state" id="hero-success">
+          <h3>Tu es <em>dedans !</em></h3>
+          <p>On t'envoie un email dès le lancement.<br/>Ta réduction de 30% est réservée.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phone mockup -->
+    <div class="hero-visual">
+      <div class="stamp">★ V1 BIENTÔT</div>
+      <div class="phone">
+        <div class="pscreen">
+          <div class="ps-header">
+            <div class="ps-hello">Salut Joseph 💪</div>
+            <div class="ps-streak">🔥 12j</div>
+          </div>
+          <div class="ps-card">
+            <div class="ps-lbl">Routines</div>
+            <div class="ps-pills">
+              <span class="ps-pill push">Push</span>
+              <span class="ps-pill pull">Pull</span>
+              <span class="ps-pill legs">Legs</span>
+              <span class="ps-pill full">Full</span>
+            </div>
+          </div>
+          <div class="ps-card">
+            <div class="ps-lbl">Volume cette semaine</div>
+            <div class="ps-bar"><span class="ps-bar-l">Lun</span><div class="ps-bar-t"><div class="ps-bar-f" style="width:88%"></div></div><span class="ps-bar-v">18t</span></div>
+            <div class="ps-bar"><span class="ps-bar-l">Mer</span><div class="ps-bar-t"><div class="ps-bar-f" style="width:62%"></div></div><span class="ps-bar-v">13t</span></div>
+            <div class="ps-bar"><span class="ps-bar-l">Ven</span><div class="ps-bar-t"><div class="ps-bar-f" style="width:38%"></div></div><span class="ps-bar-v">9t</span></div>
+          </div>
+          <div class="ps-rec">
+            <div class="ps-rec-i">🏆</div>
+            <div>
+              <div class="ps-rec-n">Dév. couché · NEW PR</div>
+              <div class="ps-rec-v">100 kg × 5 reps · +5 kg</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="float-note fn-1">
+        <div class="fn-orange">🏆 +5 kg au squat</div>
+        <div class="sub">Record battu</div>
+      </div>
+      <div class="float-note fn-2">
+        <div class="fn-green">🔥 12 jours d'affilée</div>
+        <div class="sub">Continue !</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MANIFESTO -->
+<section class="manifesto fade">
+  <div class="manifesto-eyebrow">Pourquoi GAIN·OS</div>
+  <h2 class="manifesto-h2">
+    J'ai testé 12 apps.<br/>
+    <em>Aucune</em> ne savait<br/>
+    ce que je faisais.
+  </h2>
+
+  <div class="manifesto-text">
+    <p>
+      <strong>Hevy</strong> traque les charges mais te parle pas.
+      <strong>Strong</strong> pareil. <strong>MyFitnessPal</strong> te parle de pommes alors que t'es au squat rack.
+      <strong>Strava</strong> c'est cool pour le cardio mais inutile pour la barre.
+    </p>
+    <p>
+      Et les coachs IA des autres apps ? Ils <mark>connaissent rien de toi</mark>.
+      Tu leur dis "comment progresser au DC", ils te sortent les mêmes 4 conseils Wikipedia
+      que tu lis depuis 5 ans.
+    </p>
+    <p>
+      <strong>GAIN·OS</strong> sait que t'es à 95 kg au DC, que ta dernière séance a tué tes triceps,
+      que tu cours un semi dans 3 mois, que t'as 22 ans et que ton streak est à 12 jours.
+      <mark>Il sait ce qu'il dit parce qu'il a tes données.</mark>
+    </p>
+    <p>
+      Pas du marketing. Juste l'app que je voulais.
+    </p>
+  </div>
+
+  <div class="signature">
+    <div class="sig-avatar">J</div>
+    <div>
+      <div class="sig-name">Joseph</div>
+      <div class="sig-role">Lifter, dev, créateur de GAIN·OS</div>
+    </div>
+  </div>
+</section>
+
+<!-- BENEFITS -->
+<section class="benefits fade">
+  <h2 class="benefits-h2">Ce que tu <em>auras</em><br/>quand tu l'utiliseras.</h2>
+  <p class="benefits-sub">Pas une liste de features. Une liste de choses que tu sauras et que tu pourras faire.</p>
+
+  <div class="benefit-list">
+    <div class="benefit-row">
+      <div class="benefit-num">01</div>
+      <div class="benefit-title">Tu sauras combien tu as <em>vraiment</em> soulevé.</div>
+      <div class="benefit-desc">Volume hebdomadaire en tonnes, par muscle, par exercice. Plus de "je crois que je progresse". <strong>Tu sauras.</strong></div>
+    </div>
+
+    <div class="benefit-row">
+      <div class="benefit-num">02</div>
+      <div class="benefit-title">Tu auras un <em>vrai coach</em> dans la poche.</div>
+      <div class="benefit-desc">L'IA connaît ton historique, tes records, ta fatigue. Elle te dit quand pousser et quand reculer. <strong>Pas de conseils Wikipedia.</strong></div>
+    </div>
+
+    <div class="benefit-row">
+      <div class="benefit-num">03</div>
+      <div class="benefit-title">Tu rateras moins de séances.</div>
+      <div class="benefit-desc">Ton calendrier visible te <strong>met la pression</strong> de pas casser ta chaîne. Streak de 19 jours ? Tu vas pas la péter pour une journée canapé.</div>
+    </div>
+
+    <div class="benefit-row">
+      <div class="benefit-num">04</div>
+      <div class="benefit-title">Tu garderas tes records, <em>pour toujours</em>.</div>
+      <div class="benefit-desc">Stockés dans le cloud, jamais perdus. Voir tes anciens PR à 60 kg quand tu seras à 140 kg, <strong>c'est de la dopamine pure.</strong></div>
+    </div>
+
+    <div class="benefit-row">
+      <div class="benefit-num">05</div>
+      <div class="benefit-title">Tu suivras tout, <em>même la course</em>.</div>
+      <div class="benefit-desc">Sync Strava + Garmin. Programmes semi-marathon intégrés. <strong>Une seule app pour tout</strong> — plus besoin de jongler entre 4.</div>
+    </div>
+
+    <div class="benefit-row">
+      <div class="benefit-num">06</div>
+      <div class="benefit-title">Tu verras ton <em>évolution physique</em>.</div>
+      <div class="benefit-desc">Photos de posing après chaque séance, stockées dans le cloud, side-by-side dans 6 mois. <strong>Dur d'argumenter avec une photo.</strong></div>
+    </div>
+  </div>
+</section>
+
+<!-- SHOWCASE: bento -->
+<section class="showcase fade">
+  <h2 class="showcase-h">Aperçu <em>direct</em>.</h2>
+  <p class="showcase-sub">Pas de captures glamour. Voilà ce que t'as réellement dans l'app.</p>
+
+  <div class="showcase-grid">
+
+    <!-- AI Coach (large) -->
+    <div class="sc-card large">
+      <div class="sc-tag">Coach IA</div>
+      <div class="sc-title"><em>"Comment</em> optimiser mon push aujourd'hui ?"</div>
+      <p class="sc-desc">Tu lui parles comme à un coach humain. Il connaît tes 47 dernières séances, ton record, ton streak, ta fatigue. Sa réponse est <strong>personnalisée</strong>.</p>
+      <div class="chat-preview">
+        <div class="chat-msg chat-user">Comment optimiser mon push aujourd'hui ?</div>
+        <div class="chat-msg chat-ai">
+          <b>Priorité : développé couché.</b> Tu es à 85% de ton record (100 kg).
+          Tente 4×4 à 95 kg avant les isolations. Repos 3 min entre les séries lourdes.
+          Tes triceps étaient cuits dimanche, alors saute les dips aujourd'hui.
+        </div>
+        <div class="chat-msg chat-user">Et pour la nutrition pré-séance ?</div>
+        <div class="chat-typing"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <!-- Records -->
+    <div class="sc-card">
+      <div class="sc-tag">Records</div>
+      <div class="sc-title">Tes <em>maxes</em>,<br/>archivés.</div>
+      <p class="sc-desc">Chaque PR célébré et historisé. Voir progresser <strong>+22 kg en 6 mois</strong>, c'est une drogue.</p>
+      <div class="rec-list">
+        <div class="rec-item">
+          <div><div class="rec-name">Développé couché</div><div class="rec-meta">↑ +5 kg ce mois</div></div>
+          <div class="rec-val">100<small>kg</small></div>
+        </div>
+        <div class="rec-item">
+          <div><div class="rec-name">Squat</div><div class="rec-meta">↑ +7.5 kg ce mois</div></div>
+          <div class="rec-val">120<small>kg</small></div>
+        </div>
+        <div class="rec-item">
+          <div><div class="rec-name">Soulevé de terre</div><div class="rec-meta">Stable</div></div>
+          <div class="rec-val">145<small>kg</small></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="sc-card">
+      <div class="sc-tag">Calendrier</div>
+      <div class="sc-title">12 jours.<br/><em>Casse pas</em> la chaîne.</div>
+      <p class="sc-desc">Vue mensuelle de toutes tes séances. Le streak crée la motivation. Plus tu accumules, <strong>moins tu veux le perdre</strong>.</p>
+      <div class="cal-mini">
+        <div class="cal-h">L</div><div class="cal-h">M</div><div class="cal-h">M</div><div class="cal-h">J</div><div class="cal-h">V</div><div class="cal-h">S</div><div class="cal-h">D</div>
+        <div class="cal-d r"></div><div class="cal-d s">1</div><div class="cal-d r">2</div><div class="cal-d s">3</div><div class="cal-d r">4</div><div class="cal-d s">5</div><div class="cal-d r">6</div>
+        <div class="cal-d s">7</div><div class="cal-d r">8</div><div class="cal-d s">9</div><div class="cal-d r">10</div><div class="cal-d s">11</div><div class="cal-d r">12</div><div class="cal-d r">13</div>
+        <div class="cal-d s">14</div><div class="cal-d r">15</div><div class="cal-d s">16</div><div class="cal-d r">17</div><div class="cal-d s">18</div><div class="cal-d r">19</div><div class="cal-d r">20</div>
+        <div class="cal-d s">21</div><div class="cal-d r">22</div><div class="cal-d s">23</div><div class="cal-d r">24</div><div class="cal-d s">25</div><div class="cal-d r">26</div><div class="cal-d r">27</div>
+        <div class="cal-d t">28</div>
+      </div>
+    </div>
+
+    <!-- Analytics chart (large) -->
+    <div class="sc-card large">
+      <div class="sc-tag">Analytics</div>
+      <div class="sc-title">Volume hebdo.<br/><em>+18% ce mois.</em></div>
+      <p class="sc-desc">Pas un graphique pour faire joli. Il te dit si tu progresses, stagnes, ou recules. <strong>La vérité, en barres.</strong></p>
+      <div class="chart-card">
+        <div class="chart-col"><div class="chart-bar" style="height:42%"></div><div class="chart-lbl">S1</div></div>
+        <div class="chart-col"><div class="chart-bar" style="height:58%"></div><div class="chart-lbl">S2</div></div>
+        <div class="chart-col"><div class="chart-bar" style="height:50%"></div><div class="chart-lbl">S3</div></div>
+        <div class="chart-col"><div class="chart-bar" style="height:72%"></div><div class="chart-lbl">S4</div></div>
+        <div class="chart-col"><div class="chart-bar" style="height:65%"></div><div class="chart-lbl">S5</div></div>
+        <div class="chart-col"><div class="chart-bar" style="height:82%"></div><div class="chart-lbl">S6</div></div>
+        <div class="chart-col"><div class="chart-bar active" style="height:96%"></div><div class="chart-lbl">S7</div></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- OFFER -->
+<section class="offer fade">
+  <div class="offer-eyebrow">★ Offre de lancement</div>
+  <h2 class="offer-h">
+    Les <em>500 premiers</em><br/>
+    paient -30%<br/>
+    pour toujours.
+  </h2>
+
+  <div class="offer-numbers">
+    <div class="offer-num-block">
+      <div class="offer-num">500</div>
+      <div class="offer-num-lbl">Places limitées</div>
+    </div>
+    <div class="offer-num-block">
+      <div class="offer-num">-30%</div>
+      <div class="offer-num-lbl">À vie · sans catch</div>
+    </div>
+    <div class="offer-num-block">
+      <div class="offer-num">0€</div>
+      <div class="offer-num-lbl">Aujourd'hui</div>
+    </div>
+  </div>
+
+  <p class="offer-explain">
+    « Si tu mises sur GAIN·OS <strong>maintenant</strong>, alors que l'app sort à peine,
+    c'est normal que tu paies <strong>moins</strong> que ceux qui arriveront dans 6 mois.
+    Voilà la deal. »
+  </p>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section fade">
+  <h2 class="faq-h">Questions <em>honnêtes</em>.</h2>
+
+  <details class="faq">
+    <summary>C'est gratuit ?</summary>
+    <p>Non. Le coach IA coûte des sous (chaque message à Gemini me coûte). L'app aura un prix au lancement, autour de <strong>4,99€/mois</strong>. Les pré-inscrits paient -30% à vie, donc <strong>3,49€/mois</strong>. Il y aura aussi une version gratuite limitée pour tester.</p>
+  </details>
+
+  <details class="faq">
+    <summary>C'est sur Android et iPhone ?</summary>
+    <p>C'est une <strong>PWA</strong> (Progressive Web App) — donc oui, ça marche sur les deux. Tu l'installes sur ton écran d'accueil comme une vraie app. Pas besoin de l'App Store ni du Play Store.</p>
+  </details>
+
+  <details class="faq">
+    <summary>Qui est derrière GAIN·OS ?</summary>
+    <p>Moi. <strong>Joseph</strong>. Je suis dev, je m'entraîne depuis 5 ans (muscu + course), je code GAIN·OS le soir parce que j'en avais marre des apps existantes. Tu peux m'écrire à <a href="mailto:jozer717606@gmail.com">jozer717606@gmail.com</a> si tu veux discuter.</p>
+  </details>
+
+  <details class="faq">
+    <summary>Je donne mon email, vous le revendez ?</summary>
+    <p>Non. <strong>Jamais.</strong> L'email sert uniquement à te prévenir du lancement et de ta réduction. Stockage en France, protégé RGPD. Tu peux demander la suppression à tout moment, ça prend 24h. <a href="/confidentialite.html">Politique complète</a>.</p>
+  </details>
+
+  <details class="faq">
+    <summary>Ça remplace mon Strava / Garmin ?</summary>
+    <p>Non, ça <strong>les complète</strong>. GAIN·OS sync avec Strava et Garmin pour importer auto tes sorties course/vélo. Tu gardes ta montre, tu gagnes une vraie app de muscu et un coach IA en plus.</p>
+  </details>
+
+  <details class="faq">
+    <summary>Quand ça sort ?</summary>
+    <p>L'app est <strong>déjà fonctionnelle</strong> (je l'utilise tous les jours). Je polish les derniers détails et je l'ouvre au public dans <strong>les semaines qui viennent</strong>. Les pré-inscrits sont prévenus par email les premiers.</p>
+  </details>
+
+  <details class="faq">
+    <summary>Et si je m'inscris et que je change d'avis ?</summary>
+    <p>Tu te désinscris en un clic. Pas de spam, pas de pression. <strong>L'inscription est zéro risque.</strong></p>
+  </details>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta fade" id="inscription">
+  <h2>Prêt ou pas,<br/>la <em>place</em><br/>est là.</h2>
+  <p>500 places à -30% à vie. Quand c'est plein, c'est plein. Quand l'app sort, le tarif normal s'applique.</p>
+
+  <div class="form-block" id="cta-block">
+    <form id="cta-form">
+      <div class="email-row">
+        <input type="email" id="cta-email" placeholder="ton@email.com" required autocomplete="email" />
+        <button type="submit" class="btn-go" id="cta-btn">Réserver</button>
+      </div>
+      <div class="consent">
+        <input type="checkbox" id="cta-consent" required />
+        <label for="cta-consent">
+          J'accepte de recevoir les infos sur GAIN·OS.
+          <a href="/confidentialite.html" target="_blank">Confidentialité</a>
+        </label>
+      </div>
+      <div class="form-msg" id="cta-msg"></div>
+    </form>
+
+    <div class="success-state" id="cta-success">
+      <h3>Tu es <em>dedans !</em></h3>
+      <p>On t'envoie un email dès le lancement.<br/>Ta réduction de 30% est réservée.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="logo">GAIN<em></em>OS</div>
+  <div class="f-links">
+    <a href="/confidentialite.html">Confidentialité</a>
+    <a href="mailto:jozer717606@gmail.com">Contact</a>
+  </div>
+  <div class="made">Made with 🥩 + ☕ + 🏋 by Joseph · 2026</div>
+</footer>
+
+<script>
+  const { createClient } = supabase;
+  const db = createClient(
+    'https://muwplluumpvwmwhrtepq.supabase.co',
+    'sb_publishable_W9xIr_SrlghgPWjw8C5QGA_qSwfux0l'
+  );
+
+  function setMsg(el, text, type) {
+    el.textContent = text;
+    el.className = 'form-msg ' + type;
+  }
+
+  function wireForm({ formEl, emailEl, btnEl, msgEl, successEl }) {
+    formEl.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = emailEl.value.trim();
+      if (!email) return;
+
+      btnEl.disabled = true;
+      const orig = btnEl.textContent;
+      btnEl.textContent = '...';
+      msgEl.className = 'form-msg';
+
+      const { error } = await db.from('waitlist').insert({ email, consent: true });
+
+      if (!error) {
+        formEl.style.display = 'none';
+        successEl.classList.add('show');
+        return;
+      }
+
+      btnEl.disabled = false;
+      btnEl.textContent = orig;
+
+      if (error.code === '23505') {
+        setMsg(msgEl, '✓ Cet email est déjà dans la liste — t\'es bon.', 'already');
+      } else {
+        setMsg(msgEl, 'Erreur inattendue. Réessaie ou écris à jozer717606@gmail.com', 'error');
+        console.error(error);
+      }
+    });
+  }
+
+  wireForm({
+    formEl: document.getElementById('hero-form'),
+    emailEl: document.getElementById('hero-email'),
+    btnEl: document.getElementById('hero-btn'),
+    msgEl: document.getElementById('hero-msg'),
+    successEl: document.getElementById('hero-success'),
+  });
+  wireForm({
+    formEl: document.getElementById('cta-form'),
+    emailEl: document.getElementById('cta-email'),
+    btnEl: document.getElementById('cta-btn'),
+    msgEl: document.getElementById('cta-msg'),
+    successEl: document.getElementById('cta-success'),
+  });
+
+  // scroll fade
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
