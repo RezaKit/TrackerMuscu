@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSessionStore } from '../stores/sessionStore';
 import { getExerciseHistory, isNewRecord } from '../utils/records';
 import { Icons } from './Icons';
 import { EXERCISE_INFO } from '../db/exerciseInfo';
 import { getPref, togglePref, type ExercisePref } from '../utils/exercisePrefs';
+import { fetchExerciseInfo, muscleFr, equipFr, type WgerInfo } from '../utils/exerciseDB';
 import type { ExerciseLog } from '../types';
 
 interface ExerciseTrackerProps {
@@ -18,6 +19,8 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
   const [expandedId, setExpandedId] = useState<string | null>(exercises[exercises.length - 1]?.id || null);
   const [editingSet, setEditingSet] = useState<{ exId: string; idx: number } | null>(null);
   const [infoName, setInfoName] = useState<string | null>(null);
+  const [wgerInfo, setWgerInfo] = useState<WgerInfo | null>(null);
+  const [wgerLoading, setWgerLoading] = useState(false);
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   const [editWeight, setEditWeight] = useState('');
@@ -25,6 +28,15 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
   const [, forcePrefRender] = useState(0);
 
   const youtubeUrl = (name: string) => `https://www.youtube.com/results?search_query=${encodeURIComponent(name + ' exercise technique')}`;
+
+  useEffect(() => {
+    if (!infoName) { setWgerInfo(null); return; }
+    setWgerInfo(null);
+    setWgerLoading(true);
+    fetchExerciseInfo(infoName)
+      .then(info => setWgerInfo(info))
+      .finally(() => setWgerLoading(false));
+  }, [infoName]);
 
   const handleTogglePref = (name: string, target: 'favorite' | 'avoid') => {
     const next = togglePref(name, target);
@@ -94,27 +106,87 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
             WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain',
           }}>
             <div style={{ width: 36, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 999, margin: '0 auto 20px' }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,107,53,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
                 <Icons.Info size={16} />
               </div>
               <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--primary)' }}>{infoName}</span>
             </div>
-            <p style={{ fontSize: 14, color: 'var(--text-soft)', lineHeight: 1.6, marginBottom: 14 }}>
-              {EXERCISE_INFO[infoName]}
-            </p>
-            <a href={youtubeUrl(infoName)} target="_blank" rel="noopener noreferrer"
+
+            {/* wger exercise photo */}
+            {wgerLoading && (
+              <div style={{ height: 120, borderRadius: 14, background: 'rgba(255,255,255,0.04)', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-mute)' }}>Chargement infos…</span>
+              </div>
+            )}
+            {!wgerLoading && wgerInfo?.images?.[0] && (
+              <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 14, background: '#fff' }}>
+                <img
+                  src={wgerInfo.images[0]}
+                  alt={infoName ?? ''}
+                  style={{ width: '100%', maxHeight: 200, objectFit: 'contain', display: 'block' }}
+                />
+              </div>
+            )}
+
+            {/* Muscles */}
+            {wgerInfo && (wgerInfo.muscles.length > 0 || wgerInfo.musclesSecondary.length > 0) && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-mute)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                  Muscles ciblés
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {wgerInfo.muscles.map(m => (
+                    <span key={m} style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: 'rgba(255,107,53,0.15)', color: 'var(--primary)', border: '1px solid rgba(255,107,53,0.3)' }}>
+                      ● {muscleFr(m)}
+                    </span>
+                  ))}
+                  {wgerInfo.musclesSecondary.map(m => (
+                    <span key={m} style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.06)', color: 'var(--text-soft)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      ○ {muscleFr(m)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Equipment */}
+            {wgerInfo && wgerInfo.equipment.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-mute)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                  Matériel
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {wgerInfo.equipment.map(e => (
+                    <span key={e} style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: 'rgba(255,255,255,0.06)', color: 'var(--text-mute)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      {equipFr(e)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Description — local first, wger fallback */}
+            {(EXERCISE_INFO[infoName!] || wgerInfo?.descriptionEn) && (
+              <p style={{ fontSize: 14, color: 'var(--text-soft)', lineHeight: 1.6, marginBottom: 16 }}>
+                {EXERCISE_INFO[infoName!] || wgerInfo?.descriptionEn}
+              </p>
+            )}
+
+            {/* YouTube CTA */}
+            <a href={youtubeUrl(infoName!)} target="_blank" rel="noopener noreferrer"
               className="tap" style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                width: '100%', padding: '12px',
+                width: '100%', padding: '13px',
                 background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
                 borderRadius: 14, color: '#fff', fontWeight: 700, fontSize: 13,
-                textDecoration: 'none',
+                textDecoration: 'none', marginBottom: 8,
               }}>
               <Icons.Play size={14} /> Voir la technique sur YouTube
             </a>
             <button onClick={() => setInfoName(null)} style={{
-              marginTop: 10, width: '100%', background: 'rgba(255,255,255,0.06)',
+              width: '100%', background: 'rgba(255,255,255,0.06)',
               border: 'none', borderRadius: 14, padding: '14px', color: 'var(--text-mute)',
               fontWeight: 700, fontSize: 14,
             }}>Fermer</button>
