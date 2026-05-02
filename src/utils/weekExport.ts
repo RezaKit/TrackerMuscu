@@ -66,7 +66,7 @@ export function exportWeekAsText(
   const lines: string[] = [];
 
   lines.push(sep);
-  lines.push(`  TRACKER MUSCU — SEMAINE`);
+  lines.push(`  REZAKIT — SEMAINE`);
   lines.push(`  ${label}`);
   lines.push(sep);
   lines.push('');

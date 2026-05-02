@@ -17,7 +17,7 @@ const LS_KEYS = [
   'strava_cal_imported_ids',
   'garmin_token',
   'garmin_secret',
-  'tracker_calorie_goal',
+  'rezakit_calorie_goal',
   'coach_profile',
 ] as const;
 

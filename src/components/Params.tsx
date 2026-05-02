@@ -74,7 +74,7 @@ export default function Params({ showToast, onShowAuth }: ParamsProps) {
         'strava_token', 'strava_refresh', 'strava_expires',
         'strava_athlete_id', 'strava_name', 'strava_imported_ids', 'strava_cal_imported_ids',
         'garmin_token', 'garmin_secret',
-        'tracker_calorie_goal',
+        'rezakit_calorie_goal',
       ];
       keysToRemove.forEach((k) => localStorage.removeItem(k));
       if (user) {
@@ -112,7 +112,7 @@ export default function Params({ showToast, onShowAuth }: ParamsProps) {
     if (!user?.email) return;
     setLoading(true);
     await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: 'https://tracker-muscu-xi.vercel.app',
+      redirectTo: 'https://resakit.fr',
     });
     setLoading(false);
     setResetSent(true);
@@ -163,10 +163,10 @@ export default function Params({ showToast, onShowAuth }: ParamsProps) {
   };
 
   const handleShare = () => {
-    const url = 'https://tracker-muscu-xi.vercel.app';
-    const text = 'Essaie Tracker Muscu — suivi musculation, cardio, calories et coach IA 🏋️';
+    const url = 'https://resakit.fr';
+    const text = 'Essaie RezaKit — ton kit fitness complet : séances, cardio, nutrition et coach IA';
     if (navigator.share) {
-      navigator.share({ title: 'Tracker Muscu', text, url }).catch(() => {});
+      navigator.share({ title: 'RezaKit', text, url }).catch(() => {});
     } else {
       navigator.clipboard.writeText(url).then(() => showToast('Lien copié !', 'success'));
     }
@@ -488,9 +488,9 @@ export default function Params({ showToast, onShowAuth }: ParamsProps) {
           </button>
           <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: 'var(--mono)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              tracker-muscu-xi.vercel.app
+              resakit.fr
             </div>
-            <button onClick={() => navigator.clipboard.writeText('https://tracker-muscu-xi.vercel.app').then(() => showToast('Lien copié !', 'success'))}
+            <button onClick={() => navigator.clipboard.writeText('https://resakit.fr').then(() => showToast('Lien copié !', 'success'))}
               className="tap" style={{ background: 'none', border: 'none', color: 'var(--text-mute)', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
               Copier
             </button>

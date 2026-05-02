@@ -12,7 +12,7 @@ interface CalorieStore {
   getDayStats: (date: string) => { in: number; out: number; net: number };
 }
 
-const GOAL_KEY = 'tracker_calorie_goal';
+const GOAL_KEY = 'rezakit_calorie_goal';
 
 export const useCalorieStore = create<CalorieStore>((set, get) => ({
   entries: [],

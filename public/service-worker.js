@@ -1,5 +1,5 @@
-const CACHE_VERSION = 'tracker-muscu-v1';
-const CACHE_ASSETS = 'tracker-assets-v1';
+const CACHE_VERSION = 'rezakit-v1';
+const CACHE_ASSETS = 'rezakit-assets-v1';
 
 const assetsToCache = [
   '/',
@@ -55,7 +55,6 @@ self.addEventListener('fetch', event => {
         return response;
       });
     }).catch(() => {
-      // Offline fallback
       return caches.match('/index.html');
     })
   );

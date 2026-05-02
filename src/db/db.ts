@@ -13,7 +13,7 @@ export class TrackerDB extends Dexie {
   routineCompletions!: Table<RoutineCompletion>;
 
   constructor() {
-    super('TrackerMuscu');
+    super('RezaKit');
     this.version(2).stores({
       sessions: 'id, date, type, completed',
       templates: 'id, type, name',

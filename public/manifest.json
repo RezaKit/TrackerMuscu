@@ -1,7 +1,7 @@
 {
-  "name": "Tracker Muscu",
-  "short_name": "Tracker",
-  "description": "Suivi d'entraînement musculation minimaliste et offline-first",
+  "name": "RezaKit",
+  "short_name": "RezaKit",
+  "description": "Ton kit fitness complet — séances, cardio, nutrition et coach IA",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0D0D11",

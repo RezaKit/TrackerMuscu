@@ -23,7 +23,7 @@ export default function Auth({ onSkip }: AuthProps) {
       setLoading(true);
       setError('');
       const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: 'https://tracker-muscu-xi.vercel.app',
+        redirectTo: 'https://resakit.fr',
       });
       setLoading(false);
       if (err) setError('Erreur : ' + err.message);
