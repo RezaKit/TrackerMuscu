@@ -41,8 +41,8 @@ const SESSION_TYPE_LABELS: Record<SessionType, string> = {
 
 const QUICK_PROMPTS = [
   'Bilan de ma semaine d\'entraînement',
-  'Crée-moi une séance Pull pour demain',
-  'Génère un plan 4 semaines Push/Pull/Legs',
+  'Crée-moi une séance adaptée à mon objectif',
+  'Génère un plan 4 semaines adapté à mon profil',
   'J\'ai mal à l\'épaule droite, note-le',
   'Logger mon poids : 78kg',
 ];
@@ -255,8 +255,36 @@ function renderMarkdown(text: string): React.ReactNode {
   return <>{nodes}</>;
 }
 
+const GOAL_LABELS: Record<string, string> = {
+  muscle: 'Prise de masse', strength: 'Force', cut: 'Sèche',
+  recomposition: 'Recomposition', endurance: 'Endurance', health: 'Santé générale',
+};
+const LEVEL_LABELS: Record<string, string> = {
+  beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé',
+};
+
+function getUserProfile() {
+  try { return JSON.parse(localStorage.getItem('user_profile') || '{}'); } catch { return {}; }
+}
+
 function buildContext(sessions: any[], weights: any[], entries: any[], courses: any[], templates: any[]) {
   const today = new Date().toISOString().split('T')[0];
+
+  const up = getUserProfile();
+  const profileStr = up.name ? `PROFIL UTILISATEUR (PRIORITÉ ABSOLUE):
+Prénom: ${up.name}
+Objectif: ${GOAL_LABELS[up.goal] || up.goal || 'non défini'} ← adapte TOUS tes conseils à cet objectif
+Niveau: ${LEVEL_LABELS[up.level] || up.level || 'non défini'}
+Entraînements/semaine: ${up.weeklyDays || 'non défini'} séances
+Appareils: ${up.devices?.length ? up.devices.join(', ') : 'aucun'}
+
+RÈGLES D'ADAPTATION AU PROFIL:
+- Objectif ${GOAL_LABELS[up.goal] || ''}: adapte calories cibles, volume, fréquence, exercices recommandés
+- Niveau ${LEVEL_LABELS[up.level] || ''}: adapte la complexité des programmes et la charge de travail
+- ${up.weeklyDays} séances/semaine: ne propose JAMAIS plus de ${up.weeklyDays} séances par semaine
+- Si l'utilisateur change son objectif ou ses jours dans les paramètres, adapte immédiatement tes recommandations
+
+` : '';
 
   // Sessions with IDs for AI reference
   const sorted = [...sessions].sort((a, b) => b.date.localeCompare(a.date));
@@ -307,7 +335,7 @@ function buildContext(sessions: any[], weights: any[], entries: any[], courses: 
     ? `\n🩹 BLESSURES/LIMITATIONS (PERMANENT): ${profile.injuries.join(' | ')}`
     : '';
 
-  return `DONNÉES UTILISATEUR:
+  return `${profileStr}DONNÉES UTILISATEUR:
 Date: ${today}
 Poids: ${weightStr}
 Séances 7 derniers jours: ${last7count} (${consecutiveDays} jours consécutifs)
@@ -435,8 +463,50 @@ export default function AICoach({ onBack }: AICoachProps) {
   const [compacting, setCompacting] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [executing, setExecuting] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [interimText, setInterimText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
   const memory = loadMemory();
+
+  const toggleMic = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Reconnaissance vocale non supportée sur ce navigateur. Utilise Safari sur iPhone ou Chrome.' }]);
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const recognition = new SR();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => { setIsListening(true); setInterimText(''); };
+    recognition.onend = () => { setIsListening(false); setInterimText(''); };
+    recognition.onerror = () => { setIsListening(false); setInterimText(''); };
+
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      let final = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) final += t;
+        else interim += t;
+      }
+      setInterimText(interim);
+      if (final) {
+        setInput(prev => (prev ? prev + ' ' : '') + final.trim());
+        setInterimText('');
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
 
   const { sessions, planSession, deleteSession, rescheduleSession, updateSessionNotes, loadSessions } = useSessionStore();
   const { templates, createTemplate, loadTemplates } = useTemplateStore();
@@ -769,7 +839,8 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. Franç
               </div>
               <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Pose-moi une question</div>
               <div style={{ fontSize: 12, color: 'var(--text-mute)', lineHeight: 1.5 }}>
-                Je peux créer des séances, logger tes données,<br />bâtir un plan — directement depuis le chat.
+                Tape ou appuie sur 🎤 pour dicter ta séance.<br />
+                Je crée, loggue et planifie directement depuis le chat.
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -870,26 +941,76 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. Franç
         backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
         borderTop: '1px solid var(--line)',
       }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+        {/* Listening indicator */}
+        {isListening && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            marginBottom: 8, padding: '8px 12px',
+            background: 'rgba(255,107,53,0.1)', borderRadius: 12,
+            border: '1px solid rgba(255,107,53,0.3)',
+          }}>
+            <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{
+                  width: 3, borderRadius: 2,
+                  background: 'var(--primary)',
+                  animation: `pulseGlow 0.8s ease-in-out ${i * 0.15}s infinite`,
+                  height: [10, 16, 10][i],
+                }} />
+              ))}
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>
+              {interimText || 'En écoute... Parle maintenant'}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--text-mute)', marginLeft: 'auto' }}>Tap 🎤 pour arrêter</span>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
-            placeholder={pendingAction ? 'Confirme ou annule d\'abord l\'action ci-dessus' : 'Pose une question à ton coach...'}
+            placeholder={
+              pendingAction ? 'Confirme ou annule d\'abord l\'action ci-dessus'
+              : isListening ? 'Parle — le texte apparaît ici...'
+              : 'Message ou 🎤 pour dicter ta séance...'
+            }
             rows={1}
             disabled={!!pendingAction}
             style={{
               flex: 1,
-              background: pendingAction ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: isListening ? 'rgba(255,107,53,0.06)' : pendingAction ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)',
+              border: `1px solid ${isListening ? 'rgba(255,107,53,0.4)' : 'rgba(255,255,255,0.1)'}`,
               borderRadius: 16, color: 'var(--text)',
               padding: '12px 14px', fontSize: 14,
               resize: 'none', outline: 'none',
               fontFamily: 'var(--body)', lineHeight: 1.4,
               maxHeight: 120, overflowY: 'auto',
               opacity: pendingAction ? 0.5 : 1,
+              transition: 'border-color 0.2s, background 0.2s',
             }}
           />
+          {/* Mic button */}
+          <button
+            onClick={toggleMic}
+            disabled={!!pendingAction || loading}
+            className="tap"
+            style={{
+              width: 46, height: 46, borderRadius: 14, border: 'none', flexShrink: 0,
+              background: isListening
+                ? 'linear-gradient(135deg, var(--primary), var(--secondary))'
+                : 'rgba(255,255,255,0.06)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff',
+              opacity: pendingAction || loading ? 0.3 : 1,
+              animation: isListening ? 'pulseGlow 1.5s ease-in-out infinite' : 'none',
+              transition: 'background 0.2s, opacity 0.2s',
+            }}
+          >
+            {isListening ? <Icons.MicOff size={18} /> : <Icons.Mic size={18} />}
+          </button>
+          {/* Send button */}
           <button onClick={() => sendMessage(input)} disabled={!input.trim() || loading || !!pendingAction}
             className="tap" style={{
               width: 46, height: 46, borderRadius: 14, border: 'none', flexShrink: 0,
