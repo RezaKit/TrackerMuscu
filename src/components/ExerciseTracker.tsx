@@ -246,12 +246,12 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                   {pref === 'favorite' && (
                     <span style={{ color: '#FBBF24', fontSize: 11 }} title="Favori">★</span>
                   )}
-                  {EXERCISE_INFO[exercise.exerciseName] && (
-                    <button onClick={(e) => { e.stopPropagation(); setInfoName(exercise.exerciseName); }}
-                      style={{ background: 'none', border: 'none', color: 'var(--text-faint)', padding: '2px', lineHeight: 0 }}>
-                      <Icons.Info size={14} />
-                    </button>
-                  )}
+                  <span
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); setInfoName(exercise.exerciseName); }}
+                    style={{ color: 'var(--text-faint)', padding: '2px', lineHeight: 0, cursor: 'pointer', display: 'inline-flex' }}>
+                    <Icons.Info size={14} />
+                  </span>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-mute)', marginTop: 2 }}>
                   {exercise.sets.length} sets{maxWeight > 0 && ` · max ${maxWeight}kg`} · {exercise.muscleGroup}
