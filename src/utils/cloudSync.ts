@@ -18,6 +18,8 @@ const LS_KEYS = [
   'garmin_token',
   'garmin_secret',
   'rezakit_calorie_goal',
+  'rezakit_exercise_favorites',
+  'rezakit_exercise_avoided',
   'coach_profile',
 ] as const;
 
@@ -54,7 +56,7 @@ export async function pushToCloud(): Promise<boolean> {
     const [
       sessions, templates, courses, natations,
       bodyweights, customExercises, calories,
-      routineItems, routineCompletions,
+      routineItems, routineCompletions, bodyMeasurements,
     ] = await Promise.all([
       db.sessions.toArray(),
       db.templates.toArray(),
@@ -65,6 +67,7 @@ export async function pushToCloud(): Promise<boolean> {
       db.calories.toArray(),
       db.routineItems.toArray(),
       db.routineCompletions.toArray(),
+      db.bodyMeasurements.toArray(),
     ]);
 
     const coachMemory = localStorage.getItem('ai_coach_memory') || null;
@@ -81,6 +84,7 @@ export async function pushToCloud(): Promise<boolean> {
       calorie_entries: calories,
       routine_items: routineItems,
       routine_completions: routineCompletions,
+      body_measurements: bodyMeasurements,
       coach_memory: coachMemory ? JSON.parse(coachMemory) : null,
       chat_history: JSON.parse(chatHistory),
       local_settings: captureLocalStorage(),
@@ -118,6 +122,7 @@ export async function restoreFromCloud(): Promise<boolean> {
       db.calories.clear(),
       db.routineItems.clear(),
       db.routineCompletions.clear(),
+      db.bodyMeasurements.clear(),
     ]);
 
     await Promise.all([
@@ -130,6 +135,7 @@ export async function restoreFromCloud(): Promise<boolean> {
       data.calorie_entries?.length  && db.calories.bulkPut(data.calorie_entries),
       data.routine_items?.length    && db.routineItems.bulkPut(data.routine_items),
       data.routine_completions?.length && db.routineCompletions.bulkPut(data.routine_completions),
+      data.body_measurements?.length && db.bodyMeasurements.bulkPut(data.body_measurements),
     ].filter(Boolean));
 
     if (data.coach_memory) {

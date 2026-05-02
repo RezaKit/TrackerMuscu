@@ -6,6 +6,7 @@ import { useTemplateStore } from './stores/templateStore';
 import { useExerciseStore } from './stores/exerciseStore';
 import { useCalorieStore } from './stores/calorieStore';
 import { useRoutineStore } from './stores/routineStore';
+import { useMeasurementStore } from './stores/measurementStore';
 import { useAuthStore } from './stores/authStore';
 import { initDB } from './db/db';
 import { restoreFromCloud, pushToCloud, scheduleSync } from './utils/cloudSync';
@@ -21,10 +22,11 @@ import Daily from './components/Daily';
 import AICoach from './components/AICoach';
 import Auth from './components/Auth';
 import Onboarding from './components/Onboarding';
+import Measurements from './components/Measurements';
 import Navbar from './components/Navbar';
 import Toast from './components/Toast';
 
-export type Page = 'dashboard' | 'calendar' | 'analytics' | 'cardio' | 'session' | 'params' | 'settings' | 'daily' | 'coach';
+export type Page = 'dashboard' | 'calendar' | 'analytics' | 'cardio' | 'session' | 'params' | 'settings' | 'daily' | 'coach' | 'measurements';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -41,6 +43,7 @@ export default function App() {
   const { loadCustomExercises } = useExerciseStore();
   const { loadEntries } = useCalorieStore();
   const { loadAll: loadRoutine } = useRoutineStore();
+  const { loadMeasurements } = useMeasurementStore();
   const { user, loading: authLoading, init: initAuth } = useAuthStore();
 
   const reloadAllStores = async () => {
@@ -52,6 +55,7 @@ export default function App() {
       loadCustomExercises(),
       loadEntries(),
       loadRoutine(),
+      loadMeasurements(),
     ]);
   };
 
@@ -213,6 +217,7 @@ export default function App() {
             onGoToSettings={() => setCurrentPage('settings')}
             onGoToStats={() => setCurrentPage('analytics')}
             onGoToCoach={() => setCurrentPage('coach')}
+            onGoToMeasurements={() => setCurrentPage('measurements')}
             showToast={showToast}
             user={user}
             onShowAuth={() => setShowAuth(true)}
@@ -241,9 +246,10 @@ export default function App() {
         {currentPage === 'settings' && <Settings showToast={showToast} />}
         {currentPage === 'params' && <Params showToast={showToast} onShowAuth={() => setShowAuth(true)} />}
         {currentPage === 'coach' && <AICoach onBack={() => setCurrentPage('dashboard')} />}
+        {currentPage === 'measurements' && <Measurements onClose={() => setCurrentPage('dashboard')} />}
       </div>
 
-      {!inSession && !keyboardOpen && currentPage !== 'daily' && currentPage !== 'coach' && (
+      {!inSession && !keyboardOpen && currentPage !== 'daily' && currentPage !== 'coach' && currentPage !== 'measurements' && (
         <Navbar currentPage={currentPage} onPageChange={setCurrentPage} />
       )}
 

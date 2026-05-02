@@ -7,6 +7,7 @@ import { useCardioStore } from '../stores/cardioStore';
 import { getPersonalRecords } from '../utils/records';
 import { scheduleSync } from '../utils/cloudSync';
 import { loadCoachProfile, saveCoachProfile, loadCoachProfile as getProfile } from '../utils/coachProfile';
+import { getFavorites, getAvoided } from '../utils/exercisePrefs';
 import {
   loadMemory, saveMemory, clearMemory,
   shouldCompact, splitForCompaction, compactHistory,
@@ -335,12 +336,19 @@ RÈGLES D'ADAPTATION AU PROFIL:
     ? `\n🩹 BLESSURES/LIMITATIONS (PERMANENT): ${profile.injuries.join(' | ')}`
     : '';
 
+  const favs = getFavorites();
+  const avoids = getAvoided();
+  const prefStr = (favs.length > 0 || avoids.length > 0) ? `
+PRÉFÉRENCES EXERCICES (à respecter strictement):
+${favs.length > 0 ? `⭐ Favoris (à privilégier dans tes créations): ${favs.join(', ')}` : ''}
+${avoids.length > 0 ? `🚫 À éviter (NE JAMAIS proposer ces exercices): ${avoids.join(', ')}` : ''}` : '';
+
   return `${profileStr}DONNÉES UTILISATEUR:
 Date: ${today}
 Poids: ${weightStr}
 Séances 7 derniers jours: ${last7count} (${consecutiveDays} jours consécutifs)
 Calories semaine: ${calIn} kcal mangées, ${calOut} kcal sport
-Dernière course: ${runStr}${overtrainWarning}${injuriesStr}
+Dernière course: ${runStr}${overtrainWarning}${injuriesStr}${prefStr}
 
 RECORDS PERSONNELS:
 ${prLines || 'Aucun'}

@@ -16,6 +16,7 @@ interface DashboardProps {
   onGoToSettings: () => void;
   onGoToStats: () => void;
   onGoToCoach: () => void;
+  onGoToMeasurements?: () => void;
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
   user?: { email?: string } | null;
   onShowAuth?: () => void;
@@ -255,7 +256,7 @@ function CardioSheet({ kind, open, onClose, showToast }: { kind: 'run' | 'swim';
 }
 
 // ── Main Dashboard ─────────────────────────────────────────
-export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, onGoToCoach, showToast, user, onShowAuth, onSignOut }: DashboardProps) {
+export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, onGoToCoach, onGoToMeasurements, showToast, user, onShowAuth, onSignOut }: DashboardProps) {
   const { sessions } = useSessionStore();
   const { courses, natations } = useCardioStore();
   const { weights } = useBodyWeightStore();
@@ -509,6 +510,33 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
         </button>
       }>Routine du soir</SectionLabel>
       <RoutineSectionContent routineToday={routineToday} routineItems={routineItems} routineChecked={routineChecked} />
+
+      {/* Body Measurements quick access */}
+      {onGoToMeasurements && (
+        <div style={{ padding: '0 16px 6px' }}>
+          <button onClick={onGoToMeasurements} className="tap glass" style={{
+            width: '100%', borderRadius: 18, padding: '12px 16px',
+            border: '1px solid var(--glass-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: 'rgba(255,255,255,0.02)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: 'rgba(255,107,53,0.12)', color: 'var(--primary)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Icons.Body size={16} />
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>Mesures corporelles</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-mute)' }}>Tour de bras, taille, cuisses…</div>
+              </div>
+            </div>
+            <Icons.ChevronRight size={16} color="var(--text-mute)" />
+          </button>
+        </div>
+      )}
 
       {/* Weight + PR */}
       <div style={{ padding: '6px 16px 16px', display: 'flex', gap: 10 }}>

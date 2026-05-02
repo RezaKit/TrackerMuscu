@@ -10,6 +10,7 @@ export interface ExerciseLog {
   exerciseName: string;
   muscleGroup: string;
   sets: ExerciseSet[];
+  supersetId?: string;
   createdAt: string;
 }
 
@@ -97,5 +98,20 @@ export interface RoutineCompletion {
   id: string;
   date: string;
   completedItemIds: string[];
+  createdAt: string;
+}
+
+export type MeasurementKey =
+  | 'waist' | 'hips' | 'chest' | 'biceps_left' | 'biceps_right'
+  | 'thigh_left' | 'thigh_right' | 'calf_left' | 'calf_right'
+  | 'shoulders' | 'neck' | 'body_fat';
+
+export type MeasurementValues = { [K in MeasurementKey]?: number };
+
+export interface BodyMeasurement {
+  id: string;
+  date: string;
+  values: MeasurementValues;
+  notes?: string;
   createdAt: string;
 }

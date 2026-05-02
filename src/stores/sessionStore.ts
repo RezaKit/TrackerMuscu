@@ -20,6 +20,8 @@ interface SessionStore {
 
   loadFromTemplate: (exerciseNames: Array<{ name: string; muscleGroup: string }>) => void;
 
+  toggleSuperset: (exerciseId: string) => void;
+
   loadSessions: () => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
   updateSessionNotes: (id: string, notes: string) => Promise<void>;
@@ -156,6 +158,32 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         exercises: [...currentSession.exercises, ...newExercises],
       },
     });
+  },
+
+  toggleSuperset: (exerciseId) => {
+    const { currentSession } = get();
+    if (!currentSession) return;
+    const exos = currentSession.exercises;
+    const idx = exos.findIndex((e) => e.id === exerciseId);
+    if (idx < 0 || idx >= exos.length - 1) return;
+    const current = exos[idx];
+    const next = exos[idx + 1];
+
+    let newExos: ExerciseLog[];
+    if (current.supersetId && current.supersetId === next.supersetId) {
+      // Already grouped — unlink: clear supersetId from current and any matching neighbours forming the same group
+      const groupId = current.supersetId;
+      newExos = exos.map((e) => e.supersetId === groupId ? { ...e, supersetId: undefined } : e);
+    } else {
+      // Group current and next under a new (or existing) supersetId
+      const groupId = current.supersetId || next.supersetId || crypto.randomUUID();
+      newExos = exos.map((e, i) => {
+        if (i === idx || i === idx + 1) return { ...e, supersetId: groupId };
+        return e;
+      });
+    }
+
+    set({ currentSession: { ...currentSession, exercises: newExos } });
   },
 
   endSession: async () => {

@@ -8,8 +8,11 @@ import ExerciseTracker from './ExerciseTracker';
 import TemplateModal from './TemplateModal';
 import RestTimer from './RestTimer';
 import PostSessionPhoto from './PostSessionPhoto';
+import SessionSummary from './SessionSummary';
+import { isNewRecord } from '../utils/records';
 import { Icons } from './Icons';
-import type { SessionType } from '../types';
+import { getFavorites, getPref } from '../utils/exercisePrefs';
+import type { Session, SessionType } from '../types';
 
 interface SessionFormProps {
   onSessionEnd: () => void;
@@ -42,8 +45,10 @@ export default function SessionForm({ onSessionEnd, onCancel, showToast }: Sessi
   const [saveTemplateName, setSaveTemplateName] = useState('');
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [photoSession, setPhotoSession] = useState<{ type: SessionType; date: string } | null>(null);
+  const [summarySession, setSummarySession] = useState<{ session: Session; records: { exercise: string; weight: number; reps: number }[] } | null>(null);
 
   const { user } = useAuthStore();
+  const { sessions } = useSessionStore();
   const allExercises = getAllExercises();
 
   const handleAddExercise = (name: string, muscleGroup: string) => {
@@ -64,16 +69,42 @@ export default function SessionForm({ onSessionEnd, onCancel, showToast }: Sessi
 
   const handleEndSession = async () => {
     if (!currentSession) return;
-    const savedType = currentSession.type;
-    const savedDate = currentSession.date;
+    // Detect PRs by comparing each exercise/set against history (excluding this session)
+    const otherSessions = sessions.filter(s => s.id !== currentSession.id && s.completed);
+    const records: { exercise: string; weight: number; reps: number }[] = [];
+    for (const ex of currentSession.exercises) {
+      let bestSet: { weight: number; reps: number } | null = null;
+      for (const set of ex.sets) {
+        if (set.weight > 0 && isNewRecord(otherSessions, ex.exerciseName, set.weight)) {
+          if (!bestSet || set.weight > bestSet.weight) bestSet = { weight: set.weight, reps: set.reps };
+        }
+      }
+      if (bestSet) records.push({ exercise: ex.exerciseName, weight: bestSet.weight, reps: bestSet.reps });
+    }
+
     const completed = await endSession();
     if (completed) {
-      if (user) {
-        setPhotoSession({ type: savedType, date: savedDate });
-      } else {
-        onSessionEnd();
-      }
+      setSummarySession({ session: completed, records });
     }
+  };
+
+  const handleSummaryClose = () => {
+    if (!summarySession) return;
+    if (user) {
+      const { type, date } = summarySession.session;
+      setSummarySession(null);
+      setPhotoSession({ type, date });
+    } else {
+      setSummarySession(null);
+      onSessionEnd();
+    }
+  };
+
+  const handleSummaryPhoto = () => {
+    if (!summarySession) return;
+    const { type, date } = summarySession.session;
+    setSummarySession(null);
+    setPhotoSession({ type, date });
   };
 
   const handleSaveTemplate = async () => {
@@ -90,6 +121,18 @@ export default function SessionForm({ onSessionEnd, onCancel, showToast }: Sessi
     setShowTemplateModal(false);
     showToast('Template chargé', 'info');
   };
+
+  // ── Session summary screen ─────────────────────────────────
+  if (summarySession) {
+    return (
+      <SessionSummary
+        session={summarySession.session}
+        isNewRecord={summarySession.records}
+        onClose={handleSummaryClose}
+        onTakePhoto={user ? handleSummaryPhoto : undefined}
+      />
+    );
+  }
 
   // ── Post-session photo modal ───────────────────────────────
   if (photoSession) {
@@ -150,14 +193,30 @@ export default function SessionForm({ onSessionEnd, onCancel, showToast }: Sessi
   }
 
   const typeCfg = SESSION_TYPES.find((t) => t.id === currentSession.type)!;
+  const favoriteList = getFavorites();
   const filteredExercises = searchQuery
     ? allExercises.filter((e) =>
         e.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
         !currentSession.exercises.some((ce) => ce.exerciseName === e.name)
-      )
+      ).sort((a, b) => {
+        const pa = getPref(a.name);
+        const pb = getPref(b.name);
+        if (pa === 'favorite' && pb !== 'favorite') return -1;
+        if (pb === 'favorite' && pa !== 'favorite') return 1;
+        if (pa === 'avoid' && pb !== 'avoid') return 1;
+        if (pb === 'avoid' && pa !== 'avoid') return -1;
+        return 0;
+      })
     : [];
 
-  const quickFavorites = [
+  // User favorites take priority for quick-add chips
+  const userFavoriteChips = favoriteList
+    .map(name => allExercises.find(e => e.name === name))
+    .filter(Boolean)
+    .filter((e) => !currentSession.exercises.some((ce) => ce.exerciseName === e!.name))
+    .slice(0, 6) as { name: string; muscleGroup: string }[];
+
+  const defaultQuickFavorites = [
     { name: 'Barbell Bench Press', muscle: 'chest' },
     { name: 'Deadlift', muscle: 'back' },
     { name: 'Barbell Squats', muscle: 'legs' },
@@ -165,6 +224,10 @@ export default function SessionForm({ onSessionEnd, onCancel, showToast }: Sessi
     { name: 'Barbell Rows', muscle: 'back' },
     { name: 'Dumbbell Shoulder Press', muscle: 'shoulders' },
   ];
+
+  const quickFavorites = userFavoriteChips.length > 0
+    ? userFavoriteChips.map(e => ({ name: e.name, muscle: e.muscleGroup }))
+    : defaultQuickFavorites;
 
   return (
     <div className="page-enter" style={{ paddingBottom: 120 }}>
@@ -242,17 +305,25 @@ export default function SessionForm({ onSessionEnd, onCancel, showToast }: Sessi
 
               {filteredExercises.length > 0 && (
                 <div className="glass" style={{ borderRadius: 14, maxHeight: 200, overflowY: 'auto', marginBottom: 10 }}>
-                  {filteredExercises.slice(0, 20).map((ex) => (
-                    <button key={ex.id || ex.name} onClick={() => handleAddExercise(ex.name, ex.muscleGroup)}
-                      className="tap" style={{
-                        width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none',
-                        borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        color: 'var(--text)',
-                      }}>
-                      <span style={{ fontWeight: 600, fontSize: 13 }}>{ex.name}</span>
-                      <span style={{ fontSize: 10, color: 'var(--text-mute)', textTransform: 'capitalize' }}>{ex.muscleGroup}</span>
-                    </button>
-                  ))}
+                  {filteredExercises.slice(0, 20).map((ex) => {
+                    const exPref = getPref(ex.name);
+                    return (
+                      <button key={ex.id || ex.name} onClick={() => handleAddExercise(ex.name, ex.muscleGroup)}
+                        className="tap" style={{
+                          width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none',
+                          borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          color: exPref === 'avoid' ? 'var(--text-faint)' : 'var(--text)',
+                          opacity: exPref === 'avoid' ? 0.5 : 1,
+                        }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {exPref === 'favorite' && <span style={{ color: '#FBBF24', fontSize: 11 }}>★</span>}
+                          {exPref === 'avoid' && <span style={{ color: '#F87171', fontSize: 11 }}>🚫</span>}
+                          <span style={{ fontWeight: 600, fontSize: 13 }}>{ex.name}</span>
+                        </span>
+                        <span style={{ fontSize: 10, color: 'var(--text-mute)', textTransform: 'capitalize' }}>{ex.muscleGroup}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 

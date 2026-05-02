@@ -4,6 +4,7 @@ import { useSessionStore } from '../stores/sessionStore';
 import { getExerciseHistory, isNewRecord } from '../utils/records';
 import { Icons } from './Icons';
 import { EXERCISE_INFO } from '../db/exerciseInfo';
+import { getPref, togglePref, type ExercisePref } from '../utils/exercisePrefs';
 import type { ExerciseLog } from '../types';
 
 interface ExerciseTrackerProps {
@@ -13,7 +14,7 @@ interface ExerciseTrackerProps {
 }
 
 export default function ExerciseTracker({ exercises, showToast, onSetAdded }: ExerciseTrackerProps) {
-  const { addSet, editSet, deleteSet, deleteExercise, sessions } = useSessionStore();
+  const { addSet, editSet, deleteSet, deleteExercise, toggleSuperset, sessions } = useSessionStore();
   const [expandedId, setExpandedId] = useState<string | null>(exercises[exercises.length - 1]?.id || null);
   const [editingSet, setEditingSet] = useState<{ exId: string; idx: number } | null>(null);
   const [infoName, setInfoName] = useState<string | null>(null);
@@ -21,6 +22,25 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
   const [reps, setReps] = useState('');
   const [editWeight, setEditWeight] = useState('');
   const [editReps, setEditReps] = useState('');
+  const [, forcePrefRender] = useState(0);
+
+  const youtubeUrl = (name: string) => `https://www.youtube.com/results?search_query=${encodeURIComponent(name + ' exercise technique')}`;
+
+  const handleTogglePref = (name: string, target: 'favorite' | 'avoid') => {
+    const next = togglePref(name, target);
+    forcePrefRender(n => n + 1);
+    showToast(
+      next === 'favorite' ? `⭐ ${name} ajouté aux favoris`
+      : next === 'avoid' ? `🚫 ${name} sera évité`
+      : `${name} : préférence retirée`,
+      'info'
+    );
+  };
+
+  const handleToggleSuperset = (exId: string) => {
+    toggleSuperset(exId);
+    forcePrefRender(n => n + 1);
+  };
 
   const handleAddSet = (exerciseId: string, exerciseName: string) => {
     const w = parseFloat(weight);
@@ -30,7 +50,14 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
     addSet(exerciseId, w, r);
     setWeight('');
     setReps('');
-    onSetAdded?.();
+
+    // Skip rest timer trigger if this exercise is mid-superset (not the last in the group)
+    const idx = exercises.findIndex(e => e.id === exerciseId);
+    const ex = exercises[idx];
+    const next = exercises[idx + 1];
+    const isMidSuperset = !!ex.supersetId && next?.supersetId === ex.supersetId;
+    if (!isMidSuperset) onSetAdded?.();
+
     if (wasRecord && w > 0) showToast(`Nouveau PR — ${exerciseName}: ${w}kg`, 'record');
   };
 
@@ -73,11 +100,21 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
               </div>
               <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--primary)' }}>{infoName}</span>
             </div>
-            <p style={{ fontSize: 14, color: 'var(--text-soft)', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--text-soft)', lineHeight: 1.6, marginBottom: 14 }}>
               {EXERCISE_INFO[infoName]}
             </p>
+            <a href={youtubeUrl(infoName)} target="_blank" rel="noopener noreferrer"
+              className="tap" style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                width: '100%', padding: '12px',
+                background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                borderRadius: 14, color: '#fff', fontWeight: 700, fontSize: 13,
+                textDecoration: 'none',
+              }}>
+              <Icons.Play size={14} /> Voir la technique sur YouTube
+            </a>
             <button onClick={() => setInfoName(null)} style={{
-              marginTop: 20, width: '100%', background: 'rgba(255,255,255,0.06)',
+              marginTop: 10, width: '100%', background: 'rgba(255,255,255,0.06)',
               border: 'none', borderRadius: 14, padding: '14px', color: 'var(--text-mute)',
               fontWeight: 700, fontSize: 14,
             }}>Fermer</button>
@@ -90,19 +127,53 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
         const isExpanded = expandedId === exercise.id;
         const history = getHistory(exercise.exerciseName);
         const maxWeight = Math.max(0, ...exercise.sets.map((s) => s.weight));
+        const pref: ExercisePref = getPref(exercise.exerciseName);
+        const inSuperset = !!exercise.supersetId;
+        const prevExo = exercises[exIdx - 1];
+        const nextExo = exercises[exIdx + 1];
+        const isSupersetTop = inSuperset && (!prevExo || prevExo.supersetId !== exercise.supersetId);
+        const isSupersetBottom = inSuperset && (!nextExo || nextExo.supersetId !== exercise.supersetId);
 
         return (
-          <div key={exercise.id} className="glass" style={{ borderRadius: 22, overflow: 'hidden' }}>
+          <div key={exercise.id} className="glass" style={{
+            borderRadius: 22,
+            overflow: 'hidden',
+            position: 'relative',
+            border: inSuperset ? '1px solid rgba(255,107,53,0.4)' : undefined,
+            borderTopLeftRadius: inSuperset && !isSupersetTop ? 0 : 22,
+            borderTopRightRadius: inSuperset && !isSupersetTop ? 0 : 22,
+            borderBottomLeftRadius: inSuperset && !isSupersetBottom ? 0 : 22,
+            borderBottomRightRadius: inSuperset && !isSupersetBottom ? 0 : 22,
+            marginTop: inSuperset && !isSupersetTop ? -10 : 0,
+            background: inSuperset ? 'rgba(255,107,53,0.04)' : undefined,
+          }}>
+            {/* Superset badge */}
+            {inSuperset && isSupersetTop && (
+              <div style={{
+                position: 'absolute', top: -8, left: 14,
+                background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                color: '#fff', padding: '2px 10px', borderRadius: 999,
+                fontSize: 9, fontWeight: 800, letterSpacing: 0.16,
+                display: 'flex', alignItems: 'center', gap: 4,
+                zIndex: 1,
+              }}>
+                <Icons.Link size={9} /> SUPERSET
+              </div>
+            )}
+
             {/* Header */}
             <button onClick={() => setExpandedId(isExpanded ? null : exercise.id)}
               className="tap" style={{
                 width: '100%', background: 'none', border: 'none', padding: '14px 16px',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left',
               }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span className="t-mono" style={{ fontSize: 11, color: 'var(--text-faint)', fontWeight: 700 }}>{String(exIdx + 1).padStart(2, '0')}</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>{exercise.exerciseName}</span>
+                  {pref === 'favorite' && (
+                    <span style={{ color: '#FBBF24', fontSize: 11 }} title="Favori">★</span>
+                  )}
                   {EXERCISE_INFO[exercise.exerciseName] && (
                     <button onClick={(e) => { e.stopPropagation(); setInfoName(exercise.exerciseName); }}
                       style={{ background: 'none', border: 'none', color: 'var(--text-faint)', padding: '2px', lineHeight: 0 }}>
@@ -213,6 +284,42 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                     ))}
                   </div>
                 )}
+
+                {/* Quick actions */}
+                <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
+                  <button onClick={() => handleTogglePref(exercise.exerciseName, 'favorite')}
+                    className="tap" style={{
+                      flex: 1, border: 'none', borderRadius: 10, padding: '8px',
+                      background: pref === 'favorite' ? 'rgba(251,191,36,0.18)' : 'rgba(255,255,255,0.04)',
+                      color: pref === 'favorite' ? '#FBBF24' : 'var(--text-mute)',
+                      fontSize: 11, fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                    }}>
+                    <Icons.Star size={11} /> {pref === 'favorite' ? 'Favori' : 'Favoris'}
+                  </button>
+                  <button onClick={() => handleTogglePref(exercise.exerciseName, 'avoid')}
+                    className="tap" style={{
+                      flex: 1, border: 'none', borderRadius: 10, padding: '8px',
+                      background: pref === 'avoid' ? 'rgba(248,113,113,0.18)' : 'rgba(255,255,255,0.04)',
+                      color: pref === 'avoid' ? '#F87171' : 'var(--text-mute)',
+                      fontSize: 11, fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                    }}>
+                    <Icons.Ban size={11} /> {pref === 'avoid' ? 'Évité' : 'Éviter'}
+                  </button>
+                  {exIdx < exercises.length - 1 && (
+                    <button onClick={() => handleToggleSuperset(exercise.id)}
+                      className="tap" style={{
+                        flex: 1, border: 'none', borderRadius: 10, padding: '8px',
+                        background: inSuperset ? 'rgba(255,107,53,0.2)' : 'rgba(255,255,255,0.04)',
+                        color: inSuperset ? 'var(--primary)' : 'var(--text-mute)',
+                        fontSize: 11, fontWeight: 700,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                      }}>
+                      <Icons.Link size={11} /> {inSuperset ? 'Délier' : 'Lier'}
+                    </button>
+                  )}
+                </div>
 
                 <button onClick={() => { if (confirm(`Supprimer ${exercise.exerciseName} ?`)) deleteExercise(exercise.id); }}
                   className="tap" style={{

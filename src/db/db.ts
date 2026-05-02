@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Session, Template, Course, Natation, BodyWeight, Exercise, CalorieEntry, RoutineItem, RoutineCompletion } from '../types';
+import type { Session, Template, Course, Natation, BodyWeight, Exercise, CalorieEntry, RoutineItem, RoutineCompletion, BodyMeasurement } from '../types';
 
 export class TrackerDB extends Dexie {
   sessions!: Table<Session>;
@@ -11,6 +11,7 @@ export class TrackerDB extends Dexie {
   calories!: Table<CalorieEntry>;
   routineItems!: Table<RoutineItem>;
   routineCompletions!: Table<RoutineCompletion>;
+  bodyMeasurements!: Table<BodyMeasurement>;
 
   constructor() {
     super('RezaKit');
@@ -32,6 +33,18 @@ export class TrackerDB extends Dexie {
       calories: 'id, date, type',
       routineItems: 'id, order',
       routineCompletions: 'id, date',
+    });
+    this.version(4).stores({
+      sessions: 'id, date, type, completed',
+      templates: 'id, type, name',
+      courses: 'id, date',
+      natations: 'id, date',
+      bodyweights: 'id, date',
+      customExercises: 'id, name, muscleGroup',
+      calories: 'id, date, type',
+      routineItems: 'id, order',
+      routineCompletions: 'id, date',
+      bodyMeasurements: 'id, date',
     });
   }
 }

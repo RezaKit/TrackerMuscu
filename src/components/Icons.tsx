@@ -59,4 +59,9 @@ export const Icons = {
   Image:        (p: IconProps) => <Icon {...p}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></Icon>,
   Mic:          (p: IconProps) => <Icon {...p}><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 19v3M9 22h6"/></Icon>,
   MicOff:       (p: IconProps) => <Icon {...p}><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 19v3M9 22h6M2 2l20 20"/></Icon>,
+  Star:         (p: IconProps) => <Icon {...p}><path d="M12 2l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></Icon>,
+  Ban:          (p: IconProps) => <Icon {...p}><circle cx="12" cy="12" r="10"/><path d="M5 5l14 14"/></Icon>,
+  Link:         (p: IconProps) => <Icon {...p}><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></Icon>,
+  Play:         (p: IconProps) => <Icon {...p}><path d="M5 4l14 8-14 8z" fill="currentColor"/></Icon>,
+  Body:         (p: IconProps) => <Icon {...p}><circle cx="12" cy="4" r="2"/><path d="M12 6v8M8 14l4-2 4 2M9 22l3-8 3 8"/></Icon>,
 };
