@@ -6,6 +6,7 @@ import { Icons } from './Icons';
 import { EXERCISE_INFO } from '../db/exerciseInfo';
 import { getPref, togglePref, type ExercisePref } from '../utils/exercisePrefs';
 import { fetchExerciseInfo, muscleFr, equipFr, type WgerInfo } from '../utils/exerciseDB';
+import { findExerciseVideo, ytThumb, ytWatchUrl } from '../db/exerciseVideos';
 import type { ExerciseLog } from '../types';
 
 interface ExerciseTrackerProps {
@@ -38,6 +39,40 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
       .finally(() => setWgerLoading(false));
   }, [infoName]);
 
+  // Auto-fill weight & reps when an exercise is expanded — uses last set from current session
+  // first, falling back to most recent historical set.
+  useEffect(() => {
+    if (!expandedId) return;
+    const ex = exercises.find(e => e.id === expandedId);
+    if (!ex) return;
+    const lastInSession = ex.sets[ex.sets.length - 1];
+    if (lastInSession) {
+      setWeight(String(lastInSession.weight));
+      setReps(String(lastInSession.reps));
+      return;
+    }
+    const history = getExerciseHistory(sessions, ex.exerciseName);
+    if (history.length > 0) {
+      const last = history[history.length - 1];
+      setWeight(String(last.weight));
+      setReps(String(last.reps));
+    } else {
+      setWeight('');
+      setReps('');
+    }
+  }, [expandedId]);
+
+  // Returns the previous-session reference set to compare current sets against.
+  const getPreviousSessionLastSet = (exerciseName: string): { weight: number; reps: number; date: string } | null => {
+    const history = getExerciseHistory(sessions, exerciseName);
+    if (history.length === 0) return null;
+    // Group by date — return last set of the most recent date
+    const lastDate = history[history.length - 1].date;
+    const lastDateSets = history.filter(h => h.date === lastDate);
+    const last = lastDateSets[lastDateSets.length - 1];
+    return { weight: last.weight, reps: last.reps, date: last.date };
+  };
+
   const handleTogglePref = (name: string, target: 'favorite' | 'avoid') => {
     const next = togglePref(name, target);
     forcePrefRender(n => n + 1);
@@ -60,7 +95,7 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
     if (isNaN(w) || isNaN(r) || w < 0 || r <= 0) return;
     const wasRecord = isNewRecord(sessions, exerciseName, w);
     addSet(exerciseId, w, r);
-    setWeight('');
+    // Keep weight (often the same across sets), clear reps for the next entry
     setReps('');
 
     // Skip rest timer trigger if this exercise is mid-superset (not the last in the group)
@@ -114,21 +149,70 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
               <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--primary)' }}>{infoName}</span>
             </div>
 
-            {/* wger exercise photo */}
-            {wgerLoading && (
-              <div style={{ height: 120, borderRadius: 14, background: 'rgba(255,255,255,0.04)', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-mute)' }}>Chargement infos…</span>
-              </div>
-            )}
-            {!wgerLoading && wgerInfo?.images?.[0] && (
-              <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 14, background: '#fff' }}>
-                <img
-                  src={wgerInfo.images[0]}
-                  alt={infoName ?? ''}
-                  style={{ width: '100%', maxHeight: 200, objectFit: 'contain', display: 'block' }}
-                />
-              </div>
-            )}
+            {/* YouTube thumbnail (curated) — falls back to wger photo */}
+            {(() => {
+              const video = findExerciseVideo(infoName!);
+              if (video) {
+                return (
+                  <a
+                    href={ytWatchUrl(video.id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="tap"
+                    style={{
+                      display: 'block', position: 'relative',
+                      borderRadius: 14, overflow: 'hidden', marginBottom: 14,
+                      background: '#000', textDecoration: 'none',
+                    }}>
+                    <img
+                      src={ytThumb(video.id, 'hq')}
+                      alt={video.title}
+                      style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
+                    />
+                    {/* Play overlay */}
+                    <div style={{
+                      position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(0,0,0,0.25)',
+                    }}>
+                      <div style={{
+                        width: 56, height: 56, borderRadius: '50%',
+                        background: 'rgba(255,0,0,0.92)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+                      }}>
+                        <Icons.Play size={22} color="#fff" />
+                      </div>
+                    </div>
+                    {/* Channel/title overlay */}
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      padding: '10px 12px 8px',
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)',
+                      color: '#fff',
+                    }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.2 }}>{video.title}</div>
+                      <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>{video.channel} · YouTube</div>
+                    </div>
+                  </a>
+                );
+              }
+              // Fallback: wger photo if available, else loading/empty
+              if (wgerLoading) return (
+                <div style={{ height: 120, borderRadius: 14, background: 'rgba(255,255,255,0.04)', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-mute)' }}>Chargement infos…</span>
+                </div>
+              );
+              if (wgerInfo?.images?.[0]) return (
+                <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 14, background: '#fff' }}>
+                  <img
+                    src={wgerInfo.images[0]}
+                    alt={infoName ?? ''}
+                    style={{ width: '100%', maxHeight: 200, objectFit: 'contain', display: 'block' }}
+                  />
+                </div>
+              );
+              return null;
+            })()}
 
             {/* Muscles */}
             {wgerInfo && (wgerInfo.muscles.length > 0 || wgerInfo.musclesSecondary.length > 0) && (
@@ -262,13 +346,24 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
               </div>
             </button>
 
-            {isExpanded && (
+            {isExpanded && (() => {
+              const prevRef = getPreviousSessionLastSet(exercise.exerciseName);
+              return (
               <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--line)' }}>
                 {/* Sets */}
                 {exercise.sets.length > 0 && (
                   <div style={{ paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {exercise.sets.map((set, idx) => {
                       const isEditing = editingSet?.exId === exercise.id && editingSet.idx === idx;
+                      // Delta vs previous session's reference set
+                      const wDelta = prevRef ? set.weight - prevRef.weight : 0;
+                      const rDelta = prevRef ? set.reps - prevRef.reps : 0;
+                      const arrow = wDelta > 0 ? '↑' : wDelta < 0 ? '↓' : (rDelta > 0 ? '↑' : rDelta < 0 ? '↓' : '=');
+                      const arrowColor = wDelta > 0 || (wDelta === 0 && rDelta > 0)
+                        ? 'var(--ok)'
+                        : wDelta < 0 || (wDelta === 0 && rDelta < 0)
+                          ? 'rgba(248,113,113,0.85)'
+                          : 'var(--text-faint)';
                       return (
                         <div key={idx} style={{
                           display: 'flex', alignItems: 'center', gap: 8,
@@ -299,6 +394,13 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                                 <span style={{ fontWeight: 700, color: 'var(--text)' }}>{set.weight}</span>
                                 <span style={{ color: 'var(--text-mute)' }}>kg × {set.reps}</span>
                               </span>
+                              {prevRef && (
+                                <span style={{
+                                  fontSize: 10, fontWeight: 800,
+                                  color: arrowColor,
+                                  minWidth: 14, textAlign: 'center',
+                                }}>{arrow}</span>
+                              )}
                               <button onClick={() => { setEditingSet({ exId: exercise.id, idx }); setEditWeight(String(set.weight)); setEditReps(String(set.reps)); }}
                                 className="tap" style={{ background: 'none', border: 'none', color: 'var(--text-mute)', padding: '2px 4px' }}>
                                 <Icons.Edit size={13} />
@@ -315,8 +417,40 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                   </div>
                 )}
 
+                {/* "Last time" hint with progression indicator */}
+                {prevRef && (() => {
+                  const w = parseFloat(weight);
+                  const r = parseInt(reps);
+                  const wDelta = !isNaN(w) ? w - prevRef.weight : 0;
+                  const rDelta = !isNaN(r) ? r - prevRef.reps : 0;
+                  const showDelta = !isNaN(w) && (wDelta !== 0 || rDelta !== 0);
+                  const isUp = wDelta > 0 || (wDelta === 0 && rDelta > 0);
+                  return (
+                    <div style={{
+                      marginTop: 12, display: 'flex', alignItems: 'center', gap: 6,
+                      fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 600,
+                    }}>
+                      <span style={{ textTransform: 'uppercase', letterSpacing: 0.6 }}>Dernière fois</span>
+                      <span className="t-mono" style={{ color: 'var(--text-soft)' }}>
+                        {prevRef.weight}kg × {prevRef.reps}
+                      </span>
+                      {showDelta && (
+                        <span style={{
+                          marginLeft: 'auto', padding: '2px 8px', borderRadius: 999,
+                          fontSize: 10, fontWeight: 800,
+                          background: isUp ? 'rgba(34,197,94,0.12)' : 'rgba(248,113,113,0.12)',
+                          color: isUp ? 'var(--ok)' : 'rgba(248,113,113,0.95)',
+                          border: `1px solid ${isUp ? 'rgba(34,197,94,0.25)' : 'rgba(248,113,113,0.25)'}`,
+                        }}>
+                          {isUp ? '↑' : '↓'} {wDelta !== 0 ? `${wDelta > 0 ? '+' : ''}${wDelta.toFixed(wDelta % 1 === 0 ? 0 : 1)}kg` : `${rDelta > 0 ? '+' : ''}${rDelta} reps`}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Add set */}
-                <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 8, marginTop: prevRef ? 8 : 12, alignItems: 'center' }}>
                   <input type="number" inputMode="decimal" placeholder="Poids" value={weight}
                     onChange={(e) => setWeight(e.target.value)}
                     style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: 'var(--primary)', padding: '10px', textAlign: 'center', fontSize: 16, fontFamily: 'var(--display)', outline: 'none' }} />
@@ -402,7 +536,8 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                   <Icons.Trash size={12} /> Retirer de la séance
                 </button>
               </div>
-            )}
+              );
+            })()}
           </div>
         );
       })}

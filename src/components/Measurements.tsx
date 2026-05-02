@@ -121,8 +121,19 @@ export default function Measurements({ onClose }: MeasurementsProps) {
       {/* Latest measurements */}
       {latest ? (
         <>
-          <div style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.14, marginBottom: 8 }}>
-            Dernière mesure · {new Date(latest.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.14 }}>
+              Dernière mesure
+            </div>
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              padding: '2px 8px', borderRadius: 999,
+              background: 'rgba(255,107,53,0.12)', color: 'var(--primary)',
+              border: '1px solid rgba(255,107,53,0.2)',
+              whiteSpace: 'nowrap',
+            }}>
+              {new Date(latest.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 22 }}>
             {MEASUREMENT_ORDER.filter(k => latest.values[k] !== undefined).map((key) => {
@@ -172,8 +183,13 @@ export default function Measurements({ onClose }: MeasurementsProps) {
               return (
                 <div key={m.id} style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700 }}>
-                      {new Date(m.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    <span style={{
+                      fontSize: 10, fontWeight: 700,
+                      padding: '2px 8px', borderRadius: 999,
+                      background: 'rgba(255,255,255,0.06)', color: 'var(--text-soft)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                    }}>
+                      {new Date(m.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: '2-digit' })}
                     </span>
                     <button onClick={() => { if (confirm('Supprimer cette mesure ?')) deleteMeasurement(m.id); }}
                       className="tap" style={{ background: 'none', border: 'none', color: 'rgba(196,30,58,0.6)', padding: 4 }}>

@@ -239,7 +239,7 @@ export default function App() {
           />
         )}
 
-        {currentPage === 'calendar' && <Calendar />}
+        {currentPage === 'calendar' && <Calendar onStartSession={() => setCurrentPage('session')} />}
         {currentPage === 'analytics' && <Analytics showToast={showToast} />}
         {currentPage === 'cardio' && <Cardio showToast={showToast} />}
         {currentPage === 'daily' && <Daily showToast={showToast} onBack={() => setCurrentPage('dashboard')} />}

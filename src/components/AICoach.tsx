@@ -13,6 +13,8 @@ import {
   shouldCompact, splitForCompaction, compactHistory,
 } from '../utils/coachMemory';
 import { Icons } from './Icons';
+import { useAuthStore } from '../stores/authStore';
+import PostSessionPhoto from './PostSessionPhoto';
 import type { SessionType, MealType } from '../types';
 
 interface AICoachProps {
@@ -473,6 +475,8 @@ export default function AICoach({ onBack }: AICoachProps) {
   const [executing, setExecuting] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [interimText, setInterimText] = useState('');
+  const [posingFor, setPosingFor] = useState<{ type: SessionType; date: string } | null>(null);
+  const { user } = useAuthStore();
   const bottomRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const memory = loadMemory();
@@ -666,6 +670,11 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. Franç
           await planSession(a.date, a.type, a.exercises || [], a.notes);
           await loadSessions();
           successMsg = `✅ Séance ${SESSION_TYPE_LABELS[a.type]} planifiée pour le ${a.date} — visible dans le calendrier.`;
+          // Offer posing photo if the session is for today/past and user is logged in
+          const todayIso = new Date().toISOString().split('T')[0];
+          if (user && a.date <= todayIso) {
+            setPosingFor({ type: a.type, date: a.date });
+          }
           break;
         }
         case 'create_template': {
@@ -770,6 +779,15 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. Franç
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+      {/* Posing prompt — triggered after AI saves a session for today/past */}
+      {posingFor && (
+        <PostSessionPhoto
+          sessionType={posingFor.type}
+          date={posingFor.date}
+          onDone={() => setPosingFor(null)}
+        />
+      )}
+
       {/* Header */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 10,

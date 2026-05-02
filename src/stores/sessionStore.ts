@@ -10,6 +10,7 @@ interface SessionStore {
   cancelSession: () => void;
   endSession: () => Promise<Session | null>;
   planSession: (date: string, type: SessionType, exercises?: Array<{ name: string; muscleGroup: string }>, notes?: string) => Promise<Session>;
+  startPlannedSession: (id: string) => Promise<Session | null>;
 
   addExercise: (exerciseName: string, muscleGroup: string) => void;
   deleteExercise: (exerciseId: string) => void;
@@ -200,6 +201,27 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     const sessions = await db.sessions.toArray();
     set({ currentSession: null, sessions });
     return completed;
+  },
+
+  startPlannedSession: async (id) => {
+    const planned = await db.sessions.get(id);
+    if (!planned || planned.completed) return null;
+
+    // Move planned session into currentSession (live editing) and remove from saved sessions list
+    // (it will be re-saved when endSession() runs, with the same id)
+    await db.sessions.delete(id);
+    const sessions = await db.sessions.toArray();
+
+    // Replace date with today (in case the planned date was in the future)
+    const today = new Date().toISOString().split('T')[0];
+    const live: Session = {
+      ...planned,
+      date: today,
+      updatedAt: new Date().toISOString(),
+    };
+
+    set({ currentSession: live, sessions });
+    return live;
   },
 
   planSession: async (date, type, exercises = [], notes) => {

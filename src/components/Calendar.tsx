@@ -5,6 +5,10 @@ import { getDateString } from '../utils/export';
 import { Icons } from './Icons';
 import type { Session } from '../types';
 
+interface CalendarProps {
+  onStartSession?: () => void;
+}
+
 const SESSION_CFG: Record<string, { color: string; dim: string }> = {
   push:  { color: 'var(--primary)',   dim: 'rgba(255,107,53,0.18)' },
   pull:  { color: 'var(--secondary)', dim: 'rgba(196,30,58,0.18)' },
@@ -21,10 +25,10 @@ function fmtDateLong(iso: string) {
 }
 
 
-export default function Calendar() {
+export default function Calendar({ onStartSession }: CalendarProps) {
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState<string | null>(getDateString());
-  const { sessions, deleteSession } = useSessionStore();
+  const { sessions, deleteSession, startPlannedSession } = useSessionStore();
   const { courses, natations } = useCardioStore();
 
   const year = month.getFullYear();
@@ -179,14 +183,29 @@ export default function Calendar() {
           <div style={{ padding: '6px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {selInfo?.sessions.map((sess) => {
               const cfg = SESSION_CFG[sess.type];
+              const isPlanned = !sess.completed;
               return (
-                <div key={sess.id} className="glass" style={{ borderRadius: 22, padding: '14px 16px', borderLeft: `3px solid ${cfg?.color || 'var(--primary)'}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{
-                      fontSize: 10.5, fontWeight: 700, letterSpacing: 0.16, padding: '4px 10px', borderRadius: 999,
-                      background: cfg?.dim || 'rgba(255,107,53,0.12)', color: cfg?.color || 'var(--primary)',
-                      textTransform: 'uppercase',
-                    }}>{sess.type}</span>
+                <div key={sess.id} className="glass" style={{
+                  borderRadius: 22, padding: '14px 16px',
+                  borderLeft: `3px solid ${cfg?.color || 'var(--primary)'}`,
+                  ...(isPlanned ? { borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.15)', borderLeftStyle: 'solid' } : {}),
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <span style={{
+                        fontSize: 10.5, fontWeight: 700, letterSpacing: 0.16, padding: '4px 10px', borderRadius: 999,
+                        background: cfg?.dim || 'rgba(255,107,53,0.12)', color: cfg?.color || 'var(--primary)',
+                        textTransform: 'uppercase',
+                      }}>{sess.type}</span>
+                      {isPlanned && (
+                        <span style={{
+                          fontSize: 9.5, fontWeight: 800, letterSpacing: 0.5, padding: '3px 8px', borderRadius: 999,
+                          background: 'rgba(255,255,255,0.06)', color: 'var(--text-mute)',
+                          border: '1px dashed rgba(255,255,255,0.2)',
+                          textTransform: 'uppercase',
+                        }}>À faire</span>
+                      )}
+                    </div>
                     <button className="tap" onClick={() => {
                       if (confirm('Supprimer cette séance ?')) deleteSession(sess.id);
                     }} style={{ background: 'transparent', border: 'none', color: 'var(--text-mute)' }}>
@@ -198,11 +217,29 @@ export default function Calendar() {
                       <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
                         <span style={{ fontWeight: 600 }}>{e.exerciseName}</span>
                         <span className="t-mono" style={{ color: 'var(--text-mute)' }}>
-                          {e.sets.map((s) => `${s.weight}×${s.reps}`).join(', ')}
+                          {e.sets.map((s) => `${s.weight}×${s.reps}`).join(', ') || '—'}
                         </span>
                       </div>
                     ))}
                   </div>
+
+                  {isPlanned && (
+                    <button
+                      onClick={async () => {
+                        const live = await startPlannedSession(sess.id);
+                        if (live) onStartSession?.();
+                      }}
+                      className="tap"
+                      style={{
+                        marginTop: 12, width: '100%',
+                        background: `linear-gradient(135deg, ${cfg?.color || 'var(--primary)'}, var(--secondary))`,
+                        border: 'none', borderRadius: 14, padding: '11px',
+                        color: '#fff', fontWeight: 800, fontSize: 13,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      }}>
+                      <Icons.Play size={14} /> Lancer cette séance
+                    </button>
+                  )}
                 </div>
               );
             })}
