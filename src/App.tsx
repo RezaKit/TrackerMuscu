@@ -23,10 +23,11 @@ import AICoach from './components/AICoach';
 import Auth from './components/Auth';
 import Onboarding from './components/Onboarding';
 import Measurements from './components/Measurements';
+import Legal from './components/Legal';
 import Navbar from './components/Navbar';
 import Toast from './components/Toast';
 
-export type Page = 'dashboard' | 'calendar' | 'analytics' | 'cardio' | 'session' | 'params' | 'settings' | 'daily' | 'coach' | 'measurements';
+export type Page = 'dashboard' | 'calendar' | 'analytics' | 'cardio' | 'session' | 'params' | 'settings' | 'daily' | 'coach' | 'measurements' | 'legal';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -244,12 +245,13 @@ export default function App() {
         {currentPage === 'cardio' && <Cardio showToast={showToast} />}
         {currentPage === 'daily' && <Daily showToast={showToast} onBack={() => setCurrentPage('dashboard')} />}
         {currentPage === 'settings' && <Settings showToast={showToast} />}
-        {currentPage === 'params' && <Params showToast={showToast} onShowAuth={() => setShowAuth(true)} />}
+        {currentPage === 'params' && <Params showToast={showToast} onShowAuth={() => setShowAuth(true)} onShowLegal={() => setCurrentPage('legal')} />}
         {currentPage === 'coach' && <AICoach onBack={() => setCurrentPage('dashboard')} />}
         {currentPage === 'measurements' && <Measurements onClose={() => setCurrentPage('dashboard')} />}
+        {currentPage === 'legal' && <Legal onBack={() => setCurrentPage('params')} />}
       </div>
 
-      {!inSession && !keyboardOpen && currentPage !== 'daily' && currentPage !== 'coach' && currentPage !== 'measurements' && (
+      {!inSession && !keyboardOpen && currentPage !== 'daily' && currentPage !== 'coach' && currentPage !== 'measurements' && currentPage !== 'legal' && (
         <Navbar currentPage={currentPage} onPageChange={setCurrentPage} />
       )}
 

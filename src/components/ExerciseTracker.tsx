@@ -6,7 +6,8 @@ import { Icons } from './Icons';
 import { EXERCISE_INFO } from '../db/exerciseInfo';
 import { getPref, togglePref, type ExercisePref } from '../utils/exercisePrefs';
 import { fetchExerciseInfo, muscleFr, equipFr, type WgerInfo } from '../utils/exerciseDB';
-import { findExerciseVideo, ytThumb, ytWatchUrl } from '../db/exerciseVideos';
+import { findExerciseVideo, ytThumb } from '../db/exerciseVideos';
+import MuscleMap from './MuscleMap';
 import type { ExerciseLog } from '../types';
 
 interface ExerciseTrackerProps {
@@ -20,6 +21,7 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
   const [expandedId, setExpandedId] = useState<string | null>(exercises[exercises.length - 1]?.id || null);
   const [editingSet, setEditingSet] = useState<{ exId: string; idx: number } | null>(null);
   const [infoName, setInfoName] = useState<string | null>(null);
+  const [videoPlaying, setVideoPlaying] = useState(false);
   const [wgerInfo, setWgerInfo] = useState<WgerInfo | null>(null);
   const [wgerLoading, setWgerLoading] = useState(false);
   const [weight, setWeight] = useState('');
@@ -31,8 +33,9 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
   const youtubeUrl = (name: string) => `https://www.youtube.com/results?search_query=${encodeURIComponent(name + ' exercise technique')}`;
 
   useEffect(() => {
-    if (!infoName) { setWgerInfo(null); return; }
+    if (!infoName) { setWgerInfo(null); setVideoPlaying(false); return; }
     setWgerInfo(null);
+    setVideoPlaying(false);
     setWgerLoading(true);
     fetchExerciseInfo(infoName)
       .then(info => setWgerInfo(info))
@@ -127,12 +130,12 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {/* Modal info exercice */}
       {infoName && createPortal(
-        <div onClick={() => setInfoName(null)} style={{
+        <div onClick={() => setInfoName(null)} className="modal-backdrop" style={{
           position: 'fixed', inset: 0, zIndex: 9000,
           background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'flex-end', padding: '0',
         }}>
-          <div onClick={(e) => e.stopPropagation()} style={{
+          <div onClick={(e) => e.stopPropagation()} className="modal-sheet" style={{
             width: '100%', background: 'rgba(18,18,22,0.98)',
             borderTop: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '24px 24px 0 0',
@@ -149,58 +152,69 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
               <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--primary)' }}>{infoName}</span>
             </div>
 
-            {/* YouTube thumbnail (curated) — falls back to wger photo */}
+            {/* YouTube : thumbnail at first tap → inline embed plays in place */}
             {(() => {
               const video = findExerciseVideo(infoName!);
               if (video) {
+                if (videoPlaying) {
+                  return (
+                    <div style={{
+                      borderRadius: 14, overflow: 'hidden', marginBottom: 14,
+                      background: '#000', aspectRatio: '16/9',
+                      animation: 'fadeIn 0.28s ease-out',
+                    }}>
+                      <iframe
+                        src={`https://www.youtube.com/embed/${video.id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+                        title={video.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        style={{ width: '100%', height: '100%', border: 0, display: 'block' }}
+                      />
+                    </div>
+                  );
+                }
                 return (
-                  <a
-                    href={ytWatchUrl(video.id)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="tap"
+                  <button
+                    onClick={() => setVideoPlaying(true)}
+                    className="tap video-card"
                     style={{
-                      display: 'block', position: 'relative',
+                      display: 'block', position: 'relative', width: '100%',
                       borderRadius: 14, overflow: 'hidden', marginBottom: 14,
                       background: '#000', textDecoration: 'none',
+                      border: 'none', padding: 0, cursor: 'pointer',
                     }}>
                     <img
                       src={ytThumb(video.id, 'hq')}
                       alt={video.title}
                       style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
                     />
-                    {/* Play overlay */}
                     <div style={{
                       position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: 'rgba(0,0,0,0.25)',
                     }}>
-                      <div style={{
-                        width: 56, height: 56, borderRadius: '50%',
-                        background: 'rgba(255,0,0,0.92)',
+                      <div className="play-btn play-btn-pulse" style={{
+                        width: 60, height: 60, borderRadius: '50%',
+                        background: 'rgba(255,0,0,0.95)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+                        paddingLeft: 4,
                       }}>
-                        <Icons.Play size={22} color="#fff" />
+                        <Icons.Play size={24} color="#fff" />
                       </div>
                     </div>
-                    {/* Channel/title overlay */}
                     <div style={{
                       position: 'absolute', bottom: 0, left: 0, right: 0,
                       padding: '10px 12px 8px',
                       background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)',
-                      color: '#fff',
+                      color: '#fff', textAlign: 'left',
                     }}>
                       <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.2 }}>{video.title}</div>
-                      <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>{video.channel} · YouTube</div>
+                      <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>{video.channel} · Touche pour lire</div>
                     </div>
-                  </a>
+                  </button>
                 );
               }
-              // Fallback: wger photo if available, else loading/empty
               if (wgerLoading) return (
-                <div style={{ height: 120, borderRadius: 14, background: 'rgba(255,255,255,0.04)', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--text-mute)' }}>Chargement infos…</span>
-                </div>
+                <div className="skeleton" style={{ height: 180, marginBottom: 14 }} />
               );
               if (wgerInfo?.images?.[0]) return (
                 <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 14, background: '#fff' }}>
@@ -212,6 +226,31 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                 </div>
               );
               return null;
+            })()}
+
+            {/* Mini mannequin animé — muscles ciblés pulsent */}
+            {(() => {
+              const currentExo = exercises.find(e => e.exerciseName === infoName);
+              if (!currentExo) return null;
+              // Synthetic log: only this exercise's group, neutral volume → all related muscles glow at max
+              const fakeLog: ExerciseLog = {
+                ...currentExo,
+                sets: [{ setNumber: 1, weight: 1, reps: 1 }],
+              };
+              return (
+                <div style={{
+                  marginBottom: 14, padding: '14px 12px 10px',
+                  background: 'rgba(255,107,53,0.05)',
+                  border: '1px solid rgba(255,107,53,0.18)',
+                  borderRadius: 14,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 1.2 }}>
+                    Zones travaillées
+                  </div>
+                  <MuscleMap exercises={[fakeLog]} size={170} />
+                </div>
+              );
             })()}
 
             {/* Muscles */}

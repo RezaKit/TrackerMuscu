@@ -13,6 +13,7 @@ import {
 interface ParamsProps {
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
   onShowAuth?: () => void;
+  onShowLegal?: () => void;
 }
 
 function loadProfile(): UserProfile | null {
@@ -22,7 +23,7 @@ function loadProfile(): UserProfile | null {
   } catch { return null; }
 }
 
-export default function Params({ showToast, onShowAuth }: ParamsProps) {
+export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsProps) {
   const { user, signOut } = useAuthStore();
 
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
@@ -551,6 +552,31 @@ export default function Params({ showToast, onShowAuth }: ParamsProps) {
               </div>
             )}
           </div>
+        )}
+
+        {/* ── Légal & Confidentialité ─────────── */}
+        {onShowLegal && (
+          <button onClick={onShowLegal} className="tap glass" style={{
+            borderRadius: 22, padding: '18px 16px', textAlign: 'left',
+            display: 'flex', alignItems: 'center', gap: 12,
+            border: '1px solid var(--glass-border)',
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 11, flexShrink: 0,
+              background: 'rgba(96,165,250,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--info)', fontSize: 18,
+            }}>🛡️</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Confidentialité & Légal</div>
+              <div style={{ fontSize: 11, color: 'var(--text-mute)', marginTop: 2 }}>
+                RGPD, mentions légales, CGU
+              </div>
+            </div>
+            <span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}>
+              <Icons.ChevronLeft size={14} color="var(--text-mute)" />
+            </span>
+          </button>
         )}
 
         {/* ── Reset compte ──────────────────────── */}

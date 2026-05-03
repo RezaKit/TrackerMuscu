@@ -60,7 +60,7 @@ export default function MuscleMap({ exercises, size = 280 }: MuscleMapProps) {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', gap: 14 }}>
       {/* ─── FRONT VIEW ─── */}
-      <svg viewBox="0 0 200 440" width={size / 2} height={size} style={{ flexShrink: 0 }}>
+      <svg className="muscle-svg" viewBox="0 0 200 440" width={size / 2} height={size} style={{ flexShrink: 0 }}>
         {/* Body silhouette */}
         <path d="M 100 12
           C 112 12 122 22 122 38
@@ -230,7 +230,7 @@ export default function MuscleMap({ exercises, size = 280 }: MuscleMapProps) {
       </svg>
 
       {/* ─── BACK VIEW ─── */}
-      <svg viewBox="0 0 200 440" width={size / 2} height={size} style={{ flexShrink: 0 }}>
+      <svg className="muscle-svg" viewBox="0 0 200 440" width={size / 2} height={size} style={{ flexShrink: 0 }}>
         {/* Body silhouette (mirror of front) */}
         <path d="M 100 12
           C 112 12 122 22 122 38
