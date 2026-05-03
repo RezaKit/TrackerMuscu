@@ -248,7 +248,7 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                   <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 1.2 }}>
                     Zones travaillées
                   </div>
-                  <MuscleMap exercises={[fakeLog]} size={170} />
+                  <MuscleMap exercises={[fakeLog]} size={200} compact />
                 </div>
               );
             })()}
