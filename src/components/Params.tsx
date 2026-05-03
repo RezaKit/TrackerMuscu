@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { supabase } from '../db/supabase';
 import { db } from '../db/db';
@@ -45,6 +45,23 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
   const [showGoalPicker, setShowGoalPicker] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
+
+  // Re-sync state from localStorage after cloud restore (prevents the
+  // "API key disappears on a fresh device" race condition: useState() reads
+  // localStorage before restoreFromCloud has rewritten it).
+  useEffect(() => {
+    const refresh = () => {
+      setApiKey(localStorage.getItem('gemini_api_key') || '');
+      setProfile(loadProfile());
+      setStravaConnected(isStravaConnected());
+    };
+    window.addEventListener('rezakit:cloud-restored', refresh);
+    window.addEventListener('focus', refresh);
+    return () => {
+      window.removeEventListener('rezakit:cloud-restored', refresh);
+      window.removeEventListener('focus', refresh);
+    };
+  }, []);
 
   const handleGoalChange = (goal: GoalType) => {
     if (!profile) return;

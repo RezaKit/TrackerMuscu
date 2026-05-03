@@ -148,6 +148,10 @@ export async function restoreFromCloud(): Promise<boolean> {
       restoreLocalStorage(data.local_settings as Record<string, string>);
     }
 
+    // Notify components that read localStorage on mount so they re-sync state
+    // (gemini_api_key, user_profile, strava_token, etc.) without a full reload.
+    window.dispatchEvent(new CustomEvent('rezakit:cloud-restored'));
+
     return true;
   } catch {
     return false;
