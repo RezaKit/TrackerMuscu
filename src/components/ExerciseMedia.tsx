@@ -1,56 +1,58 @@
 import { useEffect, useRef, useState } from 'react';
-import { fxImageUrl } from '../utils/exerciseDB';
+import { tr } from '../utils/i18n';
 
 interface ExerciseMediaProps {
-  /** Free Exercise DB id, e.g. "Barbell_Squat" */
   fxId?: string;
-  /** Display name, used as alt and to build the video filename */
   name: string;
-  /** 2-frame fallback (Free Exercise DB images) */
+  /** Animated GIF from ExerciseDB OSS */
+  gifUrl?: string;
+  /** Legacy 2-frame fallback images */
   fallbackImages?: string[];
-  /** Cross-fade speed (ms) when using flipbook */
   flipSpeed?: number;
 }
 
 const VIDEO_BASE = (import.meta.env?.VITE_EXERCISE_VIDEO_BASE as string | undefined) || '';
 
-/** Build candidate MP4 filename from an exercise name.
- *  "Lever Pec Deck Fly (Chest)" → "Lever-Pec-Deck-Fly-Chest.mp4"
- *  Mirrors the ExerciseDB official naming convention. */
 function buildVideoFilename(name: string): string {
   return (
     name
       .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')      // strip accents
-      .replace(/[()]/g, '')                 // drop parentheses
-      .replace(/[^a-zA-Z0-9 -]/g, '')       // drop other punctuation
-      .replace(/\s+/g, '-')                 // spaces → hyphens
-      .replace(/-+/g, '-')                  // collapse hyphens
-      .replace(/^-|-$/g, '')                // trim hyphens
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[()]/g, '')
+      .replace(/[^a-zA-Z0-9 -]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
       .split('-')
       .map((p) => p ? p[0].toUpperCase() + p.slice(1).toLowerCase() : '')
       .join('-') + '.mp4'
   );
 }
 
-type Mode = 'video' | 'flipbook' | 'placeholder';
+type Mode = 'video' | 'gif' | 'flipbook' | 'placeholder';
 
-/**
- * Renders an exercise demo. Tries an MP4 video first (autoplay/loop/muted),
- * falls back to a 2-frame flipbook of the static images, falls back again
- * to a plain placeholder when neither is available.
- *
- * MP4 URL is built from `VITE_EXERCISE_VIDEO_BASE + buildVideoFilename(name)`.
- * If the env var is empty (default), the flipbook is used directly without any
- * network attempt — keeping the offline path fast.
- */
-export default function ExerciseMedia({ name, fallbackImages = [], flipSpeed = 1100 }: ExerciseMediaProps) {
+function initMode(hasVideoBase: boolean, gifUrl?: string, fallbackCount = 0): Mode {
+  if (hasVideoBase) return 'video';
+  if (gifUrl) return 'gif';
+  if (fallbackCount > 0) return 'flipbook';
+  return 'placeholder';
+}
+
+export default function ExerciseMedia({ name, gifUrl, fallbackImages = [], flipSpeed = 1100 }: ExerciseMediaProps) {
   const hasVideoBase = VIDEO_BASE.length > 0;
-  const [mode, setMode] = useState<Mode>(hasVideoBase ? 'video' : (fallbackImages.length ? 'flipbook' : 'placeholder'));
+  const [mode, setMode] = useState<Mode>(() => initMode(hasVideoBase, gifUrl, fallbackImages.length));
   const [frame, setFrame] = useState(0);
-  const [imgLoaded, setImgLoaded] = useState<Record<number, boolean>>({});
+  const [imgLoaded, setImgLoaded] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Reset when exercise changes
+  useEffect(() => {
+    setImgLoaded(false);
+    setVideoReady(false);
+    setFrame(0);
+    setMode(initMode(hasVideoBase, gifUrl, fallbackImages.length));
+  }, [gifUrl, hasVideoBase, fallbackImages.length]);
 
   // Flipbook driver
   useEffect(() => {
@@ -59,18 +61,15 @@ export default function ExerciseMedia({ name, fallbackImages = [], flipSpeed = 1
     return () => window.clearInterval(id);
   }, [mode, fallbackImages.length, flipSpeed]);
 
-  // Video failure / autoplay handling
+  // Video autoplay
   useEffect(() => {
     if (mode !== 'video') return;
-    const v = videoRef.current;
-    if (!v) return;
-    // iOS occasionally blocks autoplay even with muted+playsInline if the user
-    // hasn't yet interacted with the page. Trigger play() explicitly.
-    v.play().catch(() => { /* user gesture required, the poster stays visible */ });
+    videoRef.current?.play().catch(() => {});
   }, [mode]);
 
   const downgradeFromVideo = () => {
-    if (fallbackImages.length) setMode('flipbook');
+    if (gifUrl) setMode('gif');
+    else if (fallbackImages.length) setMode('flipbook');
     else setMode('placeholder');
   };
 
@@ -90,8 +89,7 @@ export default function ExerciseMedia({ name, fallbackImages = [], flipSpeed = 1
     return (
       <div style={{
         position: 'relative', width: '100%', aspectRatio: '4/3',
-        borderRadius: 14, overflow: 'hidden',
-        background: '#000',
+        borderRadius: 14, overflow: 'hidden', background: '#000',
         boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)',
       }}>
         <video
@@ -104,59 +102,78 @@ export default function ExerciseMedia({ name, fallbackImages = [], flipSpeed = 1
           style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%',
             objectFit: 'contain', display: 'block',
-            opacity: videoReady ? 1 : 0,
-            transition: 'opacity 0.2s ease',
+            opacity: videoReady ? 1 : 0, transition: 'opacity 0.2s ease',
           }}
         />
-        {!videoReady && (
-          <div className="skeleton" style={{ position: 'absolute', inset: 0, borderRadius: 0 }} />
-        )}
+        {!videoReady && <div className="skeleton" style={{ position: 'absolute', inset: 0, borderRadius: 0 }} />}
         <div style={{
-          position: 'absolute', top: 8, right: 8,
-          padding: '3px 8px', borderRadius: 6,
+          position: 'absolute', top: 8, right: 8, padding: '3px 8px', borderRadius: 6,
           background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)',
-          fontSize: 9, fontWeight: 800, letterSpacing: 0.6,
-          color: '#fff', textTransform: 'uppercase',
-        }}>● Vidéo</div>
+          fontSize: 9, fontWeight: 800, letterSpacing: 0.6, color: '#fff', textTransform: 'uppercase',
+        }}>● {tr({ fr: 'Vidéo', en: 'Video', es: 'Vídeo' })}</div>
       </div>
     );
   }
 
-  // mode === 'flipbook'
+  if (mode === 'gif') {
+    return (
+      <div style={{
+        position: 'relative', width: '100%', aspectRatio: '4/3',
+        borderRadius: 14, overflow: 'hidden', background: '#fff',
+        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)',
+      }}>
+        {!imgLoaded && <div className="skeleton" style={{ position: 'absolute', inset: 0, borderRadius: 0 }} />}
+        <img
+          src={gifUrl!}
+          alt={name}
+          loading="lazy"
+          onLoad={() => setImgLoaded(true)}
+          onError={() => setMode(fallbackImages.length ? 'flipbook' : 'placeholder')}
+          style={{
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
+            objectFit: 'contain', display: 'block',
+            opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.25s ease',
+          }}
+        />
+        <div style={{
+          position: 'absolute', top: 8, right: 8, padding: '3px 8px', borderRadius: 6,
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)',
+          fontSize: 9, fontWeight: 800, letterSpacing: 0.6, color: '#fff', textTransform: 'uppercase',
+        }}>▶ GIF</div>
+      </div>
+    );
+  }
+
+  // flipbook
   return (
     <div style={{
       position: 'relative', width: '100%', aspectRatio: '4/3',
-      borderRadius: 14, overflow: 'hidden',
-      background: '#fff',
+      borderRadius: 14, overflow: 'hidden', background: '#fff',
       boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)',
     }}>
       {fallbackImages.map((src, i) => (
         <img
           key={i}
-          src={fxImageUrl(src)}
+          src={src}
           alt={name}
           loading={i === 0 ? 'eager' : 'lazy'}
-          onLoad={() => setImgLoaded((p) => ({ ...p, [i]: true }))}
+          onLoad={() => { if (i === 0) setImgLoaded(true); }}
           onError={() => { if (i === 0) setMode('placeholder'); }}
           style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%',
             objectFit: 'contain', display: 'block',
-            opacity: frame === i && imgLoaded[i] ? 1 : 0,
+            opacity: frame === i && imgLoaded ? 1 : 0,
             transition: 'opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         />
       ))}
-      {!imgLoaded[0] && (
-        <div className="skeleton" style={{ position: 'absolute', inset: 0, borderRadius: 0 }} />
-      )}
+      {!imgLoaded && <div className="skeleton" style={{ position: 'absolute', inset: 0, borderRadius: 0 }} />}
       {fallbackImages.length >= 2 && (
         <div style={{
-          position: 'absolute', top: 8, right: 8,
-          padding: '3px 7px', borderRadius: 6,
+          position: 'absolute', top: 8, right: 8, padding: '3px 7px', borderRadius: 6,
           background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)',
-          fontSize: 9, fontWeight: 800, letterSpacing: 0.6,
-          color: '#fff', textTransform: 'uppercase',
-        }}>▶ Animé</div>
+          fontSize: 9, fontWeight: 800, letterSpacing: 0.6, color: '#fff', textTransform: 'uppercase',
+        }}>▶ {tr({ fr: 'Animé', en: 'Animated', es: 'Animado' })}</div>
       )}
     </div>
   );

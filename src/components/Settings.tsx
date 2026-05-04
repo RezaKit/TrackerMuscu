@@ -6,6 +6,7 @@ import { useSessionStore } from '../stores/sessionStore';
 import { PRESET_EXERCISES } from '../db/seedExercises';
 import { Icons } from './Icons';
 import { setPendingAI } from '../utils/aiContext';
+import { tr } from '../utils/i18n';
 
 const MUSCLE_GROUPS = Object.keys(PRESET_EXERCISES);
 
@@ -41,7 +42,7 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
     createSession(tpl.type);
     loadFromTemplate(tpl.exerciseNames);
     onStartSession?.();
-    showToast(`▶ ${tpl.name} démarrée`, 'success');
+    showToast(tr({ fr: `▶ ${tpl.name} démarrée`, en: `▶ ${tpl.name} started`, es: `▶ ${tpl.name} iniciada` }), 'success');
   };
 
   const handleAskAITemplate = (tpl: typeof templates[number]) => {
@@ -60,35 +61,35 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
     setNewName('');
     setNewMuscle('chest');
     setShowAddForm(false);
-    showToast(`"${newName.trim()}" ajouté`, 'success');
+    showToast(tr({ fr: `"${newName.trim()}" ajouté`, en: `"${newName.trim()}" added`, es: `"${newName.trim()}" añadido` }), 'success');
   };
 
   const handleDeleteExercise = async (id: string, name: string) => {
     if (!confirm(`Supprimer "${name}" ?`)) return;
     await deleteExercise(id);
-    showToast('Exercice supprimé', 'info');
+    showToast(tr({ fr: 'Exercice supprimé', en: 'Exercise deleted', es: 'Ejercicio eliminado' }), 'info');
   };
 
   const handleDeleteTemplate = async (id: string, name: string) => {
     if (!confirm(`Supprimer le template "${name}" ?`)) return;
     await deleteTemplate(id);
-    showToast('Template supprimé', 'info');
+    showToast(tr({ fr: 'Template supprimé', en: 'Template deleted', es: 'Plantilla eliminada' }), 'info');
   };
 
   return (
     <div className="page-enter">
       <div style={{ padding: '14px 22px 14px' }}>
-        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Configuration</div>
-        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Config</h1>
+        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>{tr({ fr: 'Configuration', en: 'Configuration', es: 'Configuración' })}</div>
+        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>{tr({ fr: 'Config', en: 'Config', es: 'Config' })}</h1>
       </div>
 
       {/* Tabs */}
       <div style={{ padding: '6px 16px 14px' }}>
         <div className="glass" style={{ borderRadius: 16, padding: 4, display: 'flex' }}>
           {([
-            { id: 'exercises' as const, label: 'Exercices', Icon: Icons.Dumbbell },
-            { id: 'templates' as const, label: 'Templates', Icon: Icons.Save },
-            { id: 'routine' as const, label: 'Routine', Icon: Icons.Moon },
+            { id: 'exercises' as const, label: tr({ fr: 'Exercices', en: 'Exercises', es: 'Ejercicios' }), Icon: Icons.Dumbbell },
+            { id: 'templates' as const, label: tr({ fr: 'Templates', en: 'Templates', es: 'Plantillas' }), Icon: Icons.Save },
+            { id: 'routine' as const, label: tr({ fr: 'Routine', en: 'Routine', es: 'Rutina' }), Icon: Icons.Moon },
           ]).map(({ id, label, Icon }) => {
             const on = tab === id;
             return (
@@ -112,9 +113,9 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
           <div className="glass" style={{ borderRadius: 22, padding: '16px 16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>Mes exercices custom</div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{tr({ fr: 'Mes exercices custom', en: 'My custom exercises', es: 'Mis ejercicios personalizados' })}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>
-                  {customExercises.length} exercice{customExercises.length !== 1 ? 's' : ''} personnel{customExercises.length !== 1 ? 's' : ''}
+                  {customExercises.length} {tr({ fr: `exercice${customExercises.length !== 1 ? 's' : ''} personnel${customExercises.length !== 1 ? 's' : ''}`, en: `custom exercise${customExercises.length !== 1 ? 's' : ''}`, es: `ejercicio${customExercises.length !== 1 ? 's' : ''} personalizado${customExercises.length !== 1 ? 's' : ''}` })}
                 </div>
               </div>
               <button onClick={() => setShowAddForm(!showAddForm)} className="tap" style={{
@@ -122,13 +123,13 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
                 background: showAddForm ? 'rgba(255,255,255,0.06)' : 'var(--primary)',
                 color: '#fff', fontWeight: 700, fontSize: 12,
               }}>
-                {showAddForm ? 'Fermer' : '+ Ajouter'}
+                {showAddForm ? tr({ fr: 'Fermer', en: 'Close', es: 'Cerrar' }) : tr({ fr: '+ Ajouter', en: '+ Add', es: '+ Añadir' })}
               </button>
             </div>
 
             {showAddForm && (
               <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: '12px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <input type="text" placeholder="Nom de l'exercice" value={newName}
+                <input type="text" placeholder={tr({ fr: "Nom de l'exercice", en: 'Exercise name', es: 'Nombre del ejercicio' })} value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddExercise()}
                   className="input-glass" autoFocus />
@@ -142,13 +143,13 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
                   border: 'none', borderRadius: 12, padding: '11px',
                   background: newName.trim() ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
                   color: '#fff', fontWeight: 700, fontSize: 13, opacity: newName.trim() ? 1 : 0.4,
-                }}>Créer l'exercice</button>
+                }}>{tr({ fr: "Créer l'exercice", en: 'Create exercise', es: 'Crear ejercicio' })}</button>
               </div>
             )}
 
             {customExercises.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-mute)', fontSize: 13 }}>
-                Aucun exercice custom. Crée les tiens !
+                {tr({ fr: 'Aucun exercice custom. Crée les tiens !', en: 'No custom exercises yet. Create your own!', es: 'Sin ejercicios personalizados. ¡Crea los tuyos!' })}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -171,9 +172,9 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
           </div>
 
           <div className="glass" style={{ borderRadius: 22, padding: '16px 16px' }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Exercices preset</div>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{tr({ fr: 'Exercices preset', en: 'Preset exercises', es: 'Ejercicios predefinidos' })}</div>
             <div style={{ fontSize: 11, color: 'var(--text-mute)', marginBottom: 12 }}>
-              {Object.values(PRESET_EXERCISES).flat().length} exercices disponibles par défaut
+              {Object.values(PRESET_EXERCISES).flat().length} {tr({ fr: 'exercices disponibles par défaut', en: 'exercises available by default', es: 'ejercicios disponibles por defecto' })}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {Object.entries(PRESET_EXERCISES).map(([group, exos]) => (
@@ -194,11 +195,11 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
           {/* Current items */}
           <div className="glass" style={{ borderRadius: 22, padding: '16px 16px' }}>
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>
-              Items de ta routine soir
+              {tr({ fr: 'Items de ta routine soir', en: 'Evening routine items', es: 'Elementos de tu rutina nocturna' })}
             </div>
             {routineItems.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-mute)', fontSize: 13 }}>
-                Aucun item. Ajoute-en ci-dessous.
+                {tr({ fr: 'Aucun item. Ajoute-en ci-dessous.', en: 'No items yet. Add some below.', es: 'Sin elementos. Añade algunos abajo.' })}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -209,7 +210,7 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
                   }}>
                     <span style={{ fontSize: 22 }}>{item.emoji}</span>
                     <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{item.name}</span>
-                    <button onClick={async () => { await deleteRoutineItem(item.id); showToast('Item supprimé', 'info'); }}
+                    <button onClick={async () => { await deleteRoutineItem(item.id); showToast(tr({ fr: 'Item supprimé', en: 'Item deleted', es: 'Elemento eliminado' }), 'info'); }}
                       className="tap" style={{ background: 'none', border: 'none', color: 'var(--text-mute)', padding: '4px' }}>
                       <Icons.Trash size={14} />
                     </button>
@@ -221,7 +222,7 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
 
           {/* Add new item */}
           <div className="glass" style={{ borderRadius: 22, padding: '16px 16px' }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>Ajouter un item</div>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>{tr({ fr: 'Ajouter un item', en: 'Add an item', es: 'Añadir un elemento' })}</div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
               <div style={{
                 width: 48, height: 48, borderRadius: 14, flexShrink: 0,
@@ -231,14 +232,14 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
               }}>{routineEmoji}</div>
               <input
                 type="text"
-                placeholder="Nom de l'habitude"
+                placeholder={tr({ fr: "Nom de l'habitude", en: 'Habit name', es: 'Nombre del hábito' })}
                 value={routineName}
                 onChange={(e) => setRoutineName(e.target.value)}
                 onKeyDown={async (e) => {
                   if (e.key === 'Enter' && routineName.trim()) {
                     await addRoutineItem(routineName.trim(), routineEmoji);
                     setRoutineName('');
-                    showToast(`"${routineName.trim()}" ajouté`, 'success');
+                    showToast(tr({ fr: `"${routineName.trim()}" ajouté`, en: `"${routineName.trim()}" added`, es: `"${routineName.trim()}" añadido` }), 'success');
                   }
                 }}
                 className="input-glass"
@@ -262,7 +263,7 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
                 if (!routineName.trim()) return;
                 await addRoutineItem(routineName.trim(), routineEmoji);
                 setRoutineName('');
-                showToast(`"${routineName.trim()}" ajouté`, 'success');
+                showToast(tr({ fr: `"${routineName.trim()}" ajouté`, en: `"${routineName.trim()}" added`, es: `"${routineName.trim()}" añadido` }), 'success');
               }}
               disabled={!routineName.trim()}
               className="tap"
@@ -273,7 +274,7 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
                 opacity: routineName.trim() ? 1 : 0.4,
               }}
             >
-              Ajouter à la routine
+              {tr({ fr: 'Ajouter à la routine', en: 'Add to routine', es: 'Añadir a la rutina' })}
             </button>
           </div>
         </div>
@@ -285,8 +286,8 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
           {templates.length === 0 ? (
             <div className="glass" style={{ borderRadius: 22, padding: '32px 22px', textAlign: 'center' }}>
               <Icons.Save size={32} color="var(--text-faint)" />
-              <div style={{ marginTop: 12, color: 'var(--text-mute)', fontSize: 13 }}>Aucun template sauvegardé.</div>
-              <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-faint)' }}>Sauvegarde-en depuis une séance active.</div>
+              <div style={{ marginTop: 12, color: 'var(--text-mute)', fontSize: 13 }}>{tr({ fr: 'Aucun template sauvegardé.', en: 'No template saved yet.', es: 'Ningún template guardado.' })}</div>
+              <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-faint)' }}>{tr({ fr: 'Sauvegarde-en depuis une séance active.', en: 'Save one from an active workout.', es: 'Guarda uno desde una sesión activa.' })}</div>
             </div>
           ) : (
             templates.map((t) => {
@@ -312,9 +313,9 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
                         </span>
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>
-                        {t.exerciseNames.length} exercice{t.exerciseNames.length !== 1 ? 's' : ''}
+                        {t.exerciseNames.length} {tr({ fr: `exercice${t.exerciseNames.length !== 1 ? 's' : ''}`, en: `exercise${t.exerciseNames.length !== 1 ? 's' : ''}`, es: `ejercicio${t.exerciseNames.length !== 1 ? 's' : ''}` })}
                         {' · '}
-                        <span style={{ color: 'var(--text-faint)' }}>{expanded ? 'Toucher pour réduire' : 'Toucher pour voir'}</span>
+                        <span style={{ color: 'var(--text-faint)' }}>{expanded ? tr({ fr: 'Toucher pour réduire', en: 'Tap to collapse', es: 'Tocar para cerrar' }) : tr({ fr: 'Toucher pour voir', en: 'Tap to view', es: 'Tocar para ver' })}</span>
                       </div>
                     </div>
                     <span style={{
@@ -366,7 +367,7 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                           }}
                         >
-                          <Icons.Play size={13} /> Lancer
+                          <Icons.Play size={13} /> {tr({ fr: 'Lancer', en: 'Start', es: 'Iniciar' })}
                         </button>
                         <button
                           onClick={() => handleAskAITemplate(t)}
@@ -378,7 +379,7 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
                             border: '1px solid rgba(96,165,250,0.25)',
                           }}
                         >
-                          🤖 Modifier IA
+                          🤖 {tr({ fr: 'Modifier IA', en: 'Edit AI', es: 'Editar IA' })}
                         </button>
                         <button
                           onClick={() => handleDeleteTemplate(t.id, t.name)}

@@ -12,7 +12,7 @@ import {
 import { translateExerciseSteps } from '../utils/translateAI';
 import MuscleMap from './MuscleMap';
 import ExerciseMedia from './ExerciseMedia';
-import { useLang, getLang } from '../utils/i18n';
+import { useLang, getLang, tr } from '../utils/i18n';
 import type { ExerciseLog } from '../types';
 
 interface ExerciseTrackerProps {
@@ -96,9 +96,9 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
     const next = togglePref(name, target);
     forcePrefRender(n => n + 1);
     showToast(
-      next === 'favorite' ? `⭐ ${name} ajouté aux favoris`
-      : next === 'avoid' ? `🚫 ${name} sera évité`
-      : `${name} : préférence retirée`,
+      next === 'favorite' ? `⭐ ${name} ${tr({fr:'ajouté aux favoris',en:'added to favorites',es:'añadido a favoritos'})}`
+      : next === 'avoid' ? `🚫 ${name} ${tr({fr:'sera évité',en:'will be avoided',es:'será evitado'})}`
+      : `${name} ${tr({fr:': préférence retirée',en:': preference removed',es:': preferencia eliminada'})}`,
       'info'
     );
   };
@@ -177,7 +177,8 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                     <ExerciseMedia
                       fxId={fxInfo.id}
                       name={fxInfo.name}
-                      fallbackImages={fxInfo.images}
+                      gifUrl={fxInfo.gifUrl}
+                      fallbackImages={fxInfo.images ?? []}
                     />
                   </div>
                 );
@@ -203,7 +204,7 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 1.2 }}>
-                    Zones travaillées
+                    {tr({fr:'Zones travaillées',en:'Target zones',es:'Zonas trabajadas'})}
                   </div>
                   <MuscleMap exercises={[fakeLog]} size={200} compact />
                 </div>
@@ -214,7 +215,7 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
             {fxInfo && (fxInfo.primaryMuscles.length > 0 || fxInfo.secondaryMuscles.length > 0) && (
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-mute)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-                  Muscles ciblés
+                  {tr({fr:'Muscles ciblés',en:'Target muscles',es:'Músculos objetivo'})}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {fxInfo.primaryMuscles.map((m) => (
@@ -256,7 +257,7 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
             {fxInfo && fxInfo.instructions.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-mute)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-                  Comment l'exécuter
+                  {tr({fr:"Comment l'exécuter",en:'How to perform',es:'Cómo ejecutarlo'})}
                 </div>
                 <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {(aiSteps ?? localizeInstructions(fxInfo.instructions)).map((step, i) => (
@@ -291,7 +292,7 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
               width: '100%', background: 'rgba(255,255,255,0.06)',
               border: 'none', borderRadius: 14, padding: '14px', color: 'var(--text-mute)',
               fontWeight: 700, fontSize: 14,
-            }}>Fermer</button>
+            }}>{tr({fr:'Fermer',en:'Close',es:'Cerrar'})}</button>
           </div>
         </div>,
         document.body
@@ -448,7 +449,7 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                       marginTop: 12, display: 'flex', alignItems: 'center', gap: 6,
                       fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 600,
                     }}>
-                      <span style={{ textTransform: 'uppercase', letterSpacing: 0.6 }}>Dernière fois</span>
+                      <span style={{ textTransform: 'uppercase', letterSpacing: 0.6 }}>{tr({fr:'Dernière fois',en:'Last time',es:'Última vez'})}</span>
                       <span className="t-mono" style={{ color: 'var(--text-soft)' }}>
                         {prevRef.weight}kg × {prevRef.reps}
                       </span>
@@ -469,7 +470,7 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
 
                 {/* Add set */}
                 <div style={{ display: 'flex', gap: 8, marginTop: prevRef ? 8 : 12, alignItems: 'center' }}>
-                  <input type="number" inputMode="decimal" placeholder="Poids" value={weight}
+                  <input type="number" inputMode="decimal" placeholder={tr({fr:'Poids',en:'Weight',es:'Peso'})} value={weight}
                     onChange={(e) => setWeight(e.target.value)}
                     style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: 'var(--primary)', padding: '10px', textAlign: 'center', fontSize: 16, fontFamily: 'var(--display)', outline: 'none' }} />
                   <span style={{ color: 'var(--text-mute)', fontSize: 12 }}>×</span>
@@ -490,12 +491,12 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                 {history.length > 0 && (
                   <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.02)', borderRadius: 14, padding: '10px 12px' }}>
                     <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 8 }}>
-                      Historique
+                      {tr({fr:'Historique',en:'History',es:'Historial'})}
                     </div>
                     {history.map((h) => (
                       <div key={h.date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                         <span className="t-mono" style={{ fontSize: 10, color: 'var(--text-mute)' }}>
-                          {new Date(h.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                          {new Date(h.date + 'T00:00:00').toLocaleDateString(getLang()==='fr'?'fr-FR':getLang()==='es'?'es-ES':'en-GB', { day: '2-digit', month: '2-digit' })}
                         </span>
                         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                           {h.sets.map((s, i) => (
@@ -519,7 +520,7 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                       fontSize: 11, fontWeight: 700,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                     }}>
-                    <Icons.Star size={11} /> {pref === 'favorite' ? 'Favori' : 'Favoris'}
+                    <Icons.Star size={11} /> {pref === 'favorite' ? tr({fr:'Favori ★',en:'Favorite ★',es:'Favorito ★'}) : tr({fr:'Favoris',en:'Favorites',es:'Favoritos'})}
                   </button>
                   <button onClick={() => handleTogglePref(exercise.exerciseName, 'avoid')}
                     className="tap" style={{
@@ -529,7 +530,7 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                       fontSize: 11, fontWeight: 700,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                     }}>
-                    <Icons.Ban size={11} /> {pref === 'avoid' ? 'Évité' : 'Éviter'}
+                    <Icons.Ban size={11} /> {pref === 'avoid' ? tr({fr:'Évité 🚫',en:'Avoided 🚫',es:'Evitado 🚫'}) : tr({fr:'Éviter',en:'Avoid',es:'Evitar'})}
                   </button>
                   {exIdx < exercises.length - 1 && (
                     <button onClick={() => handleToggleSuperset(exercise.id)}
@@ -540,18 +541,18 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
                         fontSize: 11, fontWeight: 700,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                       }}>
-                      <Icons.Link size={11} /> {inSuperset ? 'Délier' : 'Lier'}
+                      <Icons.Link size={11} /> {inSuperset ? tr({fr:'Délier',en:'Unlink',es:'Desligar'}) : tr({fr:'Lier',en:'Link',es:'Ligar'})}
                     </button>
                   )}
                 </div>
 
-                <button onClick={() => { if (confirm(`Supprimer ${exercise.exerciseName} ?`)) deleteExercise(exercise.id); }}
+                <button onClick={() => { if (confirm(tr({fr:`Supprimer ${exercise.exerciseName} ?`,en:`Remove ${exercise.exerciseName}?`,es:`Eliminar ${exercise.exerciseName}?`}))) deleteExercise(exercise.id); }}
                   className="tap" style={{
                     width: '100%', background: 'none', border: 'none', marginTop: 10,
                     color: 'rgba(196,30,58,0.5)', fontSize: 12, fontWeight: 600, padding: '6px 0',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   }}>
-                  <Icons.Trash size={12} /> Retirer de la séance
+                  <Icons.Trash size={12} /> {tr({fr:'Retirer de la séance',en:'Remove from workout',es:'Quitar del entreno'})}
                 </button>
               </div>
               );

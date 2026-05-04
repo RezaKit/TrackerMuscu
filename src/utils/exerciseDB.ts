@@ -1,27 +1,49 @@
-// Free Exercise DB integration — open-source dataset of 870+ exercises with
-// images, instructions, primary/secondary muscles & equipment.
-// Source: https://github.com/yuhonas/free-exercise-db (MIT)
+// ExerciseDB OSS — 1,500 exercises with animated GIFs.
+// Source: https://oss.exercisedb.dev (MIT, no auth required)
 
 import { getLang, type Lang } from './i18n';
 
-const DATASET_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json';
-const IMAGE_BASE  = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
+const DATASET_URL = 'https://oss.exercisedb.dev/api/v1/exercises?limit=2000';
 
-const CACHE_KEY    = 'rzk_fxdb_v1';
+const CACHE_KEY    = 'rzk_fxdb_v2';
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export interface FxExercise {
   id: string;
   name: string;
-  force: 'pull' | 'push' | 'static' | null;
-  level: 'beginner' | 'intermediate' | 'expert';
-  mechanic: 'compound' | 'isolation' | null;
+  gifUrl?: string;
+  force?: 'pull' | 'push' | 'static' | null;
+  level?: 'beginner' | 'intermediate' | 'expert';
+  mechanic?: 'compound' | 'isolation' | null;
   equipment: string | null;
   primaryMuscles: string[];
   secondaryMuscles: string[];
   instructions: string[];
-  category: string;
-  images: string[];
+  category?: string;
+  images?: string[];
+}
+
+interface RawExercise {
+  exerciseId: string;
+  name: string;
+  gifUrl: string;
+  targetMuscles: string[];
+  bodyParts: string[];
+  equipments: string[];
+  secondaryMuscles: string[];
+  instructions: string[];
+}
+
+function mapRaw(raw: RawExercise): FxExercise {
+  return {
+    id: raw.exerciseId,
+    name: raw.name,
+    gifUrl: raw.gifUrl || undefined,
+    primaryMuscles: raw.targetMuscles ?? [],
+    secondaryMuscles: raw.secondaryMuscles ?? [],
+    equipment: raw.equipments?.[0] ?? null,
+    instructions: (raw.instructions ?? []).map((s) => s.replace(/^Step:\d+\s*/i, '')),
+  };
 }
 
 let cache: FxExercise[] | null = null;
@@ -47,12 +69,13 @@ async function loadDataset(): Promise<FxExercise[]> {
       if (!r.ok) throw new Error(`fxdb ${r.status}`);
       return r.json();
     })
-    .then((arr: FxExercise[]) => {
-      cache = arr;
+    .then((arr: RawExercise[]) => {
+      const mapped = arr.map(mapRaw);
+      cache = mapped;
       try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: arr, ts: Date.now() }));
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: mapped, ts: Date.now() }));
       } catch { /* quota */ }
-      return arr;
+      return mapped;
     })
     .finally(() => { pending = null; });
   return pending;
@@ -182,8 +205,9 @@ export async function findFxExercise(name: string): Promise<FxExercise | null> {
   }) || null;
 }
 
+/** Kept for backward compatibility — no longer needed with GIF-based media. */
 export function fxImageUrl(image: string): string {
-  return IMAGE_BASE + encodeURI(image);
+  return image;
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -191,6 +215,7 @@ export function fxImageUrl(image: string): string {
 // ──────────────────────────────────────────────────────────────────────────
 
 const MUSCLES: Record<string, Record<Lang, string>> = {
+  // Old API names
   abdominals:   { fr: 'Abdominaux',     en: 'Abdominals',    es: 'Abdominales'   },
   abductors:    { fr: 'Abducteurs',     en: 'Abductors',     es: 'Abductores'    },
   adductors:    { fr: 'Adducteurs',     en: 'Adductors',     es: 'Aductores'     },
@@ -208,20 +233,35 @@ const MUSCLES: Record<string, Record<Lang, string>> = {
   shoulders:    { fr: 'Épaules',        en: 'Shoulders',     es: 'Hombros'       },
   traps:        { fr: 'Trapèzes',       en: 'Traps',         es: 'Trapecios'     },
   triceps:      { fr: 'Triceps',        en: 'Triceps',       es: 'Tríceps'       },
+  // ExerciseDB OSS API names
+  pectorals:            { fr: 'Pectoraux',          en: 'Pectorals',          es: 'Pectorales'          },
+  deltoids:             { fr: 'Deltoïdes',           en: 'Deltoids',           es: 'Deltoides'           },
+  quads:                { fr: 'Quadriceps',          en: 'Quads',              es: 'Cuádriceps'          },
+  'hip flexors':        { fr: 'Fléchisseurs hanches',en: 'Hip flexors',        es: 'Flexores de cadera'  },
+  spine:                { fr: 'Colonne vertébrale',  en: 'Spine',              es: 'Columna vertebral'   },
+  'serratus anterior':  { fr: 'Grand dentelé',       en: 'Serratus anterior',  es: 'Serrato anterior'    },
+  'cardiovascular system':{ fr: 'Cardio',            en: 'Cardiovascular',     es: 'Cardiovascular'      },
+  'upper back':         { fr: 'Haut du dos',         en: 'Upper back',         es: 'Parte superior espalda'},
+  'levator scapulae':   { fr: 'Élévateur scapulaire',en: 'Levator scapulae',   es: 'Elevador escápula'   },
 };
 
 const EQUIP: Record<string, Record<Lang, string>> = {
   'body only':       { fr: 'Poids du corps',  en: 'Bodyweight',     es: 'Peso corporal'  },
+  'body weight':     { fr: 'Poids du corps',  en: 'Bodyweight',     es: 'Peso corporal'  },
   machine:           { fr: 'Machine',          en: 'Machine',        es: 'Máquina'        },
   dumbbell:          { fr: 'Haltères',         en: 'Dumbbell',       es: 'Mancuernas'     },
   barbell:           { fr: 'Barre',            en: 'Barbell',        es: 'Barra'          },
   cable:             { fr: 'Câble',            en: 'Cable',          es: 'Cable'          },
   kettlebell:        { fr: 'Kettlebell',       en: 'Kettlebell',     es: 'Pesa rusa'      },
   bands:             { fr: 'Élastiques',       en: 'Bands',          es: 'Bandas'         },
+  band:              { fr: 'Élastique',        en: 'Band',           es: 'Banda'          },
   'foam roll':       { fr: 'Foam roller',      en: 'Foam roller',    es: 'Rodillo'        },
   'medicine ball':   { fr: 'Médecine ball',    en: 'Medicine ball',  es: 'Balón medicinal'},
   'exercise ball':   { fr: 'Swiss ball',       en: 'Stability ball', es: 'Pelota suiza'   },
+  'stability ball':  { fr: 'Swiss ball',       en: 'Stability ball', es: 'Pelota suiza'   },
   'e-z curl bar':    { fr: 'Barre EZ',         en: 'EZ-curl bar',    es: 'Barra Z'        },
+  rope:              { fr: 'Corde',            en: 'Rope',           es: 'Cuerda'         },
+  hammer:            { fr: 'Marteau',          en: 'Hammer',         es: 'Martillo'       },
   other:             { fr: 'Autre',            en: 'Other',          es: 'Otro'           },
 };
 
@@ -268,15 +308,13 @@ export const categoryLabel = (c: string)             => localize(CATEGORY, c);
 
 // ──────────────────────────────────────────────────────────────────────────
 // Instructions translation: cheap dictionary lookup.
-// Free Exercise DB instructions are English only, so for FR/ES we run a list of
-// regex replacements to localize the most common gym verbs and nouns. It's not
-// LLM-quality but covers ~80% of cases readably and runs offline.
+// ExerciseDB instructions are English only, so for FR/ES we run regex
+// replacements to localize the most common gym verbs and nouns.
 // ──────────────────────────────────────────────────────────────────────────
 
 type Phrase = [RegExp, string];
 
 const FR_PHRASES: Phrase[] = [
-  // Pronouns / connectors
   [/\bThis will be your starting position\b/gi, 'C\'est ta position de départ'],
   [/\bbeginning position\b/gi, 'position de départ'],
   [/\bstarting position\b/gi, 'position de départ'],
@@ -285,7 +323,6 @@ const FR_PHRASES: Phrase[] = [
   [/\bRepeat\b/gi, 'Répète'],
   [/\bAt the same time\b/gi, 'En même temps'],
   [/\bAfter a (?:second|brief) pause\b/gi, 'Après une courte pause'],
-  // Verbs
   [/\bLie (?:down )?(?:on (?:the|your))?\b/gi, 'Allonge-toi'],
   [/\bSit (?:down )?(?:on)?\b/gi, 'Assieds-toi'],
   [/\bStand (?:up )?(?:with)?\b/gi, 'Tiens-toi debout'],
@@ -307,7 +344,6 @@ const FR_PHRASES: Phrase[] = [
   [/\bRotate\b/gi, 'Tourne'],
   [/\bReturn to the starting position\b/gi, 'Reviens à la position de départ'],
   [/\bReturn\b/gi, 'Reviens'],
-  // Body parts
   [/\bshoulders?\b/gi, 'épaules'],
   [/\bchest\b/gi, 'poitrine'],
   [/\bback\b/gi, 'dos'],
@@ -322,7 +358,6 @@ const FR_PHRASES: Phrase[] = [
   [/\blegs?\b/gi, 'jambes'],
   [/\babs\b/gi, 'abdos'],
   [/\bcore\b/gi, 'gainage'],
-  // Equipment
   [/\bbarbell\b/gi, 'barre'],
   [/\bdumbbells?\b/gi, 'haltère'],
   [/\bbench\b/gi, 'banc'],
@@ -330,7 +365,6 @@ const FR_PHRASES: Phrase[] = [
   [/\bmachine\b/gi, 'machine'],
   [/\bweight\b/gi, 'charge'],
   [/\bbar\b/gi, 'barre'],
-  // Common adjectives / adverbs
   [/\bshoulder[- ]width\b/gi, 'largeur d\'épaules'],
   [/\bovergrip\b/gi, 'prise pronation'],
   [/\bundergrip\b/gi, 'prise supination'],
@@ -402,10 +436,6 @@ export function localizeInstructions(steps: string[]): string[] {
   });
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// Backwards-compat shims for existing components (will be removed once all
-// refs are migrated). They route old wger calls to the new dataset.
-// ──────────────────────────────────────────────────────────────────────────
-
+// Backwards-compat shims
 export const muscleFr = (m: string) => muscleLabel(m);
 export const equipFr  = (e: string) => equipLabel(e);

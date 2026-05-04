@@ -4,6 +4,7 @@ import { getDateString } from '../utils/export';
 import { Icons } from './Icons';
 import { scheduleSync } from '../utils/cloudSync';
 import { getCurrentWeek, getDaysUntilRace, PLAN } from '../utils/runningPlan';
+import { tr, getLang } from '../utils/i18n';
 
 const RunningProgram = lazy(() => import('./RunningProgram'));
 
@@ -14,7 +15,8 @@ interface CardioProps {
 type Tab = 'course' | 'natation';
 
 function fmtDate(iso: string) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  const locale = getLang() === 'fr' ? 'fr-FR' : getLang() === 'es' ? 'es-ES' : 'en-GB';
+  return new Date(iso + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
 export default function Cardio({ showToast }: CardioProps) {
@@ -35,10 +37,10 @@ export default function Cardio({ showToast }: CardioProps) {
     if (!d || d <= 0 || !t || t <= 0) return;
     if (tab === 'course') {
       await addCourse(d, t, date, notes || undefined);
-      showToast(`Course: ${d}km`, 'success');
+      showToast(tr({ fr: `Course: ${d}km`, en: `Run: ${d}km`, es: `Carrera: ${d}km` }), 'success');
     } else {
       await addNatation(d, t, date, style, notes || undefined);
-      showToast(`Natation: ${d}m`, 'success');
+      showToast(tr({ fr: `Natation: ${d}m`, en: `Swim: ${d}m`, es: `Natación: ${d}m` }), 'success');
     }
     scheduleSync();
     setDistance(''); setTime(''); setNotes(''); setDate(getDateString());
@@ -62,7 +64,7 @@ export default function Cardio({ showToast }: CardioProps) {
             borderRadius: 12, padding: '8px 14px', color: 'var(--text-soft)',
             fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6,
           }}>
-            ← Retour Cardio
+            ← {tr({ fr: 'Retour Cardio', en: 'Back to Cardio', es: 'Volver Cardio' })}
           </button>
         </div>
         <Suspense fallback={<div className="skeleton" style={{ height: 200, margin: 16, borderRadius: 18 }} />}>
@@ -77,15 +79,15 @@ export default function Cardio({ showToast }: CardioProps) {
       {/* Header */}
       <div style={{ padding: '14px 22px 14px' }}>
         <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Cardio</div>
-        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Entraînement</h1>
+        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>{tr({ fr: 'Entraînement', en: 'Training', es: 'Entrenamiento' })}</h1>
       </div>
 
       {/* Tabs */}
       <div style={{ padding: '6px 16px 14px' }}>
         <div className="glass" style={{ borderRadius: 16, padding: 4, display: 'flex' }}>
           {([
-            { id: 'course' as const, label: 'Course', Icon: Icons.Run },
-            { id: 'natation' as const, label: 'Natation', Icon: Icons.Swim },
+            { id: 'course' as const, label: tr({ fr: 'Course', en: 'Run', es: 'Carrera' }), Icon: Icons.Run },
+            { id: 'natation' as const, label: tr({ fr: 'Natation', en: 'Swim', es: 'Natación' }), Icon: Icons.Swim },
           ]).map(({ id, label, Icon }) => {
             const on = tab === id;
             return (
@@ -120,11 +122,11 @@ export default function Cardio({ showToast }: CardioProps) {
               <Icons.Run size={22} color="#fff" />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>Plan Semi-Marathon</div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{tr({ fr: 'Plan Semi-Marathon', en: 'Half-Marathon Plan', es: 'Plan Media Maratón' })}</div>
               <div style={{ fontSize: 11, color: 'var(--text-mute)', marginTop: 1 }}>
                 {curPlan
-                  ? `Sem ${currentWeek}/${PLAN.length} · ${curPlan.longRunKm}km dim · ${daysToRace}j avant la course`
-                  : `${daysToRace} jours avant la course · 27 semaines de prep`}
+                  ? tr({ fr: `Sem ${currentWeek}/${PLAN.length} · ${curPlan.longRunKm}km dim · ${daysToRace}j avant la course`, en: `Week ${currentWeek}/${PLAN.length} · ${curPlan.longRunKm}km Sun · ${daysToRace}d to race`, es: `Sem ${currentWeek}/${PLAN.length} · ${curPlan.longRunKm}km dom · ${daysToRace}d para la carrera` })
+                  : tr({ fr: `${daysToRace} jours avant la course · 27 semaines de prep`, en: `${daysToRace} days to race · 27 weeks prep`, es: `${daysToRace} días para la carrera · 27 semanas de prep` })}
               </div>
             </div>
             <Icons.ChevronRight size={16} color="var(--info)" />
@@ -136,8 +138,8 @@ export default function Cardio({ showToast }: CardioProps) {
       {sorted.length > 0 && (
         <div style={{ padding: '0 16px 14px', display: 'flex', gap: 10 }}>
           {[
-            { label: 'Distance', value: tab === 'course' ? `${totalDist.toFixed(1)} km` : `${totalDist} m` },
-            { label: 'Séances', value: sorted.length },
+            { label: tr({ fr: 'Distance', en: 'Distance', es: 'Distancia' }), value: tab === 'course' ? `${totalDist.toFixed(1)} km` : `${totalDist} m` },
+            { label: tr({ fr: 'Séances', en: 'Sessions', es: 'Sesiones' }), value: sorted.length },
           ].map((s) => (
             <div key={s.label} className="glass" style={{ flex: 1, borderRadius: 18, padding: '14px 14px' }}>
               <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 4 }}>{s.label}</div>
@@ -155,11 +157,11 @@ export default function Cardio({ showToast }: CardioProps) {
             background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
             color: '#fff', fontWeight: 700, fontSize: 15,
             boxShadow: '0 8px 28px rgba(255,107,53,0.35)',
-          }}>+ Nouvelle {tab === 'course' ? 'course' : 'natation'}</button>
+          }}>+ {tab === 'course' ? tr({ fr: 'Nouvelle course', en: 'New run', es: 'Nueva carrera' }) : tr({ fr: 'Nouvelle natation', en: 'New swim', es: 'Nueva natación' })}</button>
         ) : (
           <div className="glass" style={{ borderRadius: 22, padding: '16px 16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <span style={{ fontWeight: 700, fontSize: 14 }}>Nouvelle {tab === 'course' ? 'course' : 'natation'}</span>
+              <span style={{ fontWeight: 700, fontSize: 14 }}>{tab === 'course' ? tr({ fr: 'Nouvelle course', en: 'New run', es: 'Nueva carrera' }) : tr({ fr: 'Nouvelle natation', en: 'New swim', es: 'Nueva natación' })}</span>
               <button onClick={() => setShowForm(false)} className="tap" style={{ background: 'none', border: 'none', color: 'var(--text-mute)' }}>
                 <Icons.X size={18} />
               </button>
@@ -167,20 +169,20 @@ export default function Cardio({ showToast }: CardioProps) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 6 }}>Date</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 6 }}>{tr({ fr: 'Date', en: 'Date', es: 'Fecha' })}</div>
                 <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input-glass" />
               </div>
 
               <div style={{ display: 'flex', gap: 10 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 6 }}>
-                    Distance ({tab === 'course' ? 'km' : 'm'})
+                    {tr({ fr: 'Distance', en: 'Distance', es: 'Distancia' })} ({tab === 'course' ? 'km' : 'm'})
                   </div>
                   <input type="number" inputMode="decimal" placeholder={tab === 'course' ? '5.2' : '1000'} value={distance}
                     onChange={(e) => setDistance(e.target.value)} className="input-glass" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 6 }}>Temps (min)</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 6 }}>{tr({ fr: 'Temps (min)', en: 'Time (min)', es: 'Tiempo (min)' })}</div>
                   <input type="number" inputMode="decimal" placeholder="28" value={time}
                     onChange={(e) => setTime(e.target.value)} className="input-glass" />
                 </div>
@@ -188,7 +190,7 @@ export default function Cardio({ showToast }: CardioProps) {
 
               {tab === 'course' && distance && time && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,107,53,0.08)', borderRadius: 12, padding: '10px 14px', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>Allure</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>{tr({ fr: 'Allure', en: 'Pace', es: 'Ritmo' })}</span>
                   <span className="t-mono" style={{ fontSize: 16, color: 'var(--primary)', fontWeight: 600 }}>
                     {(parseFloat(time) / parseFloat(distance)).toFixed(2)} /km
                   </span>
@@ -197,9 +199,14 @@ export default function Cardio({ showToast }: CardioProps) {
 
               {tab === 'natation' && (
                 <div>
-                  <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 8 }}>Style</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 8 }}>{tr({ fr: 'Style', en: 'Style', es: 'Estilo' })}</div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {['Crawl', 'Brasse', 'Dos', 'Papillon', 'Mixte'].map((s) => (
+                    {(getLang() === 'en'
+                      ? ['Freestyle', 'Breaststroke', 'Backstroke', 'Butterfly', 'Medley']
+                      : getLang() === 'es'
+                      ? ['Crol', 'Braza', 'Espalda', 'Mariposa', 'Mixto']
+                      : ['Crawl', 'Brasse', 'Dos', 'Papillon', 'Mixte']
+                    ).map((s) => (
                       <button key={s} onClick={() => setStyle(s)} className="tap" style={{
                         border: 'none', borderRadius: 10, padding: '7px 12px',
                         background: style === s ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
@@ -211,14 +218,14 @@ export default function Cardio({ showToast }: CardioProps) {
                 </div>
               )}
 
-              <input type="text" placeholder="Notes (optionnel)" value={notes}
+              <input type="text" placeholder={tr({ fr: 'Notes (optionnel)', en: 'Notes (optional)', es: 'Notas (opcional)' })} value={notes}
                 onChange={(e) => setNotes(e.target.value)} className="input-glass" />
 
               <button onClick={handleAdd} disabled={!distance || !time} className="tap" style={{
                 border: 'none', borderRadius: 14, padding: '14px',
                 background: distance && time ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
                 color: '#fff', fontWeight: 700, fontSize: 14, opacity: distance && time ? 1 : 0.4,
-              }}>Enregistrer</button>
+              }}>{tr({ fr: 'Enregistrer', en: 'Save', es: 'Guardar' })}</button>
             </div>
           </div>
         )}
@@ -227,7 +234,7 @@ export default function Cardio({ showToast }: CardioProps) {
       {/* History */}
       {sorted.length > 0 && (
         <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12, marginBottom: 4 }}>Historique</div>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12, marginBottom: 4 }}>{tr({ fr: 'Historique', en: 'History', es: 'Historial' })}</div>
           {sorted.map((entry) => (
             <div key={entry.id} className="glass" style={{
               borderRadius: 16, padding: '12px 14px',
@@ -256,7 +263,7 @@ export default function Cardio({ showToast }: CardioProps) {
                   </div>
                 </div>
                 <button onClick={() => {
-                  if (!confirm('Supprimer ?')) return;
+                  if (!confirm(tr({ fr: 'Supprimer ?', en: 'Delete?', es: '¿Eliminar?' }))) return;
                   tab === 'course' ? deleteCourse(entry.id) : deleteNatation(entry.id);
                 }} className="tap" style={{ background: 'none', border: 'none', color: 'var(--text-mute)', marginLeft: 8 }}>
                   <Icons.Trash size={14} />
@@ -272,7 +279,7 @@ export default function Cardio({ showToast }: CardioProps) {
 
       {sorted.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 22px', color: 'var(--text-mute)', fontSize: 13 }}>
-          Aucune {tab === 'course' ? 'course' : 'natation'} enregistrée
+          {tab === 'course' ? tr({ fr: 'Aucune course enregistrée', en: 'No runs recorded', es: 'Sin carreras registradas' }) : tr({ fr: 'Aucune natation enregistrée', en: 'No swims recorded', es: 'Sin nataciones registradas' })}
         </div>
       )}
     </div>

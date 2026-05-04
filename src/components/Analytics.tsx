@@ -4,6 +4,7 @@ import { useCardioStore } from '../stores/cardioStore';
 import { useBodyWeightStore } from '../stores/bodyweightStore';
 import { Icons } from './Icons';
 import ProgressGallery from './ProgressGallery';
+import { tr, getLang } from '../utils/i18n';
 
 const Leaderboard = lazy(() => import('./Leaderboard'));
 
@@ -15,7 +16,8 @@ type Tab = 'muscu' | 'cardio' | 'poids' | 'photos' | 'amis';
 
 function fmtDate(iso: string) {
   const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  const locale = getLang() === 'fr' ? 'fr-FR' : getLang() === 'es' ? 'es-ES' : 'en-GB';
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
 // ── Custom SVG area chart ─────────────────────────────────
@@ -25,7 +27,7 @@ function Chart({ data, accessor, unit, color, label }: {
   if (!data || data.length === 0) {
     return (
       <div className="glass" style={{ borderRadius: 22, padding: 30, textAlign: 'center', color: 'var(--text-mute)', fontSize: 13 }}>
-        Aucune donnée
+        {tr({ fr: 'Aucune donnée', en: 'No data', es: 'Sin datos' })}
       </div>
     );
   }
@@ -177,32 +179,32 @@ export default function Analytics({ showToast }: AnalyticsProps) {
     if (!isNaN(v) && v > 0) {
       await addWeight(v);
       setWeightInput('');
-      showToast(`Poids enregistré: ${v} kg`, 'success');
+      showToast(tr({ fr: `Poids enregistré: ${v} kg`, en: `Weight saved: ${v} kg`, es: `Peso guardado: ${v} kg` }), 'success');
     }
   };
 
   const TABS: { id: Tab; label: string; Icon: (p: any) => JSX.Element }[] = [
-    { id: 'muscu',  label: 'Muscu',  Icon: Icons.Dumbbell },
-    { id: 'cardio', label: 'Cardio', Icon: Icons.Run },
-    { id: 'poids',  label: 'Poids',  Icon: Icons.Scale },
-    { id: 'photos', label: 'Photos', Icon: Icons.Camera },
-    { id: 'amis',   label: 'Amis',   Icon: Icons.Users },
+    { id: 'muscu',  label: tr({ fr: 'Muscu',  en: 'Gym',    es: 'Muscu'  }), Icon: Icons.Dumbbell },
+    { id: 'cardio', label: tr({ fr: 'Cardio', en: 'Cardio', es: 'Cardio' }), Icon: Icons.Run },
+    { id: 'poids',  label: tr({ fr: 'Poids',  en: 'Weight', es: 'Peso'   }), Icon: Icons.Scale },
+    { id: 'photos', label: tr({ fr: 'Photos', en: 'Photos', es: 'Fotos'  }), Icon: Icons.Camera },
+    { id: 'amis',   label: tr({ fr: 'Amis',   en: 'Friends',es: 'Amigos' }), Icon: Icons.Users },
   ];
 
   return (
     <div className="page-enter">
       {/* Header */}
       <div style={{ padding: '14px 22px 14px' }}>
-        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Progression</div>
+        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>{tr({ fr: 'Progression', en: 'Progress', es: 'Progreso' })}</div>
         <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Stats</h1>
       </div>
 
       {/* Global stats */}
       <div style={{ padding: '6px 16px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <StatCard label="Séances" value={globalStats.sessions} icon={<Icons.Dumbbell size={14} />} />
-        <StatCard label="Volume" value={(globalStats.volume / 1000).toFixed(1)} unit="t" accent="var(--primary)" icon={<Icons.Trophy size={14} />} />
-        <StatCard label="Course" value={globalStats.courseKm.toFixed(1)} unit="km" icon={<Icons.Run size={14} />} />
-        <StatCard label="Natation" value={(globalStats.swimM / 1000).toFixed(1)} unit="km" icon={<Icons.Swim size={14} />} />
+        <StatCard label={tr({ fr: 'Séances', en: 'Workouts', es: 'Sesiones' })} value={globalStats.sessions} icon={<Icons.Dumbbell size={14} />} />
+        <StatCard label={tr({ fr: 'Volume', en: 'Volume', es: 'Volumen' })} value={(globalStats.volume / 1000).toFixed(1)} unit="t" accent="var(--primary)" icon={<Icons.Trophy size={14} />} />
+        <StatCard label={tr({ fr: 'Course', en: 'Running', es: 'Carrera' })} value={globalStats.courseKm.toFixed(1)} unit="km" icon={<Icons.Run size={14} />} />
+        <StatCard label={tr({ fr: 'Natation', en: 'Swim', es: 'Natación' })} value={(globalStats.swimM / 1000).toFixed(1)} unit="km" icon={<Icons.Swim size={14} />} />
       </div>
 
       {/* Tabs */}
@@ -230,7 +232,7 @@ export default function Analytics({ showToast }: AnalyticsProps) {
         <div style={{ paddingBottom: 20 }}>
           <div style={{ padding: '0 16px 12px' }}>
             <select value={selectedExo} onChange={(e) => setSelectedExo(e.target.value)} className="input-glass" style={{ appearance: 'none' }}>
-              <option value="">-- Choisir un exercice --</option>
+              <option value="">{tr({ fr: '-- Choisir un exercice --', en: '-- Pick an exercise --', es: '-- Elegir ejercicio --' })}</option>
               {allExos.map((n) => <option key={n} value={n} style={{ background: '#1a1a1f' }}>{n}</option>)}
             </select>
           </div>
@@ -239,20 +241,20 @@ export default function Analytics({ showToast }: AnalyticsProps) {
             <>
               <div style={{ padding: '0 16px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <StatCard label="Max" value={exoStats.max} unit="kg" accent="var(--primary)" />
-                <StatCard label="1RM est." value={exoStats.oneRM} unit="kg" />
-                <StatCard label="Progression" value={(exoStats.progress >= 0 ? '+' : '') + exoStats.progress} unit="kg" accent={exoStats.progress >= 0 ? 'var(--ok)' : 'var(--secondary)'} />
-                <StatCard label="Sessions" value={exoStats.count} />
+                <StatCard label={tr({ fr: '1RM est.', en: '1RM est.', es: '1RM est.' })} value={exoStats.oneRM} unit="kg" />
+                <StatCard label={tr({ fr: 'Progression', en: 'Progress', es: 'Progreso' })} value={(exoStats.progress >= 0 ? '+' : '') + exoStats.progress} unit="kg" accent={exoStats.progress >= 0 ? 'var(--ok)' : 'var(--secondary)'} />
+                <StatCard label={tr({ fr: 'Séances', en: 'Sessions', es: 'Sesiones' })} value={exoStats.count} />
               </div>
               <div style={{ padding: '0 16px 14px' }}>
-                <Chart data={exoData} accessor={(p) => p.max} unit="kg" color="var(--primary)" label="Poids max" />
+                <Chart data={exoData} accessor={(p) => p.max} unit="kg" color="var(--primary)" label={tr({ fr: 'Poids max', en: 'Max weight', es: 'Peso máx.' })} />
               </div>
               {exoStats.progress > 0 && (
                 <div style={{ padding: '0 16px 14px' }}>
                   <div className="glass" style={{ borderRadius: 18, padding: '14px 16px', background: 'rgba(74,222,128,0.08)', borderColor: 'rgba(74,222,128,0.2)', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <Icons.TrendUp size={22} color="var(--ok)" />
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 700 }}>+{exoStats.progress}kg sur {exoStats.count} séances</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-soft)' }}>Belle progression — continue.</div>
+                      <div style={{ fontSize: 13, fontWeight: 700 }}>+{exoStats.progress}kg {tr({ fr: `sur ${exoStats.count} séances`, en: `over ${exoStats.count} sessions`, es: `en ${exoStats.count} sesiones` })}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-soft)' }}>{tr({ fr: 'Belle progression — continue.', en: 'Great progress — keep going.', es: 'Gran progreso — ¡sigue así!' })}</div>
                     </div>
                   </div>
                 </div>
@@ -275,22 +277,22 @@ export default function Analytics({ showToast }: AnalyticsProps) {
                         <Icons.Trophy size={17} color="#fff" />
                       </div>
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#c4b5fd' }}>Prédiction de PR</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>basée sur ta progression ({exoStats.count} séances)</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#c4b5fd' }}>{tr({ fr: 'Prédiction de PR', en: 'PR Prediction', es: 'Predicción de PR' })}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{tr({ fr: `basée sur ta progression (${exoStats.count} séances)`, en: `based on your progress (${exoStats.count} sessions)`, es: `basada en tu progreso (${exoStats.count} sesiones)` })}</div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <div style={{ flex: 1, background: 'rgba(139,92,246,0.1)', borderRadius: 12, padding: '10px 12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 3 }}>Prochain PR</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 3 }}>{tr({ fr: 'Prochain PR', en: 'Next PR', es: 'Próximo PR' })}</div>
                         <div style={{ fontSize: 22, fontWeight: 800, color: '#c4b5fd' }}>{exoStats.prediction.nextPrKg} kg</div>
                       </div>
                       <div style={{ flex: 1, background: 'rgba(99,102,241,0.1)', borderRadius: 12, padding: '10px 12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 3 }}>Dans environ</div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: '#818cf8' }}>{exoStats.prediction.weeksOut} sem.</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 3 }}>{tr({ fr: 'Dans environ', en: 'In about', es: 'En aprox.' })}</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: '#818cf8' }}>{exoStats.prediction.weeksOut} {tr({ fr: 'sem.', en: 'wks', es: 'sem.' })}</div>
                       </div>
                       <div style={{ flex: 1, background: 'rgba(99,102,241,0.08)', borderRadius: 12, padding: '10px 12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 3 }}>Progression</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: '#a5b4fc' }}>+{exoStats.prediction.kgPerWeek}kg/sem</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 3 }}>{tr({ fr: 'Progression', en: 'Progress', es: 'Progreso' })}</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: '#a5b4fc' }}>+{exoStats.prediction.kgPerWeek}kg/{tr({ fr: 'sem', en: 'wk', es: 'sem' })}</div>
                       </div>
                     </div>
                   </div>
@@ -301,7 +303,7 @@ export default function Analytics({ showToast }: AnalyticsProps) {
 
           {allExos.length === 0 && (
             <div style={{ padding: '40px 22px', textAlign: 'center', color: 'var(--text-mute)', fontSize: 13 }}>
-              Lance des séances pour voir tes stats !
+              {tr({ fr: 'Lance des séances pour voir tes stats !', en: 'Start workouts to see your stats!', es: '¡Haz sesiones para ver tus estadísticas!' })}
             </div>
           )}
         </div>
@@ -316,7 +318,7 @@ export default function Analytics({ showToast }: AnalyticsProps) {
                 <Chart data={courseData} accessor={(r) => r.distance} unit="km" color="var(--info)" label="Course · Distance" />
               </div>
               <div style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12 }}>Historique course</div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12 }}>{tr({ fr: 'Historique course', en: 'Run history', es: 'Historial carrera' })}</div>
                 {[...courseData].reverse().map((r) => (
                   <div key={r.id} className="glass" style={{ borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(96,165,250,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--info)' }}>
@@ -331,7 +333,7 @@ export default function Analytics({ showToast }: AnalyticsProps) {
               </div>
             </>
           ) : (
-            <div style={{ padding: '20px 22px', textAlign: 'center', color: 'var(--text-mute)', fontSize: 13 }}>Aucune course enregistrée.</div>
+            <div style={{ padding: '20px 22px', textAlign: 'center', color: 'var(--text-mute)', fontSize: 13 }}>{tr({ fr: 'Aucune course enregistrée.', en: 'No runs recorded.', es: 'Sin carreras registradas.' })}</div>
           )}
           {swimData.length > 0 && (
             <div style={{ padding: '0 16px 14px' }}>
@@ -360,10 +362,10 @@ export default function Analytics({ showToast }: AnalyticsProps) {
         <div style={{ paddingBottom: 20 }}>
           {weightData.length >= 1 && (
             <div style={{ padding: '0 16px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-              <StatCard label="Actuel" value={weightData[weightData.length - 1].weight.toFixed(1)} unit="kg" accent="var(--primary)" />
+              <StatCard label={tr({ fr: 'Actuel', en: 'Current', es: 'Actual' })} value={weightData[weightData.length - 1].weight.toFixed(1)} unit="kg" accent="var(--primary)" />
               <StatCard label="Min" value={Math.min(...weightData.map((w) => w.weight)).toFixed(1)} unit="kg" />
               <StatCard
-                label="Évol."
+                label={tr({ fr: 'Évol.', en: 'Change', es: 'Cambio' })}
                 value={(weightData[weightData.length - 1].weight - weightData[0].weight).toFixed(1)}
                 unit="kg"
                 accent={weightData[weightData.length - 1].weight <= weightData[0].weight ? 'var(--ok)' : 'var(--secondary)'}
@@ -372,12 +374,12 @@ export default function Analytics({ showToast }: AnalyticsProps) {
           )}
           {weightData.length >= 2 && (
             <div style={{ padding: '0 16px 14px' }}>
-              <Chart data={weightData} accessor={(w) => w.weight} unit="kg" color="var(--secondary)" label="Poids corporel" />
+              <Chart data={weightData} accessor={(w) => w.weight} unit="kg" color="var(--secondary)" label={tr({ fr: 'Poids corporel', en: 'Body weight', es: 'Peso corporal' })} />
             </div>
           )}
           <div style={{ padding: '0 16px 14px' }}>
             <div className="glass" style={{ borderRadius: 18, padding: '14px 16px' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', marginBottom: 10, letterSpacing: 0.12 }}>Ajouter mesure</div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', marginBottom: 10, letterSpacing: 0.12 }}>{tr({ fr: 'Ajouter mesure', en: 'Add measurement', es: 'Añadir medida' })}</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   type="number" inputMode="decimal" placeholder="kg"
