@@ -76,9 +76,13 @@ button {
   -webkit-user-select: none;
   -webkit-touch-callout: none; /* pas de menu contexte iOS au long-press */
 }
-input, select, textarea { touch-action: manipulation; font-size: 16px; }
-/* font-size 16px évite le zoom auto iOS sur focus input */
-input, textarea, select { font-family: inherit; }
+/* iOS auto-zooms inputs whose computed font-size is < 16px on focus, locking
+   the layout. Force 16px with !important so inline styles can't break it. */
+input, select, textarea {
+  touch-action: manipulation;
+  font-size: 16px !important;
+  font-family: inherit;
+}
 
 /* ── Typography ─────────────────────────────────────────── */
 .t-display {

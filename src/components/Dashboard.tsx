@@ -10,6 +10,7 @@ import { useCalorieStore } from '../stores/calorieStore';
 import { useRoutineStore } from '../stores/routineStore';
 import { getDateString } from '../utils/export';
 import { Icons } from './Icons';
+import { t, tr, useLang, getLang } from '../utils/i18n';
 
 interface DashboardProps {
   onNewSession: () => void;
@@ -95,21 +96,21 @@ function CaloriesSheet({ open, onClose, showToast }: { open: boolean; onClose: (
   const net = calIn - calOut;
 
   const handleSave = async () => {
-    if (calIn > 0) await addEntry(calIn, 'Total mangé', 'in', today, 'dejeuner');
-    if (calOut > 0) await addEntry(calOut, 'Total dépensé', 'out', today);
+    if (calIn > 0)  await addEntry(calIn,  tr({ fr: 'Total mangé',   en: 'Total eaten',  es: 'Total comido' }),  'in',  today, 'dejeuner');
+    if (calOut > 0) await addEntry(calOut, tr({ fr: 'Total dépensé', en: 'Total burned', es: 'Total quemado' }), 'out', today);
     scheduleSync();
-    showToast('Calories enregistrées', 'success');
+    showToast(tr({ fr: 'Calories enregistrées', en: 'Calories saved', es: 'Calorías guardadas' }), 'success');
     onClose();
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Calories" height="64%">
+    <Sheet open={open} onClose={onClose} title={tr({ fr: 'Calories', en: 'Calories', es: 'Calorías' })} height="64%">
       <div style={{ padding: '8px 18px 24px' }}>
-        <div style={{ fontSize: 12, color: 'var(--text-soft)', marginBottom: 16 }}>Total quotidien</div>
+        <div style={{ fontSize: 12, color: 'var(--text-soft)', marginBottom: 16 }}>{tr({ fr: 'Total quotidien', en: 'Daily total', es: 'Total diario' })}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {([
-            { label: 'Calories mangées', sub: 'Tout repas confondu', icon: <Icons.Apple size={20} />, color: 'var(--ok)', value: calIn, onChange: setCalIn, max: 4000 },
-            { label: 'Calories dépensées', sub: 'Activité + métabolisme', icon: <Icons.Flame size={20} />, color: 'var(--primary)', value: calOut, onChange: setCalOut, max: 5000 },
+            { label: tr({ fr: 'Calories mangées',   en: 'Calories eaten',  es: 'Calorías comidas' }),  sub: tr({ fr: 'Tout repas confondu',     en: 'All meals',                es: 'Todas las comidas' }),         icon: <Icons.Apple size={20} />, color: 'var(--ok)',      value: calIn,  onChange: setCalIn,  max: 4000 },
+            { label: tr({ fr: 'Calories dépensées', en: 'Calories burned', es: 'Calorías quemadas' }), sub: tr({ fr: 'Activité + métabolisme', en: 'Activity + metabolism',   es: 'Actividad + metabolismo' }),   icon: <Icons.Flame size={20} />, color: 'var(--primary)', value: calOut, onChange: setCalOut, max: 5000 },
           ] as const).map((row) => (
             <div key={row.label} className="glass" style={{ borderRadius: 18, padding: '14px 16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
@@ -139,7 +140,7 @@ function CaloriesSheet({ open, onClose, showToast }: { open: boolean; onClose: (
         <button onClick={handleSave} className="tap" style={{
           marginTop: 18, width: '100%', border: 'none', borderRadius: 16,
           padding: 16, background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: 14, letterSpacing: 0.1, textTransform: 'uppercase',
-        }}>Enregistrer</button>
+        }}>{t('common.save')}</button>
       </div>
     </Sheet>
   );
@@ -154,14 +155,14 @@ function WeightSheet({ open, onClose, showToast }: { open: boolean; onClose: () 
   const handleSave = async () => {
     await addWeight(val);
     scheduleSync();
-    showToast(`Poids enregistré: ${val.toFixed(1)} kg`, 'success');
+    showToast(`${tr({ fr: 'Poids enregistré', en: 'Weight saved', es: 'Peso guardado' })}: ${val.toFixed(1)} kg`, 'success');
     onClose();
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Poids corporel" height="52%">
+    <Sheet open={open} onClose={onClose} title={tr({ fr: 'Poids corporel', en: 'Body weight', es: 'Peso corporal' })} height="52%">
       <div style={{ padding: '8px 18px 24px' }}>
-        <div style={{ fontSize: 12, color: 'var(--text-soft)', marginBottom: 14 }}>Pèse-toi à jeun, le matin.</div>
+        <div style={{ fontSize: 12, color: 'var(--text-soft)', marginBottom: 14 }}>{tr({ fr: 'Pèse-toi à jeun, le matin.', en: 'Weigh yourself fasted, in the morning.', es: 'Pésate en ayunas, por la mañana.' })}</div>
         <div className="glass" style={{ borderRadius: 22, padding: '24px 16px', textAlign: 'center' }}>
           <div className="t-num" style={{ fontSize: 64, color: 'var(--primary)' }}>
             {val.toFixed(1)}<span style={{ fontSize: 18, color: 'var(--text-mute)', marginLeft: 6 }}>kg</span>
@@ -172,7 +173,7 @@ function WeightSheet({ open, onClose, showToast }: { open: boolean; onClose: () 
         <button onClick={handleSave} className="tap" style={{
           marginTop: 18, width: '100%', border: 'none', borderRadius: 16,
           padding: 16, background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: 14, letterSpacing: 0.1, textTransform: 'uppercase',
-        }}>Enregistrer</button>
+        }}>{t('common.save')}</button>
       </div>
     </Sheet>
   );
@@ -184,7 +185,7 @@ function CardioSheet({ kind, open, onClose, showToast }: { kind: 'run' | 'swim';
   const isRun = kind === 'run';
   const [dist, setDist] = useState('');
   const [mins, setMins] = useState('');
-  const [style, setStyle] = useState('Crawl');
+  const [style, setStyle] = useState<'Crawl' | 'Brasse' | 'Dos' | 'Papillon' | 'Mixte'>('Crawl');
   const today = getDateString();
 
   const pace = () => {
@@ -198,23 +199,31 @@ function CardioSheet({ kind, open, onClose, showToast }: { kind: 'run' | 'swim';
     if (!d || d <= 0 || !m || m <= 0) return;
     if (isRun) {
       await addCourse(d, m, today);
-      showToast(`Course: ${d} km · ${m} min`, 'success');
+      showToast(`${tr({ fr: 'Course', en: 'Run', es: 'Carrera' })}: ${d} km · ${m} min`, 'success');
     } else {
       await addNatation(d, m, today, style);
-      showToast(`Natation: ${d} m · ${m} min`, 'success');
+      showToast(`${tr({ fr: 'Natation', en: 'Swim', es: 'Natación' })}: ${d} m · ${m} min`, 'success');
     }
     scheduleSync();
     setDist(''); setMins('');
     onClose();
   };
 
+  const STYLE_LABELS: Record<typeof style, string> = {
+    Crawl:    tr({ fr: 'Crawl',    en: 'Freestyle',  es: 'Crol'      }),
+    Brasse:   tr({ fr: 'Brasse',   en: 'Breaststroke', es: 'Braza'   }),
+    Dos:      tr({ fr: 'Dos',      en: 'Backstroke', es: 'Espalda'   }),
+    Papillon: tr({ fr: 'Papillon', en: 'Butterfly',  es: 'Mariposa'  }),
+    Mixte:    tr({ fr: 'Mixte',    en: 'Mixed',      es: 'Mixto'     }),
+  };
+
   return (
-    <Sheet open={open} onClose={onClose} title={isRun ? 'Course' : 'Natation'} height="68%">
+    <Sheet open={open} onClose={onClose} title={isRun ? tr({ fr: 'Course', en: 'Run', es: 'Carrera' }) : tr({ fr: 'Natation', en: 'Swim', es: 'Natación' })} height="68%">
       <div style={{ padding: '8px 18px 24px' }}>
         <div style={{ display: 'flex', gap: 10 }}>
           {[
-            { label: isRun ? 'Distance' : 'Distance', sub: isRun ? 'km' : 'mètres', val: dist, set: setDist },
-            { label: 'Temps', sub: 'minutes', val: mins, set: setMins },
+            { label: tr({ fr: 'Distance', en: 'Distance', es: 'Distancia' }), sub: isRun ? 'km' : tr({ fr: 'mètres', en: 'meters', es: 'metros' }), val: dist, set: setDist },
+            { label: tr({ fr: 'Temps',    en: 'Time',     es: 'Tiempo'    }), sub: tr({ fr: 'minutes', en: 'minutes', es: 'minutos' }), val: mins, set: setMins },
           ].map((f) => (
             <div key={f.label} className="glass" style={{ flex: 1, borderRadius: 18, padding: '14px 14px 16px' }}>
               <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, letterSpacing: 0.12, textTransform: 'uppercase' }}>{f.label}</div>
@@ -226,21 +235,21 @@ function CardioSheet({ kind, open, onClose, showToast }: { kind: 'run' | 'swim';
         </div>
         {isRun && dist && mins && (
           <div className="glass" style={{ marginTop: 12, borderRadius: 16, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12 }}>Allure</span>
+            <span style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12 }}>{tr({ fr: 'Allure', en: 'Pace', es: 'Ritmo' })}</span>
             <span className="t-mono" style={{ fontSize: 18, fontWeight: 600, color: 'var(--primary)' }}>{pace()} /km</span>
           </div>
         )}
         {!isRun && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 8 }}>Style</div>
+            <div style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 8 }}>{tr({ fr: 'Style', en: 'Stroke', es: 'Estilo' })}</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {['Crawl', 'Brasse', 'Dos', 'Papillon', 'Mixte'].map((s) => (
+              {(Object.keys(STYLE_LABELS) as Array<keyof typeof STYLE_LABELS>).map((s) => (
                 <button key={s} onClick={() => setStyle(s)} className="tap" style={{
                   border: 'none', borderRadius: 12, padding: '8px 14px',
                   background: style === s ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
                   color: style === s ? '#fff' : 'var(--text-soft)',
                   fontSize: 12, fontWeight: 600,
-                }}>{s}</button>
+                }}>{STYLE_LABELS[s]}</button>
               ))}
             </div>
           </div>
@@ -249,7 +258,7 @@ function CardioSheet({ kind, open, onClose, showToast }: { kind: 'run' | 'swim';
           marginTop: 22, width: '100%', border: 'none', borderRadius: 16,
           padding: 16, background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: 14,
           letterSpacing: 0.1, textTransform: 'uppercase', opacity: (!dist || !mins) ? 0.4 : 1,
-        }}>Enregistrer</button>
+        }}>{t('common.save')}</button>
       </div>
     </Sheet>
   );
@@ -257,6 +266,7 @@ function CardioSheet({ kind, open, onClose, showToast }: { kind: 'run' | 'swim';
 
 // ── Main Dashboard ─────────────────────────────────────────
 export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, onGoToCoach, onGoToMeasurements, showToast, user, onShowAuth, onSignOut }: DashboardProps) {
+  useLang();
   const { sessions } = useSessionStore();
   const { courses, natations } = useCardioStore();
   const { weights } = useBodyWeightStore();
@@ -315,13 +325,14 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
       const text = exportWeekAsText(sessions, courses, natations, weights, calorieEntries, routineCompletions, routineItemsFull);
       const filename = `semaine-${today}.txt`;
       downloadText(text, filename);
-      showToast('Résumé semaine exporté', 'success');
+      showToast(tr({ fr: 'Résumé semaine exporté', en: 'Weekly summary exported', es: 'Resumen semanal exportado' }), 'success');
     } catch {
-      showToast('Erreur lors de l\'export', 'info');
+      showToast(tr({ fr: 'Erreur lors de l\'export', en: 'Export error', es: 'Error en la exportación' }), 'info');
     }
   };
 
-  const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const localeMap: Record<string, string> = { fr: 'fr-FR', en: 'en-US', es: 'es-ES' };
+  const todayLabel = new Date().toLocaleDateString(localeMap[getLang()] ?? 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <div className="page-enter" style={{ position: 'relative', minHeight: '100%' }}>
@@ -357,7 +368,7 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
                 padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 6,
               }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-faint)', flexShrink: 0 }} />
-                <span style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700 }}>Se connecter</span>
+                <span style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700 }}>{t('auth.signIn')}</span>
               </button>
             )}
             <button onClick={onGoToSettings} className="tap glass" style={{
@@ -397,9 +408,13 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.18, textTransform: 'uppercase' }}>
-                  {todaySession ? 'Session done · push it' : 'Ready to lift'}
+                  {todaySession
+                    ? tr({ fr: 'Séance faite · pousse-toi', en: 'Session done · push it', es: 'Sesión hecha · sigue' })
+                    : tr({ fr: 'Prêt à soulever', en: 'Ready to lift', es: 'Listo para levantar' })}
                 </div>
-                <div className="t-display" style={{ fontSize: 44, color: '#fff', marginTop: 4 }}>Nouvelle séance</div>
+                <div className="t-display" style={{ fontSize: 44, color: '#fff', marginTop: 4 }}>
+                  {tr({ fr: 'Nouvelle séance', en: 'New workout', es: 'Nueva sesión' })}
+                </div>
               </div>
               <div style={{
                 width: 52, height: 52, borderRadius: '50%',
@@ -427,15 +442,15 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
       <SectionLabel action={
         currentStreak > 1 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--primary)', fontSize: 11, fontWeight: 700 }}>
-            <Icons.Flame size={12} /> {currentStreak}j streak
+            <Icons.Flame size={12} /> {currentStreak}{tr({ fr: 'j streak', en: 'd streak', es: 'd seguidos' })}
           </div>
         ) : undefined
-      }>7 derniers jours</SectionLabel>
+      }>{tr({ fr: '7 derniers jours', en: 'Last 7 days', es: 'Últimos 7 días' })}</SectionLabel>
       <div style={{ padding: '6px 16px 16px', display: 'flex', gap: 10 }}>
         {[
-          { label: 'Muscu', value: weekStats.muscu, unit: 'séances', Icon: Icons.Dumbbell },
-          { label: 'Course', value: weekStats.courseKm.toFixed(1), unit: 'km', accent: 'var(--primary)', Icon: Icons.Run },
-          { label: 'Natation', value: (weekStats.swimM / 1000).toFixed(1), unit: 'km', Icon: Icons.Swim },
+          { label: tr({ fr: 'Muscu',    en: 'Lifting', es: 'Pesas' }),     value: weekStats.muscu, unit: tr({ fr: 'séances', en: 'sessions', es: 'sesiones' }), Icon: Icons.Dumbbell },
+          { label: tr({ fr: 'Course',   en: 'Running', es: 'Carrera' }),   value: weekStats.courseKm.toFixed(1), unit: 'km', accent: 'var(--primary)', Icon: Icons.Run },
+          { label: tr({ fr: 'Natation', en: 'Swim',    es: 'Natación' }),  value: (weekStats.swimM / 1000).toFixed(1), unit: 'km', Icon: Icons.Swim },
         ].map((s) => (
           <div key={s.label} className="glass" style={{ flex: 1, padding: '14px 14px 16px', borderRadius: 22, position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 12, right: 12, color: s.accent || 'var(--text-mute)', opacity: 0.7 }}>
@@ -453,9 +468,9 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
       {/* Calories */}
       <SectionLabel action={
         <button onClick={() => setSheet('calories')} className="tap" style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: 12, fontWeight: 700, padding: 0 }}>
-          + Logger
+          {tr({ fr: '+ Logger', en: '+ Log', es: '+ Registrar' })}
         </button>
-      }>Calories · aujourd'hui</SectionLabel>
+      }>{tr({ fr: 'Calories · aujourd\'hui', en: 'Calories · today', es: 'Calorías · hoy' })}</SectionLabel>
       <div style={{ padding: '6px 16px 16px' }}>
         <div className="glass" style={{ borderRadius: 22, padding: '16px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18 }}>
@@ -468,7 +483,11 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
                 <span style={{ fontSize: 12, color: 'var(--text-mute)', fontWeight: 600 }}>kcal</span>
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-soft)', marginTop: 2 }}>
-                {calNet < 0 ? `Déficit · ${Math.abs(calNet)} kcal` : calNet === 0 ? 'Équilibre' : `Surplus · +${calNet} kcal`}
+                {calNet < 0
+                  ? `${tr({ fr: 'Déficit', en: 'Deficit', es: 'Déficit' })} · ${Math.abs(calNet)} kcal`
+                  : calNet === 0
+                  ? tr({ fr: 'Équilibre', en: 'Balanced', es: 'Equilibrio' })
+                  : `${tr({ fr: 'Surplus', en: 'Surplus', es: 'Excedente' })} · +${calNet} kcal`}
               </div>
             </div>
             <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
@@ -486,8 +505,8 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
           </div>
           <div style={{ display: 'flex', gap: 12, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
             {[
-              { label: 'Mangé', val: calStats.in, Icon: Icons.Apple, color: 'var(--ok)' },
-              { label: 'Dépensé', val: calStats.out, Icon: Icons.Flame, color: 'var(--primary)' },
+              { label: tr({ fr: 'Mangé',   en: 'Eaten',  es: 'Comido'   }), val: calStats.in,  Icon: Icons.Apple, color: 'var(--ok)' },
+              { label: tr({ fr: 'Dépensé', en: 'Burned', es: 'Quemadas' }), val: calStats.out, Icon: Icons.Flame, color: 'var(--primary)' },
             ].map((row) => (
               <div key={row.label} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 30, height: 30, borderRadius: 9, background: row.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', color: row.color }}>
@@ -506,9 +525,9 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
       {/* Routine */}
       <SectionLabel action={
         <button onClick={() => setSheet('routine')} className="tap" style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: 12, fontWeight: 700, padding: 0 }}>
-          Modifier
+          {tr({ fr: 'Modifier', en: 'Edit', es: 'Editar' })}
         </button>
-      }>Routine du soir</SectionLabel>
+      }>{t('daily.routine')}</SectionLabel>
       <RoutineSectionContent routineToday={routineToday} routineItems={routineItems} routineChecked={routineChecked} />
 
       {/* Body Measurements quick access */}
@@ -529,8 +548,8 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
                 <Icons.Body size={16} />
               </div>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>Mesures corporelles</div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-mute)' }}>Tour de bras, taille, cuisses…</div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{tr({ fr: 'Mesures corporelles', en: 'Body measurements', es: 'Mediciones corporales' })}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-mute)' }}>{tr({ fr: 'Tour de bras, taille, cuisses…', en: 'Arm, waist, thigh…', es: 'Brazo, cintura, muslos…' })}</div>
               </div>
             </div>
             <Icons.ChevronRight size={16} color="var(--text-mute)" />
@@ -545,7 +564,7 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
           textAlign: 'left',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, letterSpacing: 0.12, textTransform: 'uppercase' }}>Poids</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, letterSpacing: 0.12, textTransform: 'uppercase' }}>{tr({ fr: 'Poids', en: 'Weight', es: 'Peso' })}</div>
             <Icons.Scale size={14} color="var(--text-mute)" />
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 6 }}>
@@ -576,7 +595,7 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
               </div>
             </div>
           ) : (
-            <div style={{ fontSize: 13, color: 'var(--text-mute)', marginTop: 10 }}>Lance une séance !</div>
+            <div style={{ fontSize: 13, color: 'var(--text-mute)', marginTop: 10 }}>{tr({ fr: 'Lance une séance !', en: 'Start a workout!', es: '¡Inicia una sesión!' })}</div>
           )}
         </button>
       </div>
@@ -584,7 +603,7 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
       {/* Today session */}
       {todaySession && (
         <>
-          <SectionLabel>Aujourd'hui</SectionLabel>
+          <SectionLabel>{t('daily.title')}</SectionLabel>
           <div style={{ padding: '6px 16px 16px' }}>
             <div className="glass" style={{ borderRadius: 22, padding: '16px 18px', borderLeft: `3px solid ${SESSION_CFG[todaySession.type]?.color || 'var(--primary)'}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -595,7 +614,7 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
                   textTransform: 'uppercase',
                 }}>{todaySession.type}</span>
                 <div style={{ fontSize: 13, color: 'var(--text-soft)' }}>
-                  {todaySession.exercises.length} exos · {todaySession.exercises.reduce((t, e) => t + e.sets.length, 0)} sets
+                  {todaySession.exercises.length} {tr({ fr: 'exos', en: 'exos', es: 'ejs' })} · {todaySession.exercises.reduce((acc, e) => acc + e.sets.length, 0)} {tr({ fr: 'sets', en: 'sets', es: 'series' })}
                 </div>
               </div>
             </div>
@@ -604,11 +623,11 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
       )}
 
       {/* Quick log */}
-      <SectionLabel>Quick log</SectionLabel>
+      <SectionLabel>{tr({ fr: 'Quick log', en: 'Quick log', es: 'Registro rápido' })}</SectionLabel>
       <div style={{ padding: '6px 16px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {([
-          { label: 'Course', Icon: Icons.Run, kind: 'run' as const },
-          { label: 'Natation', Icon: Icons.Swim, kind: 'swim' as const },
+          { label: tr({ fr: 'Course',   en: 'Run',  es: 'Carrera'  }), Icon: Icons.Run, kind: 'run' as const },
+          { label: tr({ fr: 'Natation', en: 'Swim', es: 'Natación' }), Icon: Icons.Swim, kind: 'swim' as const },
         ] as const).map((item) => (
           <button key={item.label} onClick={() => setSheet(item.kind)} className="tap glass" style={{
             borderRadius: 18, padding: '14px', border: '1px solid var(--glass-border)',
@@ -638,9 +657,9 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
             <Icons.Bot size={22} color="#fff" />
           </div>
           <div style={{ flex: 1, textAlign: 'left' }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Coach IA</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{t('coach.title')}</div>
             <div style={{ fontSize: 11, color: 'var(--text-mute)', marginTop: 1 }}>
-              Bilan semaine · Conseils · Nutrition · Technique
+              {tr({ fr: 'Bilan semaine · Conseils · Nutrition · Technique', en: 'Weekly review · Tips · Nutrition · Technique', es: 'Resumen · Consejos · Nutrición · Técnica' })}
             </div>
           </div>
           <Icons.ChevronRight size={16} color="var(--primary)" />
@@ -654,7 +673,7 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
           fontSize: 12, fontWeight: 600, color: 'var(--text-mute)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>
-          <Icons.Download size={14} /> Résumé semaine
+          <Icons.Download size={14} /> {tr({ fr: 'Résumé semaine', en: 'Weekly summary', es: 'Resumen semanal' })}
         </button>
       </div>
 
@@ -686,7 +705,7 @@ function RoutineSectionContent({ routineToday, routineItems, routineChecked }: {
               <Icons.Moon size={20} />
             </div>
             <div>
-              <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, letterSpacing: 0.12, textTransform: 'uppercase' }}>Routine soir</div>
+              <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, letterSpacing: 0.12, textTransform: 'uppercase' }}>{tr({ fr: 'Routine soir', en: 'Evening', es: 'Noche' })}</div>
               <span className="t-num" style={{ fontSize: 24 }}>{routineChecked}</span>
               <span style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 600 }}>/{routineItems.length}</span>
             </div>
@@ -734,19 +753,19 @@ function RoutineSheet({ open, onClose, showToast }: { open: boolean; onClose: ()
   };
 
   const handleSave = () => {
-    showToast('Routine enregistrée', 'success');
+    showToast(tr({ fr: 'Routine enregistrée', en: 'Routine saved', es: 'Rutina guardada' }), 'success');
     onClose();
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Routine du soir" height="78%">
+    <Sheet open={open} onClose={onClose} title={tr({ fr: 'Routine du soir', en: 'Evening routine', es: 'Rutina nocturna' })} height="78%">
       <div style={{ padding: '8px 18px 24px' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12, marginBottom: 8 }}>Sommeil</div>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12, marginBottom: 8 }}>{tr({ fr: 'Sommeil', en: 'Sleep', es: 'Sueño' })}</div>
         <div className="glass" style={{ borderRadius: 18, padding: 14, marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 8 }}>
             {[
-              { label: 'Couché', val: bedtime, set: setBedtime },
-              { label: 'Levé', val: wake, set: setWake },
+              { label: tr({ fr: 'Couché', en: 'Bed time', es: 'Acostar' }), val: bedtime, set: setBedtime },
+              { label: tr({ fr: 'Levé',   en: 'Wake up',  es: 'Levantar' }), val: wake, set: setWake },
             ].map((f) => (
               <div key={f.label} style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 6 }}>{f.label}</div>
@@ -758,13 +777,13 @@ function RoutineSheet({ open, onClose, showToast }: { open: boolean; onClose: ()
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icons.Moon size={16} color="#A5C8FF" />
-              <span style={{ fontSize: 12, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12 }}>Durée</span>
+              <span style={{ fontSize: 12, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12 }}>{tr({ fr: 'Durée', en: 'Duration', es: 'Duración' })}</span>
             </div>
             <span className="t-num" style={{ fontSize: 26, color: '#A5C8FF' }}>{calcDuration()}<span style={{ fontSize: 12, color: 'var(--text-mute)', marginLeft: 4 }}>h</span></span>
           </div>
         </div>
 
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12, marginBottom: 8 }}>Rituel</div>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-mute)', letterSpacing: 0.12, marginBottom: 8 }}>{tr({ fr: 'Rituel', en: 'Ritual', es: 'Ritual' })}</div>
         <div style={{
           display: 'flex', gap: 8, marginBottom: 20,
           overflowX: 'auto', WebkitOverflowScrolling: 'touch',
@@ -795,7 +814,7 @@ function RoutineSheet({ open, onClose, showToast }: { open: boolean; onClose: ()
         <button onClick={handleSave} className="tap" style={{
           width: '100%', border: 'none', borderRadius: 16, padding: 16,
           background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: 14, letterSpacing: 0.1, textTransform: 'uppercase',
-        }}>Enregistrer</button>
+        }}>{t('common.save')}</button>
       </div>
     </Sheet>
   );

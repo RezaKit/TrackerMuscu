@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useCardioStore } from '../stores/cardioStore';
 import { getDateString } from '../utils/export';
 import { Icons } from './Icons';
 import { scheduleSync } from '../utils/cloudSync';
+import { getCurrentWeek, getDaysUntilRace, PLAN } from '../utils/runningPlan';
+
+const RunningProgram = lazy(() => import('./RunningProgram'));
 
 interface CardioProps {
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
@@ -17,6 +20,7 @@ function fmtDate(iso: string) {
 export default function Cardio({ showToast }: CardioProps) {
   const [tab, setTab] = useState<Tab>('course');
   const [showForm, setShowForm] = useState(false);
+  const [showProgram, setShowProgram] = useState(false);
   const [distance, setDistance] = useState('');
   const [time, setTime] = useState('');
   const [date, setDate] = useState(getDateString());
@@ -44,6 +48,29 @@ export default function Cardio({ showToast }: CardioProps) {
   const entries = tab === 'course' ? courses : natations;
   const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
   const totalDist = sorted.reduce((s, e) => s + e.distance, 0);
+
+  const currentWeek = getCurrentWeek();
+  const daysToRace = getDaysUntilRace();
+  const curPlan = currentWeek >= 1 && currentWeek <= PLAN.length ? PLAN[currentWeek - 1] : null;
+
+  if (showProgram) {
+    return (
+      <div className="page-enter">
+        <div style={{ padding: '12px 18px' }}>
+          <button onClick={() => setShowProgram(false)} className="tap" style={{
+            background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)',
+            borderRadius: 12, padding: '8px 14px', color: 'var(--text-soft)',
+            fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            ← Retour Cardio
+          </button>
+        </div>
+        <Suspense fallback={<div className="skeleton" style={{ height: 200, margin: 16, borderRadius: 18 }} />}>
+          <RunningProgram />
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div className="page-enter">
@@ -75,6 +102,35 @@ export default function Cardio({ showToast }: CardioProps) {
           })}
         </div>
       </div>
+
+      {/* Plan Semi-Marathon banner — only shown on Course tab + during plan window */}
+      {tab === 'course' && daysToRace > 0 && (
+        <div style={{ padding: '0 16px 14px' }}>
+          <button onClick={() => setShowProgram(true)} className="tap glass" style={{
+            width: '100%', borderRadius: 20, padding: '14px 18px',
+            background: 'linear-gradient(135deg, rgba(96,165,250,0.12), rgba(34,211,238,0.06))',
+            border: '1px solid rgba(96,165,250,0.25)',
+            display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left',
+          }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: 14, flexShrink: 0,
+              background: 'linear-gradient(135deg, var(--info), var(--cyan))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icons.Run size={22} color="#fff" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>Plan Semi-Marathon</div>
+              <div style={{ fontSize: 11, color: 'var(--text-mute)', marginTop: 1 }}>
+                {curPlan
+                  ? `Sem ${currentWeek}/${PLAN.length} · ${curPlan.longRunKm}km dim · ${daysToRace}j avant la course`
+                  : `${daysToRace} jours avant la course · 27 semaines de prep`}
+              </div>
+            </div>
+            <Icons.ChevronRight size={16} color="var(--info)" />
+          </button>
+        </div>
+      )}
 
       {/* Stats */}
       {sorted.length > 0 && (

@@ -9,7 +9,8 @@ import {
   isStravaConnected, getStravaAthlete, disconnectStrava,
   stravaAuthUrl, syncStravaActivities, syncGarminCalories,
 } from '../utils/strava';
-import { LANG_LABELS, useLang, type Lang, t } from '../utils/i18n';
+import { LANG_LABELS, useLang, type Lang, t, tr } from '../utils/i18n';
+import { exportAllDataToJson } from '../utils/dataExport';
 
 interface ParamsProps {
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
@@ -47,6 +48,19 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
   const [showGoalPicker, setShowGoalPicker] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportData = async () => {
+    setExporting(true);
+    try {
+      await exportAllDataToJson();
+      showToast(t('privacy.exportDone'), 'success');
+    } catch {
+      showToast(tr({ fr: 'Erreur lors de l\'export', en: 'Export error', es: 'Error al exportar' }), 'info');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Re-sync state from localStorage after cloud restore (prevents the
   // "API key disappears on a fresh device" race condition: useState() reads
@@ -367,9 +381,19 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
             </div>
           </div>
           <div style={{ position: 'relative', marginBottom: 10 }}>
-            <input type={showKey ? 'text' : 'password'} placeholder="AIzaSy..."
-              value={apiKey} onChange={(e) => setApiKey(e.target.value)}
-              className="input-glass" style={{ paddingRight: 52, fontFamily: 'var(--mono)', fontSize: 13 }} />
+            <input
+              type={showKey ? 'text' : 'password'}
+              placeholder="AIzaSy..."
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className="input-glass"
+              // ⚠️ font-size MUST stay >= 16px on iOS — anything smaller triggers
+              // a Safari auto-zoom on focus that locks the layout. Don't override.
+              style={{ paddingRight: 52, fontFamily: 'var(--mono)' }}
+            />
             <button onClick={() => setShowKey(s => !s)} style={{
               position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', color: 'var(--text-mute)', fontSize: 12, cursor: 'pointer',
@@ -643,6 +667,38 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
             )}
           </div>
         )}
+
+        {/* ── Export RGPD ───────────────────────── */}
+        <div className="glass" style={{ borderRadius: 22, padding: '18px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 11, flexShrink: 0,
+              background: 'rgba(74,222,128,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--ok)', fontSize: 18,
+            }}>📦</div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{t('privacy.export')}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{t('privacy.exportSub')}</div>
+            </div>
+          </div>
+          <button
+            onClick={handleExportData}
+            disabled={exporting}
+            className="tap"
+            style={{
+              width: '100%', marginTop: 10, borderRadius: 12, padding: '12px',
+              background: exporting ? 'rgba(255,255,255,0.06)' : 'rgba(74,222,128,0.12)',
+              color: exporting ? 'var(--text-mute)' : 'var(--ok)',
+              fontWeight: 700, fontSize: 13,
+              border: '1px solid rgba(74,222,128,0.22)',
+              opacity: exporting ? 0.6 : 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            {exporting ? <>⟳ {t('privacy.exporting')}</> : <>📦 {t('privacy.export')} (JSON)</>}
+          </button>
+        </div>
 
         {/* ── Légal & Confidentialité ─────────── */}
         {onShowLegal && (

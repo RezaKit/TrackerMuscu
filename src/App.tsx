@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { useSessionStore } from './stores/sessionStore';
 import { useCardioStore } from './stores/cardioStore';
 import { useBodyWeightStore } from './stores/bodyweightStore';
@@ -11,22 +11,39 @@ import { useAuthStore } from './stores/authStore';
 import { initDB } from './db/db';
 import { restoreFromCloud, pushToCloud, scheduleSync } from './utils/cloudSync';
 import { syncStravaActivities, syncGarminCalories } from './utils/strava';
+
+// Critical-path routes — load eagerly so first paint is instant.
 import Dashboard from './components/Dashboard';
 import SessionForm from './components/SessionForm';
-import Calendar from './components/Calendar';
-import Analytics from './components/Analytics';
-import Cardio from './components/Cardio';
-import Settings from './components/Settings';
-import Params from './components/Params';
-import Daily from './components/Daily';
-import AICoach from './components/AICoach';
 import Auth from './components/Auth';
 import Onboarding from './components/Onboarding';
-import Measurements from './components/Measurements';
-import Legal from './components/Legal';
 import Navbar from './components/Navbar';
 import Toast from './components/Toast';
 import UpdateBanner from './components/UpdateBanner';
+import Params from './components/Params';
+
+// Heavier secondary routes — code-split into their own chunks loaded on demand.
+const Calendar     = lazy(() => import('./components/Calendar'));
+const Analytics    = lazy(() => import('./components/Analytics'));
+const Cardio       = lazy(() => import('./components/Cardio'));
+const Settings     = lazy(() => import('./components/Settings'));
+const Daily        = lazy(() => import('./components/Daily'));
+const AICoach      = lazy(() => import('./components/AICoach'));
+const Measurements = lazy(() => import('./components/Measurements'));
+const Legal        = lazy(() => import('./components/Legal'));
+
+function RouteFallback() {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: 'var(--text-mute)', fontSize: 12, fontWeight: 700, letterSpacing: 1,
+      textTransform: 'uppercase',
+    }}>
+      <div className="skeleton" style={{ width: 80, height: 6, borderRadius: 999 }} />
+    </div>
+  );
+}
 
 export type Page = 'dashboard' | 'calendar' | 'analytics' | 'cardio' | 'session' | 'params' | 'settings' | 'daily' | 'coach' | 'measurements' | 'legal';
 
@@ -170,7 +187,10 @@ export default function App() {
 
   // Auth screen
   if (showAuth && !user) {
-    return <Auth onSkip={() => setShowAuth(false)} />;
+    return <Auth
+      onSkip={() => setShowAuth(false)}
+      onShowLegal={() => { setShowAuth(false); setCurrentPage('legal'); }}
+    />;
   }
 
   // Auth loading splash
@@ -241,22 +261,24 @@ export default function App() {
           />
         )}
 
-        {currentPage === 'calendar' && <Calendar
-          onStartSession={() => setCurrentPage('session')}
-          onAskCoach={() => setCurrentPage('coach')}
-        />}
-        {currentPage === 'analytics' && <Analytics showToast={showToast} />}
-        {currentPage === 'cardio' && <Cardio showToast={showToast} />}
-        {currentPage === 'daily' && <Daily showToast={showToast} onBack={() => setCurrentPage('dashboard')} />}
-        {currentPage === 'settings' && <Settings
-          showToast={showToast}
-          onStartSession={() => setCurrentPage('session')}
-          onAskCoach={() => setCurrentPage('coach')}
-        />}
+        <Suspense fallback={<RouteFallback />}>
+          {currentPage === 'calendar' && <Calendar
+            onStartSession={() => setCurrentPage('session')}
+            onAskCoach={() => setCurrentPage('coach')}
+          />}
+          {currentPage === 'analytics' && <Analytics showToast={showToast} />}
+          {currentPage === 'cardio' && <Cardio showToast={showToast} />}
+          {currentPage === 'daily' && <Daily showToast={showToast} onBack={() => setCurrentPage('dashboard')} />}
+          {currentPage === 'settings' && <Settings
+            showToast={showToast}
+            onStartSession={() => setCurrentPage('session')}
+            onAskCoach={() => setCurrentPage('coach')}
+          />}
+          {currentPage === 'coach' && <AICoach onBack={() => setCurrentPage('dashboard')} />}
+          {currentPage === 'measurements' && <Measurements onClose={() => setCurrentPage('dashboard')} />}
+          {currentPage === 'legal' && <Legal onBack={() => setCurrentPage('params')} />}
+        </Suspense>
         {currentPage === 'params' && <Params showToast={showToast} onShowAuth={() => setShowAuth(true)} onShowLegal={() => setCurrentPage('legal')} />}
-        {currentPage === 'coach' && <AICoach onBack={() => setCurrentPage('dashboard')} />}
-        {currentPage === 'measurements' && <Measurements onClose={() => setCurrentPage('dashboard')} />}
-        {currentPage === 'legal' && <Legal onBack={() => setCurrentPage('params')} />}
       </div>
 
       {!inSession && !keyboardOpen && currentPage !== 'daily' && currentPage !== 'coach' && currentPage !== 'measurements' && currentPage !== 'legal' && (

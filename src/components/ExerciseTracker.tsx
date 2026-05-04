@@ -9,9 +9,10 @@ import {
   findFxExercise, muscleLabel, equipLabel, levelLabel, mechanicLabel,
   localizeInstructions, type FxExercise,
 } from '../utils/exerciseDB';
+import { translateExerciseSteps } from '../utils/translateAI';
 import MuscleMap from './MuscleMap';
-import ExerciseFlipbook from './ExerciseFlipbook';
-import { useLang } from '../utils/i18n';
+import ExerciseMedia from './ExerciseMedia';
+import { useLang, getLang } from '../utils/i18n';
 import type { ExerciseLog } from '../types';
 
 interface ExerciseTrackerProps {
@@ -28,6 +29,7 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
   const [infoName, setInfoName] = useState<string | null>(null);
   const [fxInfo, setFxInfo] = useState<FxExercise | null>(null);
   const [fxLoading, setFxLoading] = useState(false);
+  const [aiSteps, setAiSteps] = useState<string[] | null>(null);
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   const [editWeight, setEditWeight] = useState('');
@@ -35,13 +37,26 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
   const [, forcePrefRender] = useState(0);
 
   useEffect(() => {
-    if (!infoName) { setFxInfo(null); return; }
+    if (!infoName) { setFxInfo(null); setAiSteps(null); return; }
     setFxInfo(null);
+    setAiSteps(null);
     setFxLoading(true);
     findFxExercise(infoName)
       .then((info) => setFxInfo(info))
       .finally(() => setFxLoading(false));
   }, [infoName]);
+
+  // Async high-quality translation via Gemini (cached forever per exo+lang).
+  // Falls back to the local dictionary if the user has no API key.
+  useEffect(() => {
+    if (!fxInfo || getLang() === 'en') { setAiSteps(null); return; }
+    let aborted = false;
+    const apiKey = localStorage.getItem('gemini_api_key');
+    translateExerciseSteps(fxInfo.id, fxInfo.instructions, apiKey).then((translated) => {
+      if (!aborted && translated) setAiSteps(translated);
+    });
+    return () => { aborted = true; };
+  }, [fxInfo?.id]);
 
   // Auto-fill weight & reps when an exercise is expanded — uses last set from current session
   // first, falling back to most recent historical set.
@@ -153,13 +168,17 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
               <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--primary)' }}>{infoName}</span>
             </div>
 
-            {/* Animation flipbook (Free Exercise DB — 2 positions alternées comme un GIF) */}
+            {/* Vidéo (auto MP4 si CDN configuré) avec fallback flipbook 2 images */}
             {(() => {
               if (fxLoading) return <div className="skeleton" style={{ aspectRatio: '4/3', marginBottom: 14 }} />;
-              if (fxInfo?.images?.length) {
+              if (fxInfo) {
                 return (
                   <div style={{ marginBottom: 14 }}>
-                    <ExerciseFlipbook images={fxInfo.images} alt={infoName!} />
+                    <ExerciseMedia
+                      fxId={fxInfo.id}
+                      name={fxInfo.name}
+                      fallbackImages={fxInfo.images}
+                    />
                   </div>
                 );
               }
@@ -233,14 +252,14 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
               </div>
             )}
 
-            {/* Instructions étape par étape (traduites selon la langue choisie) */}
+            {/* Instructions étape par étape (Gemini si dispo, sinon regex local) */}
             {fxInfo && fxInfo.instructions.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-mute)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
                   Comment l'exécuter
                 </div>
                 <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {localizeInstructions(fxInfo.instructions).map((step, i) => (
+                  {(aiSteps ?? localizeInstructions(fxInfo.instructions)).map((step, i) => (
                     <li key={i} style={{
                       display: 'flex', gap: 10, alignItems: 'flex-start',
                       padding: '10px 12px',
