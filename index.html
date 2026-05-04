@@ -104,8 +104,9 @@
       <div id="splash-sub">Fitness · Coach IA</div>
       <div id="splash-ring"></div>
       <div id="boot-fail">
-        <b>L'app met du temps à démarrer</b>
-        Connexion lente ou cache corrompu. Tu peux nettoyer et réessayer.
+        <b id="boot-fail-title">L'app met du temps à démarrer</b>
+        <div id="boot-fail-msg">Connexion lente ou cache corrompu. Tu peux nettoyer et réessayer.</div>
+        <pre id="boot-fail-err" style="display:none;margin-top:10px;padding:10px;background:#000;border:1px solid rgba(255,107,53,0.3);border-radius:8px;color:#FF6B35;font-size:11px;font-family:ui-monospace,monospace;text-align:left;white-space:pre-wrap;word-break:break-all;max-height:160px;overflow:auto"></pre>
         <div>
           <button onclick="window.location.reload()">Recharger</button>
           <button onclick="(async()=>{try{const r=await navigator.serviceWorker.getRegistrations();for(const x of r)await x.unregister();const k=await caches.keys();await Promise.all(k.map(n=>caches.delete(n)));}catch(e){}localStorage.clear();sessionStorage.clear();window.location.reload();})()">Vider cache</button>
@@ -113,15 +114,43 @@
       </div>
     </div>
 
-    <!-- Boot watchdog: if React hasn't removed #splash after 10s, show recovery UI -->
+    <!-- Boot watchdog + global error capture: surface the REAL error so we can fix it -->
     <script>
       window.__bootStart = Date.now();
+      window.__bootErrors = [];
+      function showBootFail(title, errStr){
+        try {
+          var s = document.getElementById('splash');
+          var f = document.getElementById('boot-fail');
+          var t = document.getElementById('boot-fail-title');
+          var ePre = document.getElementById('boot-fail-err');
+          var ring = document.getElementById('splash-ring');
+          if (!s || !f) return;
+          if (ring) ring.style.display = 'none';
+          if (title && t) t.textContent = title;
+          if (errStr && ePre) { ePre.style.display = 'block'; ePre.textContent = errStr; }
+          f.style.display = 'block';
+        } catch(e) {}
+      }
+      window.addEventListener('error', function(ev){
+        var msg = (ev.message || 'unknown error') + '\n@ ' + (ev.filename || '?') + ':' + (ev.lineno || '?') + ':' + (ev.colno || '?');
+        if (ev.error && ev.error.stack) msg += '\n' + ev.error.stack.split('\n').slice(0,4).join('\n');
+        window.__bootErrors.push(msg);
+        // If error fires before React mounts, surface it immediately
+        if (window.__bootWatchdog) showBootFail('Erreur au démarrage', window.__bootErrors.join('\n---\n'));
+      });
+      window.addEventListener('unhandledrejection', function(ev){
+        var r = ev.reason;
+        var msg = 'Unhandled rejection: ' + (r && r.message ? r.message : String(r));
+        if (r && r.stack) msg += '\n' + r.stack.split('\n').slice(0,4).join('\n');
+        window.__bootErrors.push(msg);
+        if (window.__bootWatchdog) showBootFail('Erreur au démarrage', window.__bootErrors.join('\n---\n'));
+      });
       window.__bootWatchdog = setTimeout(function(){
         var s = document.getElementById('splash');
-        var f = document.getElementById('boot-fail');
-        if (s && f && s.style.opacity !== '0') {
-          var r = document.getElementById('splash-ring'); if (r) r.style.display = 'none';
-          f.style.display = 'block';
+        if (s && s.style.opacity !== '0') {
+          var errs = window.__bootErrors.length ? window.__bootErrors.join('\n---\n') : null;
+          showBootFail(errs ? 'Erreur au démarrage' : "L'app met du temps à démarrer", errs);
         }
       }, 10000);
     </script>

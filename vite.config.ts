@@ -14,22 +14,25 @@ export default defineConfig({
     chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
-        // Manual chunks split heavy third-party libs from app code so the
-        // critical-path bundle (Dashboard, Auth, Onboarding) stays small and
-        // routes loaded later (Coach, Analytics, Calendar) reuse cached vendor
-        // chunks across releases.
+        // Manual chunks: groupe React + TOUS ses consommateurs pour éviter
+        // les imports circulaires entre chunks. zustand, use-sync-external-store,
+        // et tout ce qui utilise les hooks de React doivent vivre dans le même chunk.
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('scheduler')) return 'vendor-react';
-            if (id.includes('@supabase'))       return 'vendor-supabase';
-            if (id.includes('dexie'))           return 'vendor-dexie';
-            if (id.includes('recharts') || id.includes('d3-')) return 'vendor-charts';
-            if (id.includes('jspdf'))           return 'vendor-pdf';
-            if (id.includes('papaparse'))       return 'vendor-papaparse';
-            if (id.includes('zustand'))         return 'vendor-zustand';
-            if (id.includes('date-fns'))        return 'vendor-datefns';
-            return 'vendor';
-          }
+          if (!id.includes('node_modules')) return;
+          // Tout l'écosystème React (react, react-dom, scheduler, hooks shims, zustand)
+          // doit rester ensemble pour éviter "Cannot read properties of undefined".
+          if (
+            id.includes('/react/') ||
+            id.includes('/react-dom/') ||
+            id.includes('/scheduler/') ||
+            id.includes('/use-sync-external-store/') ||
+            id.includes('/zustand/')
+          ) return 'vendor-react';
+          if (id.includes('@supabase')) return 'vendor-supabase';
+          if (id.includes('/dexie/'))   return 'vendor-dexie';
+          if (id.includes('/papaparse/')) return 'vendor-papaparse';
+          // Tout le reste dans un chunk générique
+          return 'vendor';
         },
       },
     },
