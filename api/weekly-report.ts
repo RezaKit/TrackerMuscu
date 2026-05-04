@@ -11,6 +11,8 @@
 //   - CRON_SECRET                 (any random long string, also added to Vercel Cron)
 //   - REPORT_FROM_EMAIL           (default: "RezaKit <noreply@resakit.fr>")
 
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
 export const config = { runtime: 'nodejs' };
 
 interface SetEntry { weight: number; reps: number; setNumber?: number }
@@ -271,12 +273,15 @@ async function sendEmail(to: string, subject: string, html: string, from: string
   }
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  // 1. Auth
+export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  // 1. Auth — Vercel passes headers as plain object, not Fetch Headers
   const expected = process.env.CRON_SECRET;
-  const got = req.headers.get('authorization');
+  const got = Array.isArray(req.headers['authorization'])
+    ? req.headers['authorization'][0]
+    : req.headers['authorization'];
   if (!expected || got !== `Bearer ${expected}`) {
-    return new Response('Unauthorized', { status: 401 });
+    res.status(401).send('Unauthorized');
+    return;
   }
 
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -285,9 +290,8 @@ export default async function handler(req: Request): Promise<Response> {
   const fromEmail   = process.env.REPORT_FROM_EMAIL || 'RezaKit <noreply@resakit.fr>';
 
   if (!supabaseUrl || !serviceKey || !resendKey) {
-    return new Response(JSON.stringify({ error: 'Missing env vars (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / RESEND_API_KEY)' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    });
+    res.status(500).json({ error: 'Missing env vars (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / RESEND_API_KEY)' });
+    return;
   }
 
   const now = new Date();
@@ -297,9 +301,8 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     users = await fetchAllUsers(supabaseUrl, serviceKey);
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: 'Failed to list users: ' + e.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    });
+    res.status(500).json({ error: 'Failed to list users: ' + e.message });
+    return;
   }
 
   const results = { sent: 0, skipped: 0, failed: 0 };
@@ -310,7 +313,6 @@ export default async function handler(req: Request): Promise<Response> {
       const data = await fetchUserData(supabaseUrl, serviceKey, u.id);
       if (!data) { results.skipped += 1; continue; }
       const sessions = data.sessions ?? [];
-      // Skip users that have literally never logged a session (cold accounts)
       if (sessions.length === 0) { results.skipped += 1; continue; }
 
       const stats = computeStats(sessions, now);
@@ -330,7 +332,5 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, ...results }), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+  res.status(200).json({ ok: true, ...results });
 }

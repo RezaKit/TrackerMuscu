@@ -12,7 +12,7 @@
     <link rel="canonical" href="https://resakit.fr/" />
 
     <!-- PWA / iOS -->
-    <meta name="theme-color" content="#0D0D11" />
+    <meta name="theme-color" content="#FF6B35" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="RezaKit" />
@@ -36,6 +36,14 @@
     <meta name="twitter:description" content="Suivez vos séances de musculation, analysez vos progrès et obtenez des conseils personnalisés de votre coach IA. 100% gratuit, sans pub." />
     <meta name="twitter:image" content="https://resakit.fr/og-image.png" />
 
+    <!--
+      Google Fonts — preconnect first (parallel DNS+TLS), then load as stylesheet.
+      This is NON-BLOCKING unlike @import in CSS which freezes the entire stylesheet.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
     {
@@ -46,36 +54,53 @@
       "operatingSystem": "iOS, Android, Web",
       "applicationCategory": "HealthApplication",
       "applicationSubCategory": "FitnessApplication",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "EUR"
-      },
-      "description": "Application de musculation gratuite avec coach IA. Suivez vos séances, mesurez vos progrès, planifiez vos entraînements et obtenez des conseils personnalisés. Tracker musculation complet disponible sur iOS et Android.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+      "description": "Application de musculation gratuite avec coach IA. Suivez vos séances, mesurez vos progrès, planifiez vos entraînements.",
       "url": "https://resakit.fr",
-      "screenshot": "https://resakit.fr/og-image.png",
-      "featureList": [
-        "Suivi de séances de musculation",
-        "Coach IA personnalisé",
-        "Statistiques et progression",
-        "Cardio (course et natation)",
-        "Suivi nutrition et calories",
-        "Programme semi-marathon",
-        "Records personnels automatiques",
-        "Sauvegarde cloud RGPD"
-      ],
+      "featureList": ["Suivi de séances", "Coach IA", "Statistiques", "Cardio", "Nutrition", "Programme running"],
       "inLanguage": ["fr", "en", "es"],
-      "author": {
-        "@type": "Organization",
-        "name": "RezaKit",
-        "url": "https://resakit.fr"
-      }
+      "author": { "@type": "Organization", "name": "RezaKit", "url": "https://resakit.fr" }
     }
     </script>
 
     <title>RezaKit — Tracker Musculation avec Coach IA</title>
+
+    <!--
+      Inline critical CSS + splash screen visible BEFORE any JS loads.
+      React replaces #root content on mount — this splash never flashes once app is ready.
+    -->
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      html,body{height:100%;background:#050505;overflow:hidden}
+      #root{position:fixed;inset:0;background:#050505;overflow:hidden}
+      #splash{
+        position:fixed;inset:0;
+        background:radial-gradient(ellipse at 30% 20%,rgba(255,107,53,.18) 0,transparent 55%),
+                   radial-gradient(ellipse at 80% 80%,rgba(196,30,58,.12) 0,transparent 50%),
+                   #050505;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        z-index:9999;transition:opacity .35s ease;
+      }
+      #splash-logo{
+        font-family:Impact,Arial,sans-serif;font-size:64px;letter-spacing:4px;
+        color:#FF6B35;line-height:1;margin-bottom:6px;
+        text-shadow:0 0 60px rgba(255,107,53,.5);
+      }
+      #splash-sub{font-size:13px;color:rgba(255,255,255,.28);font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:48px;font-family:Arial,sans-serif}
+      #splash-ring{width:36px;height:36px;position:relative}
+      #splash-ring::before{content:'';position:absolute;inset:0;border-radius:50%;border:2.5px solid rgba(255,107,53,.18)}
+      #splash-ring::after{content:'';position:absolute;inset:0;border-radius:50%;border:2.5px solid transparent;border-top-color:#FF6B35;animation:rzk-spin .8s linear infinite}
+      @keyframes rzk-spin{to{transform:rotate(360deg)}}
+    </style>
   </head>
   <body>
+    <!-- Visible immediately — no JS required -->
+    <div id="splash">
+      <div id="splash-logo">RezaKit</div>
+      <div id="splash-sub">Fitness · Coach IA</div>
+      <div id="splash-ring"></div>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -9,6 +9,8 @@
 //   - CRON_SECRET
 //   - REPORT_FROM_EMAIL  (default: "RezaKit <noreply@resakit.fr>")
 
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
 export const config = { runtime: 'nodejs' };
 
 interface AuthUser { id: string; email: string | null }
@@ -109,11 +111,14 @@ function profileName(localSettings: unknown): string {
   } catch { return ''; }
 }
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const expected = process.env.CRON_SECRET;
-  const got = req.headers.get('authorization');
+  const got = Array.isArray(req.headers['authorization'])
+    ? req.headers['authorization'][0]
+    : req.headers['authorization'];
   if (!expected || got !== `Bearer ${expected}`) {
-    return new Response('Unauthorized', { status: 401 });
+    res.status(401).send('Unauthorized');
+    return;
   }
 
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -122,9 +127,8 @@ export default async function handler(req: Request): Promise<Response> {
   const fromEmail   = process.env.REPORT_FROM_EMAIL || 'RezaKit <noreply@resakit.fr>';
 
   if (!supabaseUrl || !serviceKey || !resendKey) {
-    return new Response(JSON.stringify({ error: 'Missing env vars' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    });
+    res.status(500).json({ error: 'Missing env vars' });
+    return;
   }
 
   const now = new Date();
@@ -135,9 +139,8 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     users = await fetchAllUsers(supabaseUrl, serviceKey);
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: 'Failed to list users: ' + e.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    });
+    res.status(500).json({ error: 'Failed to list users: ' + e.message });
+    return;
   }
 
   const results = { sent: 0, skipped: 0, failed: 0 };
@@ -175,7 +178,5 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, ...results }), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+  res.status(200).json({ ok: true, ...results });
 }
