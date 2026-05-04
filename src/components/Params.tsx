@@ -9,6 +9,7 @@ import {
   isStravaConnected, getStravaAthlete, disconnectStrava,
   stravaAuthUrl, syncStravaActivities, syncGarminCalories,
 } from '../utils/strava';
+import { LANG_LABELS, useLang, type Lang, t } from '../utils/i18n';
 
 interface ParamsProps {
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
@@ -25,6 +26,7 @@ function loadProfile(): UserProfile | null {
 
 export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsProps) {
   const { user, signOut } = useAuthStore();
+  const [lang, setLang] = useLang();
 
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [showKey, setShowKey] = useState(false);
@@ -193,11 +195,53 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
   return (
     <div className="page-enter">
       <div style={{ padding: '14px 22px 14px' }}>
-        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Général</div>
-        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Paramètres</h1>
+        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>{t('params.general')}</div>
+        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>{t('params.title')}</h1>
       </div>
 
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+        {/* ── Langue ─────────────────────────────── */}
+        <div className="glass" style={{ borderRadius: 22, padding: '18px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 11, flexShrink: 0,
+              background: 'rgba(96,165,250,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18,
+            }}>🌍</div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{t('params.language')}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{t('params.languageSub')}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            {(Object.keys(LANG_LABELS) as Lang[]).map((code) => {
+              const isOn = lang === code;
+              const meta = LANG_LABELS[code];
+              return (
+                <button
+                  key={code}
+                  onClick={() => { setLang(code); showToast(`✓ ${meta.native}`, 'success'); }}
+                  className="tap"
+                  style={{
+                    flex: 1, padding: '10px 6px',
+                    border: `1.5px solid ${isOn ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}`,
+                    borderRadius: 12,
+                    background: isOn ? 'rgba(255,107,53,0.12)' : 'rgba(255,255,255,0.03)',
+                    color: isOn ? 'var(--text)' : 'var(--text-soft)',
+                    fontWeight: 700, fontSize: 12,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  }}
+                >
+                  <span style={{ fontSize: 22, lineHeight: 1 }}>{meta.flag}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700 }}>{meta.native}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
 
         {/* ── Compte ────────────────────────────── */}
         {user ? (
@@ -220,7 +264,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
             </div>
 
             <div className="glass" style={{ borderRadius: 22, padding: '18px 16px' }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>Changer le mot de passe</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>{t('params.changePassword')}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ position: 'relative' }}>
                   <input type={showPwd ? 'text' : 'password'} placeholder="Nouveau mot de passe"
@@ -252,7 +296,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
             </div>
 
             <div className="glass" style={{ borderRadius: 22, padding: '18px 16px' }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Changer l'adresse email</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{t('params.changeEmail')}</div>
               <div style={{ fontSize: 11, color: 'var(--text-mute)', marginBottom: 14 }}>
                 Un email de confirmation sera envoyé aux deux adresses.
               </div>
@@ -273,7 +317,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
             </div>
 
             <div className="glass" style={{ borderRadius: 22, padding: '16px 16px' }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Mot de passe oublié ?</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{t('params.forgotPassword')}</div>
               <div style={{ fontSize: 11, color: 'var(--text-mute)', marginBottom: 12, lineHeight: 1.5 }}>
                 Envoie un lien de réinitialisation sur{' '}
                 <strong style={{ color: 'var(--text-soft)' }}>{user.email}</strong>
@@ -291,7 +335,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
         ) : (
           <div className="glass" style={{ borderRadius: 22, padding: '24px', textAlign: 'center' }}>
             <Icons.Settings size={28} color="var(--text-faint)" />
-            <div style={{ marginTop: 10, fontWeight: 700, fontSize: 14 }}>Non connecté</div>
+            <div style={{ marginTop: 10, fontWeight: 700, fontSize: 14 }}>{t('params.notLoggedIn')}</div>
             <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-mute)', marginBottom: 16 }}>
               Connecte-toi pour synchroniser tes données et gérer ton compte.
             </div>
@@ -300,7 +344,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
               background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
               color: '#fff', fontWeight: 700, fontSize: 14,
             }}>
-              Se connecter
+              {t('params.signIn')}
             </button>
           </div>
         )}
@@ -318,7 +362,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
             <div>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{apiKey ? 'Coach IA activé ✓' : 'Clé API Coach IA'}</div>
               <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>
-                {apiKey ? 'Gemini 2.0 Flash · Gratuit' : 'aistudio.google.com · Gratuit'}
+                {apiKey ? 'Gemini 2.5 Flash · Gratuit' : 'aistudio.google.com · Gratuit'}
               </div>
             </div>
           </div>
@@ -363,23 +407,52 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
               Comment obtenir la clé (2 min)
             </div>
             {[
-              { n: '1', text: 'aistudio.google.com', sub: 'Connecte-toi avec ton compte Google' },
-              { n: '2', text: '"Get API key" → "Create API key"', sub: 'Choisis ou crée un projet' },
-              { n: '3', text: 'Copie la clé (commence par AIzaSy…)', sub: 'Colle-la dans le champ ci-dessus' },
-            ].map(({ n, text, sub }) => (
+              {
+                n: '1',
+                text: 'Va sur aistudio.google.com',
+                sub: 'Connecte-toi avec ton compte Google (gratuit)',
+                link: 'https://aistudio.google.com/apikey',
+              },
+              {
+                n: '2',
+                text: 'Clique « Create API key »',
+                sub: 'Si on te demande un projet : choisis « Gemini API » ou crée un nouveau projet, peu importe',
+              },
+              {
+                n: '3',
+                text: 'Vérifie le plan : Free tier',
+                sub: 'En haut tu dois voir « Free » — pas de carte bancaire requise. C\'est ce qu\'il faut.',
+              },
+              {
+                n: '4',
+                text: 'Copie la clé (commence par AIzaSy…)',
+                sub: 'Colle-la dans le champ ci-dessus puis clique « Activer le Coach IA »',
+              },
+            ].map(({ n, text, sub, link }) => (
               <div key={n} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
                 <div style={{ width: 22, height: 22, borderRadius: 7, background: 'var(--primary)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                   {n}
                 </div>
-                <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>{text}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-mute)', marginTop: 1 }}>{sub}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>
+                    {link ? (
+                      <a href={link} target="_blank" rel="noopener noreferrer"
+                        style={{ color: 'var(--primary)', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                        {text} ↗
+                      </a>
+                    ) : text}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-mute)', marginTop: 1, lineHeight: 1.45 }}>{sub}</div>
                 </div>
               </div>
             ))}
-            <div style={{ padding: '8px 10px', borderRadius: 10, background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.12)', marginTop: 4 }}>
-              <div style={{ fontSize: 11, color: 'var(--ok)', fontWeight: 600 }}>
-                ✓ 100% gratuit · 1 500 questions/jour · Pas de carte bancaire
+            <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.12)', marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--ok)', fontWeight: 700, marginBottom: 4 }}>
+                ✓ Free tier — pas de carte bancaire requise
+              </div>
+              <div style={{ fontSize: 10.5, color: 'var(--text-mute)', lineHeight: 1.5 }}>
+                Modèle utilisé : <strong style={{ color: 'var(--text-soft)' }}>gemini-2.5-flash</strong>
+                <br />Limite : ~10 requêtes/min, 250/jour. Largement suffisant pour discuter avec ton coach.
               </div>
             </div>
           </div>

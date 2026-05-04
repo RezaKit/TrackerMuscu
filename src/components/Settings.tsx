@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useExerciseStore } from '../stores/exerciseStore';
 import { useTemplateStore } from '../stores/templateStore';
 import { useRoutineStore } from '../stores/routineStore';
+import { useSessionStore } from '../stores/sessionStore';
 import { PRESET_EXERCISES } from '../db/seedExercises';
 import { Icons } from './Icons';
+import { setPendingAI } from '../utils/aiContext';
 
 const MUSCLE_GROUPS = Object.keys(PRESET_EXERCISES);
 
@@ -11,6 +13,8 @@ const EMOJI_LIST = ['💪','🏃','🏊','🧘','📵','🍵','🛌','📚','�
 
 interface SettingsProps {
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
+  onStartSession?: () => void;
+  onAskCoach?: () => void;
 }
 
 type Tab = 'exercises' | 'templates' | 'routine';
@@ -19,17 +23,36 @@ const TYPE_LABELS: Record<string, string> = {
   push: 'Push', pull: 'Pull', legs: 'Legs', upper: 'Upper', lower: 'Lower',
 };
 
-export default function Settings({ showToast }: SettingsProps) {
+export default function Settings({ showToast, onStartSession, onAskCoach }: SettingsProps) {
   const [tab, setTab] = useState<Tab>('exercises');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newMuscle, setNewMuscle] = useState('chest');
   const [routineName, setRoutineName] = useState('');
   const [routineEmoji, setRoutineEmoji] = useState('⭐');
+  const [expandedTplId, setExpandedTplId] = useState<string | null>(null);
 
   const { customExercises, createExercise, deleteExercise } = useExerciseStore();
   const { templates, deleteTemplate } = useTemplateStore();
   const { items: routineItems, addItem: addRoutineItem, deleteItem: deleteRoutineItem } = useRoutineStore();
+  const { createSession, loadFromTemplate } = useSessionStore();
+
+  const handleStartTemplate = (tpl: typeof templates[number]) => {
+    createSession(tpl.type);
+    loadFromTemplate(tpl.exerciseNames);
+    onStartSession?.();
+    showToast(`▶ ${tpl.name} démarrée`, 'success');
+  };
+
+  const handleAskAITemplate = (tpl: typeof templates[number]) => {
+    const exoLines = tpl.exerciseNames.map((e, i) => `  ${i + 1}. ${e.name} (${e.muscleGroup})`).join('\n');
+    setPendingAI({
+      kind: 'template',
+      initialMessage: `Voici mon template "${tpl.name}" (${tpl.type}) :\n${exoLines}\n\nComment puis-je le modifier / l'optimiser pour mes objectifs ?`,
+      payload: { templateId: tpl.id, name: tpl.name, type: tpl.type, exercises: tpl.exerciseNames },
+    });
+    onAskCoach?.();
+  };
 
   const handleAddExercise = async () => {
     if (!newName.trim()) return;
@@ -266,31 +289,114 @@ export default function Settings({ showToast }: SettingsProps) {
               <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-faint)' }}>Sauvegarde-en depuis une séance active.</div>
             </div>
           ) : (
-            templates.map((t) => (
-              <div key={t.id} className="glass" style={{ borderRadius: 18, padding: '14px 16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</span>
-                      <span style={{ fontSize: 10, background: 'rgba(255,107,53,0.12)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 999, fontWeight: 700, textTransform: 'uppercase' }}>
-                        {TYPE_LABELS[t.type] || t.type}
-                      </span>
+            templates.map((t) => {
+              const expanded = expandedTplId === t.id;
+              return (
+                <div key={t.id} className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
+                  {/* Header (clickable) */}
+                  <button
+                    onClick={() => setExpandedTplId(expanded ? null : t.id)}
+                    className="tap"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      width: '100%', padding: '14px 16px',
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      textAlign: 'left', color: 'inherit',
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</span>
+                        <span style={{ fontSize: 10, background: 'rgba(255,107,53,0.12)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 999, fontWeight: 700, textTransform: 'uppercase' }}>
+                          {TYPE_LABELS[t.type] || t.type}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>
+                        {t.exerciseNames.length} exercice{t.exerciseNames.length !== 1 ? 's' : ''}
+                        {' · '}
+                        <span style={{ color: 'var(--text-faint)' }}>{expanded ? 'Toucher pour réduire' : 'Toucher pour voir'}</span>
+                      </div>
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{t.exerciseNames.length} exercice{t.exerciseNames.length !== 1 ? 's' : ''}</div>
-                  </div>
-                  <button onClick={() => handleDeleteTemplate(t.id, t.name)} className="tap" style={{ background: 'none', border: 'none', color: 'var(--text-mute)', marginLeft: 8 }}>
-                    <Icons.Trash size={14} />
+                    <span style={{
+                      color: 'var(--text-mute)', fontSize: 18,
+                      transform: expanded ? 'rotate(90deg)' : 'rotate(0)',
+                      transition: 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+                      flexShrink: 0,
+                    }}>›</span>
                   </button>
+
+                  {/* Expanded content */}
+                  {expanded && (
+                    <div style={{
+                      padding: '0 16px 14px', borderTop: '1px solid rgba(255,255,255,0.06)',
+                      animation: 'fadeIn 0.22s ease-out',
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '12px 0' }}>
+                        {t.exerciseNames.map((e, i) => (
+                          <div key={i} style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '8px 10px',
+                            background: 'rgba(255,255,255,0.03)',
+                            borderRadius: 10,
+                          }}>
+                            <span style={{
+                              flexShrink: 0, width: 22, height: 22, borderRadius: 6,
+                              background: 'rgba(255,107,53,0.15)', color: 'var(--primary)',
+                              fontSize: 10.5, fontWeight: 800,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontFamily: 'var(--mono)',
+                            }}>{i + 1}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{e.name}</div>
+                              <div style={{ fontSize: 10.5, color: 'var(--text-mute)', textTransform: 'capitalize', marginTop: 1 }}>{e.muscleGroup}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                        <button
+                          onClick={() => handleStartTemplate(t)}
+                          className="tap"
+                          style={{
+                            flex: 1.4, border: 'none', borderRadius: 12, padding: '11px',
+                            background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                            color: '#fff', fontWeight: 800, fontSize: 12.5,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          }}
+                        >
+                          <Icons.Play size={13} /> Lancer
+                        </button>
+                        <button
+                          onClick={() => handleAskAITemplate(t)}
+                          className="tap"
+                          style={{
+                            flex: 1.4, borderRadius: 12, padding: '11px',
+                            background: 'rgba(96,165,250,0.12)',
+                            color: 'var(--info)', fontWeight: 700, fontSize: 12.5,
+                            border: '1px solid rgba(96,165,250,0.25)',
+                          }}
+                        >
+                          🤖 Modifier IA
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTemplate(t.id, t.name)}
+                          className="tap"
+                          style={{
+                            flexShrink: 0, border: 'none', borderRadius: 12, padding: '11px 14px',
+                            background: 'rgba(196,30,58,0.12)', color: 'var(--secondary)',
+                            fontWeight: 700, fontSize: 12.5,
+                          }}
+                        >
+                          <Icons.Trash size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                  {t.exerciseNames.map((e, i) => (
-                    <span key={i} style={{ fontSize: 10, background: 'rgba(255,255,255,0.05)', color: 'var(--text-soft)', padding: '3px 8px', borderRadius: 8 }}>
-                      {e.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       )}

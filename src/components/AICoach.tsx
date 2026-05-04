@@ -15,6 +15,7 @@ import {
 import { Icons } from './Icons';
 import { useAuthStore } from '../stores/authStore';
 import PostSessionPhoto from './PostSessionPhoto';
+import { consumePendingAI } from '../utils/aiContext';
 import type { SessionType, MealType } from '../types';
 
 interface AICoachProps {
@@ -214,8 +215,8 @@ function formatError(msg: string): string {
     const m = msg.match(/retry in ([\d.]+)s/i);
     const secs = m ? Math.ceil(parseFloat(m[1])) : null;
     return secs
-      ? `Quota Gemini atteint ☕ Réessaie dans ${secs}s.`
-      : 'Quota Gemini atteint. Réessaie dans quelques instants.';
+      ? `Serveur Gemini saturé ☕ Nouvelle tentative possible dans ${secs}s (limite gratuite atteinte).`
+      : 'Serveur Gemini saturé. Réessaie dans 1 min — limite gratuite atteinte.';
   }
   if (msg.includes('503') || msg.toLowerCase().includes('unavailable')) return 'Serveur Gemini indisponible. Réessaie dans 30s.';
   if ((msg.includes('401') || msg.includes('403')) && !msg.includes('API_KEY')) return 'Accès refusé. Vérifie ta clé API.';
@@ -363,6 +364,24 @@ TEMPLATES: ${userTemplates}
 TES CAPACITÉS: create_session, create_template, delete_session, reschedule_session, update_session_notes, log_weight, add_calorie, add_cardio, save_injury, clear_injuries, create_periodization_plan. Propose-les naturellement sans attendre qu'on te le demande.`;
 }
 
+// Parse the real "retry after" hint Gemini returns inside its 429/503 error body.
+// Falls back to a sane default if absent. Returns ms.
+function parseRetryDelayMs(err: any, fallbackMs: number): number {
+  // Format 1: details[].retryDelay = "23s"
+  const details: any[] = err?.error?.details ?? [];
+  for (const d of details) {
+    if (typeof d?.retryDelay === 'string') {
+      const m = d.retryDelay.match(/^([\d.]+)s$/);
+      if (m) return Math.max(500, Math.ceil(parseFloat(m[1]) * 1000));
+    }
+  }
+  // Format 2: message contains "retry in 12.3s"
+  const msg: string = err?.error?.message || '';
+  const m = msg.match(/retry in ([\d.]+)s/i);
+  if (m) return Math.max(500, Math.ceil(parseFloat(m[1]) * 1000));
+  return fallbackMs;
+}
+
 async function callGemini(
   contents: any[],
   systemText: string,
@@ -390,8 +409,15 @@ async function callGemini(
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const status = res.status;
-    if (status === 503 && attempt < 2) {
-      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+
+    // Retry on 429 (quota / rate limit) and 503 (service unavailable).
+    // Schedule: attempt 0 → 2s, 1 → 2s, 2 → 4s. After 3 failures we give up.
+    if ((status === 429 || status === 503) && attempt < 3) {
+      const fallback = [2000, 2000, 4000][attempt] ?? 4000;
+      const delay = status === 429
+        ? parseRetryDelayMs(err, fallback)  // honour Gemini's real retryDelay
+        : fallback;
+      await new Promise((r) => setTimeout(r, delay));
       return callGemini(contents, systemText, apiKey, attempt + 1, forceFunction);
     }
     throw new Error(`${status}: ${(err as any).error?.message || ''}`);
@@ -556,6 +582,17 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. Franç
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, pendingAction]);
+
+  // Pick up cross-page hand-off: a template/session sent us here with a pre-composed
+  // message. Auto-send it once on mount.
+  useEffect(() => {
+    const ctx = consumePendingAI();
+    if (!ctx) return;
+    // Defer to next tick so all stores are loaded before we ask Gemini
+    const id = setTimeout(() => sendMessage(ctx.initialMessage), 80);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading || pendingAction) return;

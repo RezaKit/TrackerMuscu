@@ -3,10 +3,12 @@ import { useSessionStore } from '../stores/sessionStore';
 import { useCardioStore } from '../stores/cardioStore';
 import { getDateString } from '../utils/export';
 import { Icons } from './Icons';
+import { setPendingAI } from '../utils/aiContext';
 import type { Session } from '../types';
 
 interface CalendarProps {
   onStartSession?: () => void;
+  onAskCoach?: () => void;
 }
 
 const SESSION_CFG: Record<string, { color: string; dim: string }> = {
@@ -25,11 +27,32 @@ function fmtDateLong(iso: string) {
 }
 
 
-export default function Calendar({ onStartSession }: CalendarProps) {
+export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) {
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState<string | null>(getDateString());
-  const { sessions, deleteSession, startPlannedSession } = useSessionStore();
+  const { sessions, deleteSession, startPlannedSession, createSession, loadFromTemplate } = useSessionStore();
   const { courses, natations } = useCardioStore();
+
+  const handleRedoSession = (sess: Session) => {
+    createSession(sess.type);
+    loadFromTemplate(sess.exercises.map((e) => ({ name: e.exerciseName, muscleGroup: e.muscleGroup })));
+    onStartSession?.();
+  };
+
+  const handleAnalyzeSession = (sess: Session) => {
+    const lines = sess.exercises.map((ex) => {
+      const sets = ex.sets.length
+        ? ex.sets.map((s) => `${s.weight}kg×${s.reps}`).join(', ')
+        : '—';
+      return `  • ${ex.exerciseName} : ${sets}`;
+    }).join('\n');
+    setPendingAI({
+      kind: 'session-analysis',
+      initialMessage: `Analyse cette séance ${sess.type} du ${sess.date} :\n${lines}\n\nDonne-moi ton analyse : intensité, équilibre musculaire, et 2-3 conseils concrets pour la prochaine fois.`,
+      payload: { sessionId: sess.id, type: sess.type, date: sess.date, exercises: sess.exercises },
+    });
+    onAskCoach?.();
+  };
 
   const year = month.getFullYear();
   const mo = month.getMonth();
@@ -239,6 +262,36 @@ export default function Calendar({ onStartSession }: CalendarProps) {
                       }}>
                       <Icons.Play size={14} /> Lancer cette séance
                     </button>
+                  )}
+
+                  {!isPlanned && sess.exercises.length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                      <button
+                        onClick={() => handleRedoSession(sess)}
+                        className="tap"
+                        style={{
+                          flex: 1,
+                          background: 'rgba(255,107,53,0.12)',
+                          border: '1px solid rgba(255,107,53,0.25)',
+                          borderRadius: 12, padding: '10px',
+                          color: 'var(--primary)', fontWeight: 700, fontSize: 12,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        }}>
+                        <Icons.Play size={12} /> Refaire
+                      </button>
+                      <button
+                        onClick={() => handleAnalyzeSession(sess)}
+                        className="tap"
+                        style={{
+                          flex: 1,
+                          background: 'rgba(96,165,250,0.10)',
+                          border: '1px solid rgba(96,165,250,0.22)',
+                          borderRadius: 12, padding: '10px',
+                          color: 'var(--info)', fontWeight: 700, fontSize: 12,
+                        }}>
+                        🤖 Analyser IA
+                      </button>
+                    </div>
                   )}
                 </div>
               );

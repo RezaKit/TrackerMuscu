@@ -1,19 +1,21 @@
 import type { Page } from '../App';
 import { Icons } from './Icons';
+import { t, useLang } from '../utils/i18n';
 
 interface NavbarProps {
   currentPage: Page;
   onPageChange: (page: Page) => void;
 }
 
-const TABS: { id: Page; label: string; Icon: (props: any) => JSX.Element }[] = [
-  { id: 'dashboard', label: 'Home',       Icon: Icons.Home },
-  { id: 'calendar',  label: 'Calendrier', Icon: Icons.Calendar },
-  { id: 'analytics', label: 'Stats',      Icon: Icons.Stats },
-  { id: 'params',    label: 'Paramètres', Icon: Icons.Settings },
+const TABS: { id: Page; key: string; Icon: (props: any) => JSX.Element }[] = [
+  { id: 'dashboard', key: 'nav.home',     Icon: Icons.Home },
+  { id: 'calendar',  key: 'nav.calendar', Icon: Icons.Calendar },
+  { id: 'analytics', key: 'nav.stats',    Icon: Icons.Stats },
+  { id: 'params',    key: 'nav.params',   Icon: Icons.Settings },
 ];
 
 export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
+  useLang(); // re-render on language change
   return (
     <div style={{
       position: 'fixed', left: 0, right: 0, bottom: 0,
@@ -33,7 +35,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
           padding: '0 6px',
         }}>
           {/* Left two tabs */}
-          {TABS.slice(0, 2).map(({ id, label, Icon }) => {
+          {TABS.slice(0, 2).map(({ id, key, Icon }) => {
             const on = currentPage === id;
             return (
               <button key={id} onClick={() => onPageChange(id)} className="tap" style={{
@@ -43,7 +45,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
                 color: on ? 'var(--primary)' : 'var(--text-mute)',
               }}>
                 <Icon size={22} stroke={on ? 2.2 : 1.8} />
-                <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.3, textTransform: 'uppercase' }}>{label}</span>
+                <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.3, textTransform: 'uppercase' }}>{t(key)}</span>
               </button>
             );
           })}
@@ -52,7 +54,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
           <div style={{ width: 64 }} />
 
           {/* Right two tabs */}
-          {TABS.slice(2).map(({ id, label, Icon }) => {
+          {TABS.slice(2).map(({ id, key, Icon }) => {
             const on = currentPage === id;
             return (
               <button key={id} onClick={() => onPageChange(id)} className="tap" style={{
@@ -62,7 +64,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
                 color: on ? 'var(--primary)' : 'var(--text-mute)',
               }}>
                 <Icon size={22} stroke={on ? 2.2 : 1.8} />
-                <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.3, textTransform: 'uppercase' }}>{label}</span>
+                <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.3, textTransform: 'uppercase' }}>{t(key)}</span>
               </button>
             );
           })}

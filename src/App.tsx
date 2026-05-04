@@ -26,6 +26,7 @@ import Measurements from './components/Measurements';
 import Legal from './components/Legal';
 import Navbar from './components/Navbar';
 import Toast from './components/Toast';
+import UpdateBanner from './components/UpdateBanner';
 
 export type Page = 'dashboard' | 'calendar' | 'analytics' | 'cardio' | 'session' | 'params' | 'settings' | 'daily' | 'coach' | 'measurements' | 'legal';
 
@@ -240,11 +241,18 @@ export default function App() {
           />
         )}
 
-        {currentPage === 'calendar' && <Calendar onStartSession={() => setCurrentPage('session')} />}
+        {currentPage === 'calendar' && <Calendar
+          onStartSession={() => setCurrentPage('session')}
+          onAskCoach={() => setCurrentPage('coach')}
+        />}
         {currentPage === 'analytics' && <Analytics showToast={showToast} />}
         {currentPage === 'cardio' && <Cardio showToast={showToast} />}
         {currentPage === 'daily' && <Daily showToast={showToast} onBack={() => setCurrentPage('dashboard')} />}
-        {currentPage === 'settings' && <Settings showToast={showToast} />}
+        {currentPage === 'settings' && <Settings
+          showToast={showToast}
+          onStartSession={() => setCurrentPage('session')}
+          onAskCoach={() => setCurrentPage('coach')}
+        />}
         {currentPage === 'params' && <Params showToast={showToast} onShowAuth={() => setShowAuth(true)} onShowLegal={() => setCurrentPage('legal')} />}
         {currentPage === 'coach' && <AICoach onBack={() => setCurrentPage('dashboard')} />}
         {currentPage === 'measurements' && <Measurements onClose={() => setCurrentPage('dashboard')} />}
@@ -256,6 +264,7 @@ export default function App() {
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} />}
+      <UpdateBanner />
     </div>
   );
 }

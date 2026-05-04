@@ -5,9 +5,13 @@ import { getExerciseHistory, isNewRecord } from '../utils/records';
 import { Icons } from './Icons';
 import { EXERCISE_INFO } from '../db/exerciseInfo';
 import { getPref, togglePref, type ExercisePref } from '../utils/exercisePrefs';
-import { fetchExerciseInfo, muscleFr, equipFr, type WgerInfo } from '../utils/exerciseDB';
-import { findExerciseVideo, ytThumb } from '../db/exerciseVideos';
+import {
+  findFxExercise, muscleLabel, equipLabel, levelLabel, mechanicLabel,
+  localizeInstructions, type FxExercise,
+} from '../utils/exerciseDB';
 import MuscleMap from './MuscleMap';
+import ExerciseFlipbook from './ExerciseFlipbook';
+import { useLang } from '../utils/i18n';
 import type { ExerciseLog } from '../types';
 
 interface ExerciseTrackerProps {
@@ -17,29 +21,26 @@ interface ExerciseTrackerProps {
 }
 
 export default function ExerciseTracker({ exercises, showToast, onSetAdded }: ExerciseTrackerProps) {
+  useLang(); // re-render when language changes
   const { addSet, editSet, deleteSet, deleteExercise, toggleSuperset, sessions } = useSessionStore();
   const [expandedId, setExpandedId] = useState<string | null>(exercises[exercises.length - 1]?.id || null);
   const [editingSet, setEditingSet] = useState<{ exId: string; idx: number } | null>(null);
   const [infoName, setInfoName] = useState<string | null>(null);
-  const [videoPlaying, setVideoPlaying] = useState(false);
-  const [wgerInfo, setWgerInfo] = useState<WgerInfo | null>(null);
-  const [wgerLoading, setWgerLoading] = useState(false);
+  const [fxInfo, setFxInfo] = useState<FxExercise | null>(null);
+  const [fxLoading, setFxLoading] = useState(false);
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   const [editWeight, setEditWeight] = useState('');
   const [editReps, setEditReps] = useState('');
   const [, forcePrefRender] = useState(0);
 
-  const youtubeUrl = (name: string) => `https://www.youtube.com/results?search_query=${encodeURIComponent(name + ' exercise technique')}`;
-
   useEffect(() => {
-    if (!infoName) { setWgerInfo(null); setVideoPlaying(false); return; }
-    setWgerInfo(null);
-    setVideoPlaying(false);
-    setWgerLoading(true);
-    fetchExerciseInfo(infoName)
-      .then(info => setWgerInfo(info))
-      .finally(() => setWgerLoading(false));
+    if (!infoName) { setFxInfo(null); return; }
+    setFxInfo(null);
+    setFxLoading(true);
+    findFxExercise(infoName)
+      .then((info) => setFxInfo(info))
+      .finally(() => setFxLoading(false));
   }, [infoName]);
 
   // Auto-fill weight & reps when an exercise is expanded — uses last set from current session
@@ -152,79 +153,16 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
               <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--primary)' }}>{infoName}</span>
             </div>
 
-            {/* YouTube : thumbnail at first tap → inline embed plays in place */}
+            {/* Animation flipbook (Free Exercise DB — 2 positions alternées comme un GIF) */}
             {(() => {
-              const video = findExerciseVideo(infoName!);
-              if (video) {
-                if (videoPlaying) {
-                  return (
-                    <div style={{
-                      borderRadius: 14, overflow: 'hidden', marginBottom: 14,
-                      background: '#000', aspectRatio: '16/9',
-                      animation: 'fadeIn 0.28s ease-out',
-                    }}>
-                      <iframe
-                        src={`https://www.youtube.com/embed/${video.id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
-                        title={video.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                        style={{ width: '100%', height: '100%', border: 0, display: 'block' }}
-                      />
-                    </div>
-                  );
-                }
+              if (fxLoading) return <div className="skeleton" style={{ aspectRatio: '4/3', marginBottom: 14 }} />;
+              if (fxInfo?.images?.length) {
                 return (
-                  <button
-                    onClick={() => setVideoPlaying(true)}
-                    className="tap video-card"
-                    style={{
-                      display: 'block', position: 'relative', width: '100%',
-                      borderRadius: 14, overflow: 'hidden', marginBottom: 14,
-                      background: '#000', textDecoration: 'none',
-                      border: 'none', padding: 0, cursor: 'pointer',
-                    }}>
-                    <img
-                      src={ytThumb(video.id, 'hq')}
-                      alt={video.title}
-                      style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
-                    />
-                    <div style={{
-                      position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: 'rgba(0,0,0,0.25)',
-                    }}>
-                      <div className="play-btn play-btn-pulse" style={{
-                        width: 60, height: 60, borderRadius: '50%',
-                        background: 'rgba(255,0,0,0.95)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        paddingLeft: 4,
-                      }}>
-                        <Icons.Play size={24} color="#fff" />
-                      </div>
-                    </div>
-                    <div style={{
-                      position: 'absolute', bottom: 0, left: 0, right: 0,
-                      padding: '10px 12px 8px',
-                      background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)',
-                      color: '#fff', textAlign: 'left',
-                    }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.2 }}>{video.title}</div>
-                      <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>{video.channel} · Touche pour lire</div>
-                    </div>
-                  </button>
+                  <div style={{ marginBottom: 14 }}>
+                    <ExerciseFlipbook images={fxInfo.images} alt={infoName!} />
+                  </div>
                 );
               }
-              if (wgerLoading) return (
-                <div className="skeleton" style={{ height: 180, marginBottom: 14 }} />
-              );
-              if (wgerInfo?.images?.[0]) return (
-                <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 14, background: '#fff' }}>
-                  <img
-                    src={wgerInfo.images[0]}
-                    alt={infoName ?? ''}
-                    style={{ width: '100%', maxHeight: 200, objectFit: 'contain', display: 'block' }}
-                  />
-                </div>
-              );
               return null;
             })()}
 
@@ -254,60 +192,82 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
             })()}
 
             {/* Muscles */}
-            {wgerInfo && (wgerInfo.muscles.length > 0 || wgerInfo.musclesSecondary.length > 0) && (
+            {fxInfo && (fxInfo.primaryMuscles.length > 0 || fxInfo.secondaryMuscles.length > 0) && (
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-mute)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                   Muscles ciblés
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {wgerInfo.muscles.map(m => (
+                  {fxInfo.primaryMuscles.map((m) => (
                     <span key={m} style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: 'rgba(255,107,53,0.15)', color: 'var(--primary)', border: '1px solid rgba(255,107,53,0.3)' }}>
-                      ● {muscleFr(m)}
+                      ● {muscleLabel(m)}
                     </span>
                   ))}
-                  {wgerInfo.musclesSecondary.map(m => (
+                  {fxInfo.secondaryMuscles.map((m) => (
                     <span key={m} style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.06)', color: 'var(--text-soft)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                      ○ {muscleFr(m)}
+                      ○ {muscleLabel(m)}
                     </span>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Equipment */}
-            {wgerInfo && wgerInfo.equipment.length > 0 && (
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-mute)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-                  Matériel
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {wgerInfo.equipment.map(e => (
-                    <span key={e} style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: 'rgba(255,255,255,0.06)', color: 'var(--text-mute)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      {equipFr(e)}
-                    </span>
-                  ))}
-                </div>
+            {/* Meta tags : équipement / niveau / mécanique */}
+            {fxInfo && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                {fxInfo.equipment && (
+                  <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: 'rgba(255,255,255,0.06)', color: 'var(--text-mute)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    🏋️ {equipLabel(fxInfo.equipment)}
+                  </span>
+                )}
+                {fxInfo.level && (
+                  <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: 'rgba(96,165,250,0.10)', color: 'var(--info)', border: '1px solid rgba(96,165,250,0.22)' }}>
+                    📊 {levelLabel(fxInfo.level)}
+                  </span>
+                )}
+                {fxInfo.mechanic && (
+                  <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: 'rgba(74,222,128,0.10)', color: 'var(--ok)', border: '1px solid rgba(74,222,128,0.22)' }}>
+                    {mechanicLabel(fxInfo.mechanic)}
+                  </span>
+                )}
               </div>
             )}
 
-            {/* Description — local first, wger fallback */}
-            {(EXERCISE_INFO[infoName!] || wgerInfo?.descriptionEn) && (
+            {/* Instructions étape par étape (traduites selon la langue choisie) */}
+            {fxInfo && fxInfo.instructions.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-mute)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                  Comment l'exécuter
+                </div>
+                <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {localizeInstructions(fxInfo.instructions).map((step, i) => (
+                    <li key={i} style={{
+                      display: 'flex', gap: 10, alignItems: 'flex-start',
+                      padding: '10px 12px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: 12,
+                    }}>
+                      <span style={{
+                        flexShrink: 0, width: 22, height: 22, borderRadius: 7,
+                        background: 'var(--primary)', color: '#fff',
+                        fontSize: 11, fontWeight: 800,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>{i + 1}</span>
+                      <span style={{ fontSize: 13, color: 'var(--text-soft)', lineHeight: 1.55 }}>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {/* Description courte custom (si on en a une dans EXERCISE_INFO) */}
+            {EXERCISE_INFO[infoName!] && !fxInfo && (
               <p style={{ fontSize: 14, color: 'var(--text-soft)', lineHeight: 1.6, marginBottom: 16 }}>
-                {EXERCISE_INFO[infoName!] || wgerInfo?.descriptionEn}
+                {EXERCISE_INFO[infoName!]}
               </p>
             )}
 
-            {/* YouTube CTA */}
-            <a href={youtubeUrl(infoName!)} target="_blank" rel="noopener noreferrer"
-              className="tap" style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                width: '100%', padding: '13px',
-                background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
-                borderRadius: 14, color: '#fff', fontWeight: 700, fontSize: 13,
-                textDecoration: 'none', marginBottom: 8,
-              }}>
-              <Icons.Play size={14} /> Voir la technique sur YouTube
-            </a>
             <button onClick={() => setInfoName(null)} style={{
               width: '100%', background: 'rgba(255,255,255,0.06)',
               border: 'none', borderRadius: 14, padding: '14px', color: 'var(--text-mute)',
