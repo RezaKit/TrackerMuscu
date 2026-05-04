@@ -19,8 +19,19 @@ export const useAuthStore = create<AuthStore>((set) => ({
   setUser: (user) => set({ user }),
 
   init: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    set({ user: session?.user ?? null, loading: false });
+    // Safety timeout: never stay in loading state > 4s (e.g. network failure)
+    const timeout = setTimeout(() => {
+      set((s) => s.loading ? { user: null, loading: false } : s);
+    }, 4000);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      clearTimeout(timeout);
+      set({ user: session?.user ?? null, loading: false });
+    } catch {
+      clearTimeout(timeout);
+      set({ user: null, loading: false });
+    }
 
     supabase.auth.onAuthStateChange((_event, session) => {
       set({ user: session?.user ?? null });

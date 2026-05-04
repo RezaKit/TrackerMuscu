@@ -193,14 +193,39 @@ export default function App() {
     />;
   }
 
-  // Auth loading splash
+  // Auth loading splash — visible branded screen, never stays > 4s
   if (authLoading) {
     return (
       <div style={{
-        position: 'fixed', inset: 0, background: 'var(--bg-0)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: 'fixed', inset: 0,
+        background: 'radial-gradient(ellipse at 30% 20%, rgba(255,107,53,0.18) 0%, transparent 55%), radial-gradient(ellipse at 80% 80%, rgba(196,30,58,0.12) 0%, transparent 50%), #050505',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0,
       }}>
-        <div className="ambient-bg" />
+        {/* Logo */}
+        <div style={{
+          fontFamily: "'Bebas Neue', sans-serif", fontSize: 64, letterSpacing: 4,
+          color: '#FF6B35', lineHeight: 1, marginBottom: 6,
+          textShadow: '0 0 60px rgba(255,107,53,0.5)',
+        }}>
+          RezaKit
+        </div>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.28)', fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 48 }}>
+          Fitness · Coach IA
+        </div>
+        {/* Animated spinner */}
+        <div style={{ position: 'relative', width: 36, height: 36 }}>
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            border: '2.5px solid rgba(255,107,53,0.15)',
+          }} />
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            border: '2.5px solid transparent',
+            borderTopColor: '#FF6B35',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }

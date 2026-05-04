@@ -1,20 +1,37 @@
 {
-  "name": "RezaKit",
+  "name": "RezaKit — Tracker Musculation",
   "short_name": "RezaKit",
-  "description": "Ton kit fitness complet — séances, cardio, nutrition et coach IA",
+  "description": "Tracker musculation gratuit avec coach IA. Séances, cardio, nutrition, mesures et statistiques.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0D0D11",
+  "background_color": "#050505",
   "theme_color": "#FF6B35",
   "orientation": "portrait-primary",
   "scope": "/",
+  "lang": "fr",
+  "categories": ["fitness", "health", "sports", "productivity"],
   "icons": [
     {
       "src": "/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["fitness", "health", "productivity"]
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Nouvelle séance",
+      "short_name": "Séance",
+      "description": "Démarrer une nouvelle séance de musculation",
+      "url": "/?action=new-session",
+      "icons": [{ "src": "/apple-touch-icon.png", "sizes": "96x96" }]
+    }
+  ]
 }
