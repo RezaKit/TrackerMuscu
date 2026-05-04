@@ -64,4 +64,10 @@ export const Icons = {
   Link:         (p: IconProps) => <Icon {...p}><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></Icon>,
   Play:         (p: IconProps) => <Icon {...p}><path d="M5 4l14 8-14 8z" fill="currentColor"/></Icon>,
   Body:         (p: IconProps) => <Icon {...p}><circle cx="12" cy="4" r="2"/><path d="M12 6v8M8 14l4-2 4 2M9 22l3-8 3 8"/></Icon>,
+  Share:        (p: IconProps) => <Icon {...p}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></Icon>,
+  Users:        (p: IconProps) => <Icon {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></Icon>,
+  Medal:        (p: IconProps) => <Icon {...p}><circle cx="12" cy="15" r="7"/><path d="M8.2 4h7.6L22 8l-4 4H6L2 8z"/><path d="M12 8v7"/></Icon>,
+  AlertTriangle:(p: IconProps) => <Icon {...p}><path d="M10.3 3.5l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3L13.7 3.5a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></Icon>,
+  UserPlus:     (p: IconProps) => <Icon {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></Icon>,
+  Crown:        (p: IconProps) => <Icon {...p}><path d="M2 20h20M4 20V8l4 4 4-6 4 6 4-4v12"/></Icon>,
 };

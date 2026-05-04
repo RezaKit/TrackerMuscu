@@ -320,6 +320,53 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
   const { entries: calorieEntries } = useCalorieStore();
   const { completions: routineCompletions, items: routineItemsFull } = useRoutineStore();
 
+  // AI-style volume alerts: detect muscle groups trained 2+ times in weeks 3–4 ago
+  // but 0 times in the last 14 days → under-trained alert
+  const volumeAlerts = useMemo(() => {
+    const now = new Date();
+    const twoWeeksAgo = new Date(now); twoWeeksAgo.setDate(now.getDate() - 14);
+    const fourWeeksAgo = new Date(now); fourWeeksAgo.setDate(now.getDate() - 28);
+    const from2 = getDateString(twoWeeksAgo);
+    const from4 = getDateString(fourWeeksAgo);
+
+    const LABELS: Record<string, string> = {
+      chest: tr({ fr: 'Pectoraux', en: 'Chest', es: 'Pectorales' }),
+      back: tr({ fr: 'Dos', en: 'Back', es: 'Espalda' }),
+      shoulders: tr({ fr: 'Épaules', en: 'Shoulders', es: 'Hombros' }),
+      biceps: tr({ fr: 'Biceps', en: 'Biceps', es: 'Bíceps' }),
+      triceps: tr({ fr: 'Triceps', en: 'Triceps', es: 'Tríceps' }),
+      legs: tr({ fr: 'Jambes', en: 'Legs', es: 'Piernas' }),
+      core: tr({ fr: 'Abdos', en: 'Core', es: 'Abdomen' }),
+    };
+
+    const recentSessions = sessions.filter((s) => s.completed && s.date >= from2 && s.date <= today);
+    const olderSessions  = sessions.filter((s) => s.completed && s.date >= from4 && s.date < from2);
+
+    const recentMuscles = new Map<string, number>();
+    recentSessions.forEach((s) => s.exercises.forEach((ex) => {
+      recentMuscles.set(ex.muscleGroup, (recentMuscles.get(ex.muscleGroup) ?? 0) + 1);
+    }));
+
+    const olderMuscles = new Map<string, number>();
+    olderSessions.forEach((s) => s.exercises.forEach((ex) => {
+      olderMuscles.set(ex.muscleGroup, (olderMuscles.get(ex.muscleGroup) ?? 0) + 1);
+    }));
+
+    const alerts: Array<{ muscle: string; label: string; daysSince: number }> = [];
+    olderMuscles.forEach((count, muscle) => {
+      if (count >= 2 && (recentMuscles.get(muscle) ?? 0) === 0 && LABELS[muscle]) {
+        // Find last session date for this muscle
+        const lastDate = [...sessions]
+          .filter((s) => s.completed && s.exercises.some((ex) => ex.muscleGroup === muscle))
+          .sort((a, b) => b.date.localeCompare(a.date))[0]?.date;
+        const days = lastDate ? Math.round((Date.now() - new Date(lastDate + 'T00:00:00').getTime()) / 86400000) : 14;
+        alerts.push({ muscle, label: LABELS[muscle], daysSince: days });
+      }
+    });
+
+    return alerts.slice(0, 2); // max 2 alerts
+  }, [sessions]);
+
   const handleExportWeek = () => {
     try {
       const text = exportWeekAsText(sessions, courses, natations, weights, calorieEntries, routineCompletions, routineItemsFull);
@@ -665,6 +712,37 @@ export default function Dashboard({ onNewSession, onGoToSettings, onGoToStats, o
           <Icons.ChevronRight size={16} color="var(--primary)" />
         </button>
       </div>
+
+      {/* Volume alerts */}
+      {volumeAlerts.length > 0 && (
+        <div style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {volumeAlerts.map((alert) => (
+            <div key={alert.muscle} onClick={onGoToCoach} className="tap" style={{
+              borderRadius: 18, padding: '12px 16px',
+              background: 'linear-gradient(135deg, rgba(251,146,60,0.1), rgba(245,101,101,0.06))',
+              border: '1px solid rgba(251,146,60,0.25)',
+              display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+            }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                background: 'rgba(251,146,60,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Icons.AlertTriangle size={17} color="#fb923c" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: '#fb923c' }}>
+                  {alert.label} {tr({ fr: 'non travaillé', en: 'untrained', es: 'sin trabajar' })}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-mute)', marginTop: 1 }}>
+                  {tr({ fr: `Dernière séance il y a ${alert.daysSince}j · Demander au coach`, en: `Last trained ${alert.daysSince}d ago · Ask coach`, es: `Último entreno hace ${alert.daysSince}d · Preguntar al coach` })}
+                </div>
+              </div>
+              <Icons.ChevronRight size={14} color="rgba(251,146,60,0.6)" />
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Export */}
       <div style={{ padding: '0 16px 16px', display: 'flex', gap: 8 }}>

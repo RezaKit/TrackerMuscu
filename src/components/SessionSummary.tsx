@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Session } from '../types';
 import { Icons } from './Icons';
 import MuscleMap from './MuscleMap';
+import { shareSession } from '../utils/shareCard';
 
 interface SessionSummaryProps {
   session: Session;
@@ -18,11 +19,27 @@ const MUSCLE_LABELS: Record<string, string> = {
 
 export default function SessionSummary({ session, isNewRecord = [], onClose, onTakePhoto }: SessionSummaryProps) {
   const [animated, setAnimated] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setAnimated(true), 100);
     return () => clearTimeout(t);
   }, []);
+
+  const handleShare = async () => {
+    setSharing(true);
+    const totalVolume = session.exercises.reduce((s, ex) => s + ex.sets.reduce((ss, set) => ss + set.weight * set.reps, 0), 0);
+    const totalSets   = session.exercises.reduce((s, ex) => s + ex.sets.length, 0);
+    const totalReps   = session.exercises.reduce((s, ex) => s + ex.sets.reduce((ss, set) => ss + set.reps, 0), 0);
+    await shareSession({
+      sessionType: session.type,
+      date: session.date,
+      exercises: session.exercises.map((ex) => ({ name: ex.exerciseName, muscleGroup: ex.muscleGroup, sets: ex.sets })),
+      totalVolume, totalSets, totalReps,
+      records: isNewRecord,
+    });
+    setSharing(false);
+  };
 
   const stats = useMemo(() => {
     const totalSets = session.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
@@ -178,6 +195,21 @@ export default function SessionSummary({ session, isNewRecord = [], onClose, onT
 
       {/* Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Share button — always visible, high prominence */}
+        <button onClick={handleShare} disabled={sharing} className="tap" style={{
+          border: 'none', borderRadius: 18, padding: '16px',
+          background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+          color: '#fff', fontWeight: 700, fontSize: 14,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          boxShadow: '0 8px 28px rgba(59,130,246,0.35)',
+          opacity: sharing ? 0.7 : 1,
+          transform: animated ? 'translateY(0)' : 'translateY(10px)',
+          transition: 'opacity 0.6s 0.7s, transform 0.6s 0.7s',
+        }}>
+          <Icons.Share size={17} />
+          {sharing ? 'Génération...' : 'Partager ma séance'}
+        </button>
+
         {onTakePhoto && (
           <button onClick={onTakePhoto} className="tap" style={{
             border: 'none', borderRadius: 18, padding: '14px',

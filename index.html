@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="RezaKit — Ton kit fitness complet. Séances, cardio, nutrition, coach IA." />
+
+    <!-- Primary meta -->
+    <meta name="description" content="RezaKit — Tracker musculation gratuit avec coach IA. Suivez vos séances, mesurez vos progrès, obtenez des conseils personnalisés. Application fitness disponible sur iOS et Android." />
+    <meta name="keywords" content="tracker musculation, tracker muscu, app musculation gratuite, suivi séance sport, coach IA fitness, carnet musculation, programme musculation, suivi entraînement, RezaKit, fitness tracker, workout tracker" />
+    <meta name="author" content="RezaKit" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://resakit.fr/" />
 
     <!-- PWA / iOS -->
     <meta name="theme-color" content="#0D0D11" />
@@ -13,7 +19,61 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
 
-    <title>RezaKit</title>
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://resakit.fr/" />
+    <meta property="og:site_name" content="RezaKit" />
+    <meta property="og:title" content="RezaKit — Tracker Musculation avec Coach IA" />
+    <meta property="og:description" content="Suivez vos séances de musculation, analysez vos progrès et obtenez des conseils personnalisés de votre coach IA. 100% gratuit, sans pub." />
+    <meta property="og:image" content="https://resakit.fr/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="fr_FR" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="RezaKit — Tracker Musculation avec Coach IA" />
+    <meta name="twitter:description" content="Suivez vos séances de musculation, analysez vos progrès et obtenez des conseils personnalisés de votre coach IA. 100% gratuit, sans pub." />
+    <meta name="twitter:image" content="https://resakit.fr/og-image.png" />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "RezaKit",
+      "alternateName": ["Tracker Musculation", "App Muscu Gratuite"],
+      "operatingSystem": "iOS, Android, Web",
+      "applicationCategory": "HealthApplication",
+      "applicationSubCategory": "FitnessApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "description": "Application de musculation gratuite avec coach IA. Suivez vos séances, mesurez vos progrès, planifiez vos entraînements et obtenez des conseils personnalisés. Tracker musculation complet disponible sur iOS et Android.",
+      "url": "https://resakit.fr",
+      "screenshot": "https://resakit.fr/og-image.png",
+      "featureList": [
+        "Suivi de séances de musculation",
+        "Coach IA personnalisé",
+        "Statistiques et progression",
+        "Cardio (course et natation)",
+        "Suivi nutrition et calories",
+        "Programme semi-marathon",
+        "Records personnels automatiques",
+        "Sauvegarde cloud RGPD"
+      ],
+      "inLanguage": ["fr", "en", "es"],
+      "author": {
+        "@type": "Organization",
+        "name": "RezaKit",
+        "url": "https://resakit.fr"
+      }
+    }
+    </script>
+
+    <title>RezaKit — Tracker Musculation avec Coach IA</title>
   </head>
   <body>
     <div id="root"></div>

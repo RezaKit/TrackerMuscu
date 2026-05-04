@@ -1,15 +1,17 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 import { useCardioStore } from '../stores/cardioStore';
 import { useBodyWeightStore } from '../stores/bodyweightStore';
 import { Icons } from './Icons';
 import ProgressGallery from './ProgressGallery';
 
+const Leaderboard = lazy(() => import('./Leaderboard'));
+
 interface AnalyticsProps {
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
 }
 
-type Tab = 'muscu' | 'cardio' | 'poids' | 'photos';
+type Tab = 'muscu' | 'cardio' | 'poids' | 'photos' | 'amis';
 
 function fmtDate(iso: string) {
   const d = new Date(iso + 'T00:00:00');
@@ -133,7 +135,34 @@ export default function Analytics({ showToast }: AnalyticsProps) {
     const exoMax = Math.max(...vals);
     const progress = vals[vals.length - 1] - vals[0];
     const oneRM = Math.round(exoMax * 1.0333);
-    return { max: exoMax, progress, oneRM, count: exoData.length };
+
+    // Linear regression to predict next PR
+    let prediction: { kgPerWeek: number; nextPrKg: number; weeksOut: number } | null = null;
+    if (vals.length >= 3) {
+      const n = vals.length;
+      const xMean = (n - 1) / 2;
+      const yMean = vals.reduce((s, v) => s + v, 0) / n;
+      let num = 0, den = 0;
+      vals.forEach((v, i) => { num += (i - xMean) * (v - yMean); den += (i - xMean) ** 2; });
+      if (den > 0) {
+        const slope = num / den; // kg per session
+        // Compute average days between sessions for this exercise
+        const dates = exoData.map((p) => new Date(p.date).getTime());
+        const avgDaysBetween = exoData.length > 1
+          ? (dates[dates.length - 1] - dates[0]) / (1000 * 86400 * (exoData.length - 1))
+          : 7;
+        const kgPerWeek = slope * (7 / Math.max(avgDaysBetween, 1));
+        const current = vals[vals.length - 1];
+        if (kgPerWeek > 0.1) {
+          const nextPrKg = Math.ceil(current / 2.5) * 2.5; // next standard increment
+          const sessionsNeeded = (nextPrKg - current) / slope;
+          const weeksOut = Math.max(1, Math.round(sessionsNeeded * avgDaysBetween / 7));
+          prediction = { kgPerWeek: Math.round(kgPerWeek * 10) / 10, nextPrKg, weeksOut };
+        }
+      }
+    }
+
+    return { max: exoMax, progress, oneRM, count: exoData.length, prediction };
   }, [exoData]);
 
   const courseData = useMemo(() =>
@@ -157,6 +186,7 @@ export default function Analytics({ showToast }: AnalyticsProps) {
     { id: 'cardio', label: 'Cardio', Icon: Icons.Run },
     { id: 'poids',  label: 'Poids',  Icon: Icons.Scale },
     { id: 'photos', label: 'Photos', Icon: Icons.Camera },
+    { id: 'amis',   label: 'Amis',   Icon: Icons.Users },
   ];
 
   return (
@@ -227,6 +257,45 @@ export default function Analytics({ showToast }: AnalyticsProps) {
                   </div>
                 </div>
               )}
+
+              {/* PR Prediction card */}
+              {exoStats.prediction && (
+                <div style={{ padding: '0 16px 14px' }}>
+                  <div className="glass" style={{
+                    borderRadius: 18, padding: '16px',
+                    background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(99,102,241,0.08))',
+                    border: '1px solid rgba(139,92,246,0.25)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                        background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <Icons.Trophy size={17} color="#fff" />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#c4b5fd' }}>Prédiction de PR</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>basée sur ta progression ({exoStats.count} séances)</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ flex: 1, background: 'rgba(139,92,246,0.1)', borderRadius: 12, padding: '10px 12px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 3 }}>Prochain PR</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: '#c4b5fd' }}>{exoStats.prediction.nextPrKg} kg</div>
+                      </div>
+                      <div style={{ flex: 1, background: 'rgba(99,102,241,0.1)', borderRadius: 12, padding: '10px 12px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 3 }}>Dans environ</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: '#818cf8' }}>{exoStats.prediction.weeksOut} sem.</div>
+                      </div>
+                      <div style={{ flex: 1, background: 'rgba(99,102,241,0.08)', borderRadius: 12, padding: '10px 12px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 3 }}>Progression</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: '#a5b4fc' }}>+{exoStats.prediction.kgPerWeek}kg/sem</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -277,6 +346,13 @@ export default function Analytics({ showToast }: AnalyticsProps) {
         <div style={{ padding: '0 16px 20px' }}>
           <ProgressGallery showToast={showToast} />
         </div>
+      )}
+
+      {/* AMIS TAB */}
+      {tab === 'amis' && (
+        <Suspense fallback={<div className="skeleton" style={{ height: 200, margin: '0 16px', borderRadius: 18 }} />}>
+          <Leaderboard />
+        </Suspense>
       )}
 
       {/* POIDS TAB */}
