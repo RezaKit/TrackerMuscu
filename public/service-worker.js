@@ -1,6 +1,6 @@
 // RezaKit Service Worker — network-first for HTML, cache-first for hashed assets.
 // Bump CACHE_VERSION on every deploy that should invalidate caches.
-const CACHE_VERSION = 'rezakit-v4';
+const CACHE_VERSION = 'rezakit-v5';
 const RUNTIME_CACHE  = `rezakit-runtime-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = ['/', '/index.html', '/manifest.json'];

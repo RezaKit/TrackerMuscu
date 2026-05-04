@@ -79,7 +79,7 @@
                    radial-gradient(ellipse at 80% 80%,rgba(196,30,58,.12) 0,transparent 50%),
                    #050505;
         display:flex;flex-direction:column;align-items:center;justify-content:center;
-        z-index:9999;transition:opacity .35s ease;
+        z-index:9999;transition:opacity .35s ease;padding:20px;text-align:center;
       }
       #splash-logo{
         font-family:Impact,Arial,sans-serif;font-size:64px;letter-spacing:4px;
@@ -91,6 +91,10 @@
       #splash-ring::before{content:'';position:absolute;inset:0;border-radius:50%;border:2.5px solid rgba(255,107,53,.18)}
       #splash-ring::after{content:'';position:absolute;inset:0;border-radius:50%;border:2.5px solid transparent;border-top-color:#FF6B35;animation:rzk-spin .8s linear infinite}
       @keyframes rzk-spin{to{transform:rotate(360deg)}}
+      #boot-fail{display:none;max-width:380px;margin-top:32px;padding:18px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#bdbdc4;font-family:-apple-system,Arial,sans-serif;font-size:13px;line-height:1.55}
+      #boot-fail b{color:#fff;display:block;margin-bottom:6px;font-size:14px}
+      #boot-fail button{margin-top:12px;background:#FF6B35;border:none;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
+      #boot-fail button + button{margin-left:8px;background:rgba(255,255,255,0.08)}
     </style>
   </head>
   <body>
@@ -99,7 +103,28 @@
       <div id="splash-logo">RezaKit</div>
       <div id="splash-sub">Fitness · Coach IA</div>
       <div id="splash-ring"></div>
+      <div id="boot-fail">
+        <b>L'app met du temps à démarrer</b>
+        Connexion lente ou cache corrompu. Tu peux nettoyer et réessayer.
+        <div>
+          <button onclick="window.location.reload()">Recharger</button>
+          <button onclick="(async()=>{try{const r=await navigator.serviceWorker.getRegistrations();for(const x of r)await x.unregister();const k=await caches.keys();await Promise.all(k.map(n=>caches.delete(n)));}catch(e){}localStorage.clear();sessionStorage.clear();window.location.reload();})()">Vider cache</button>
+        </div>
+      </div>
     </div>
+
+    <!-- Boot watchdog: if React hasn't removed #splash after 10s, show recovery UI -->
+    <script>
+      window.__bootStart = Date.now();
+      window.__bootWatchdog = setTimeout(function(){
+        var s = document.getElementById('splash');
+        var f = document.getElementById('boot-fail');
+        if (s && f && s.style.opacity !== '0') {
+          var r = document.getElementById('splash-ring'); if (r) r.style.display = 'none';
+          f.style.display = 'block';
+        }
+      }, 10000);
+    </script>
 
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

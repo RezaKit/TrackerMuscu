@@ -6,6 +6,10 @@ import { registerServiceWorker } from './utils/swUpdate'
 
 // Hide the HTML splash screen as soon as React takes over
 function hideSplash() {
+  // Cancel the boot watchdog: React mounted, no recovery UI needed
+  const w = (window as any).__bootWatchdog;
+  if (w) { clearTimeout(w); (window as any).__bootWatchdog = null; }
+
   const el = document.getElementById('splash');
   if (!el) return;
   el.style.opacity = '0';

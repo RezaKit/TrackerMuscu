@@ -1,16 +1,9 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "crons": [
-    {
-      "path": "/api/weekly-report",
-      "schedule": "0 20 * * 0"
-    },
-    {
-      "path": "/api/monthly-backup",
-      "schedule": "0 9 1 * *"
-    }
+    { "path": "/api/weekly-report", "schedule": "0 20 * * 0" },
+    { "path": "/api/monthly-backup", "schedule": "0 9 1 * *" }
   ]
 }
