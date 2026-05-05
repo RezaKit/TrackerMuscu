@@ -1,14 +1,16 @@
 import type { Session, Course, Natation, BodyWeight, CalorieEntry, RoutineCompletion, RoutineItem } from '../types';
+import { getLang } from './i18n';
+
+type Lang = 'fr' | 'en' | 'es';
 
 function pad(n: number) {
   return String(n).padStart(2, '0');
 }
 
-function dateToFR(dateStr: string): string {
+function formatDate(dateStr: string, lang: Lang): string {
   const d = new Date(dateStr + 'T00:00:00');
-  const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-  const months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
-  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+  const locale = lang === 'fr' ? 'fr-FR' : lang === 'es' ? 'es-ES' : 'en-GB';
+  return d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 function getWeekBounds(): { start: string; end: string; label: string } {
@@ -22,17 +24,111 @@ function getWeekBounds(): { start: string; end: string; label: string } {
   const fmt = (d: Date) =>
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-  const fmtFR = (d: Date) => {
-    const months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-  };
-
   return {
     start: fmt(monday),
     end: fmt(sunday),
-    label: `${fmtFR(monday)} — ${fmtFR(sunday)}`,
+    label: `${fmt(monday)} — ${fmt(sunday)}`,
   };
 }
+
+const I18N: Record<Lang, Record<string, string>> = {
+  fr: {
+    title: 'REZAKIT — SEMAINE',
+    strength: 'MUSCULATION',
+    seance: 'séance', seances: 'séances',
+    noStrength: 'Aucune séance cette semaine.',
+    run: 'COURSE',
+    sortie: 'sortie', sorties: 'sorties',
+    noRun: 'Aucune course cette semaine.',
+    swim: 'NATATION',
+    swim1: 'séance', swimN: 'séances',
+    noSwim: 'Aucune natation cette semaine.',
+    weight: 'POIDS CORPOREL',
+    noWeight: 'Aucune mesure cette semaine.',
+    evolution: 'Évolution',
+    nutrition: 'NUTRITION',
+    noNutrition: 'Aucune donnée nutritionnelle cette semaine.',
+    consumed: 'kcal ingérées',
+    spent: 'kcal dépensées',
+    avgDaily: 'Moy. journalière',
+    evening: 'ROUTINE DU SOIR',
+    noRoutine: 'Aucune routine enregistrée cette semaine.',
+    nights: 'soir(s) trackés',
+    fullRoutines: 'routine(s) complète(s)',
+    total: 'Total',
+    exos: 'exos',
+    sets: 'sets',
+    pace: 'Allure',
+    notes: 'Notes',
+    style: 'Style',
+    generated: 'Généré le',
+    nothing: 'rien',
+  },
+  en: {
+    title: 'REZAKIT — WEEKLY RECAP',
+    strength: 'STRENGTH TRAINING',
+    seance: 'workout', seances: 'workouts',
+    noStrength: 'No workout logged this week.',
+    run: 'RUNNING',
+    sortie: 'run', sorties: 'runs',
+    noRun: 'No run this week.',
+    swim: 'SWIMMING',
+    swim1: 'session', swimN: 'sessions',
+    noSwim: 'No swim this week.',
+    weight: 'BODY WEIGHT',
+    noWeight: 'No measurement this week.',
+    evolution: 'Change',
+    nutrition: 'NUTRITION',
+    noNutrition: 'No nutrition data this week.',
+    consumed: 'kcal eaten',
+    spent: 'kcal burned',
+    avgDaily: 'Daily avg.',
+    evening: 'EVENING ROUTINE',
+    noRoutine: 'No routine logged this week.',
+    nights: 'night(s) tracked',
+    fullRoutines: 'full routine(s)',
+    total: 'Total',
+    exos: 'exos',
+    sets: 'sets',
+    pace: 'Pace',
+    notes: 'Notes',
+    style: 'Style',
+    generated: 'Generated on',
+    nothing: 'nothing',
+  },
+  es: {
+    title: 'REZAKIT — SEMANA',
+    strength: 'MUSCULACIÓN',
+    seance: 'sesión', seances: 'sesiones',
+    noStrength: 'Sin sesión registrada esta semana.',
+    run: 'CARRERA',
+    sortie: 'salida', sorties: 'salidas',
+    noRun: 'Sin carrera esta semana.',
+    swim: 'NATACIÓN',
+    swim1: 'sesión', swimN: 'sesiones',
+    noSwim: 'Sin natación esta semana.',
+    weight: 'PESO CORPORAL',
+    noWeight: 'Sin medición esta semana.',
+    evolution: 'Evolución',
+    nutrition: 'NUTRICIÓN',
+    noNutrition: 'Sin datos nutricionales esta semana.',
+    consumed: 'kcal consumidas',
+    spent: 'kcal quemadas',
+    avgDaily: 'Media diaria',
+    evening: 'RUTINA NOCTURNA',
+    noRoutine: 'Sin rutina registrada esta semana.',
+    nights: 'noche(s) registrada(s)',
+    fullRoutines: 'rutina(s) completa(s)',
+    total: 'Total',
+    exos: 'ejerc.',
+    sets: 'series',
+    pace: 'Ritmo',
+    notes: 'Notas',
+    style: 'Estilo',
+    generated: 'Generado el',
+    nothing: 'nada',
+  },
+};
 
 export function exportWeekAsText(
   sessions: Session[],
@@ -43,7 +139,11 @@ export function exportWeekAsText(
   routineCompletions: RoutineCompletion[] = [],
   routineItems: RoutineItem[] = []
 ): string {
-  const { start, end, label } = getWeekBounds();
+  const lang: Lang = (getLang() as Lang) || 'fr';
+  const t = I18N[lang];
+  const locale = lang === 'fr' ? 'fr-FR' : lang === 'es' ? 'es-ES' : 'en-GB';
+
+  const { start, end } = getWeekBounds();
 
   const weekSessions = sessions
     .filter((s) => s.date >= start && s.date <= end)
@@ -61,31 +161,38 @@ export function exportWeekAsText(
     .filter((w) => w.date >= start && w.date <= end)
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const sep = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+  const sep  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
   const sep2 = '──────────────────────────────────────────';
   const lines: string[] = [];
 
+  const weekLabel = (() => {
+    const d1 = new Date(start + 'T00:00:00');
+    const d2 = new Date(end   + 'T00:00:00');
+    return `${d1.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} — ${d2.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  })();
+
   lines.push(sep);
-  lines.push(`  REZAKIT — SEMAINE`);
-  lines.push(`  ${label}`);
+  lines.push(`  ${t.title}`);
+  lines.push(`  ${weekLabel}`);
   lines.push(sep);
   lines.push('');
 
   // Musculation
-  lines.push(`🏋️  MUSCULATION — ${weekSessions.length} séance${weekSessions.length !== 1 ? 's' : ''}`);
+  const strWord = weekSessions.length === 1 ? t.seance : t.seances;
+  lines.push(`🏋️  ${t.strength} — ${weekSessions.length} ${strWord}`);
   lines.push(sep2);
 
   if (weekSessions.length === 0) {
-    lines.push('  Aucune séance cette semaine.');
+    lines.push(`  ${t.noStrength}`);
   } else {
     for (const s of weekSessions) {
-      lines.push(`  ${dateToFR(s.date).toUpperCase()} — ${s.type.toUpperCase()}`);
+      lines.push(`  ${formatDate(s.date, lang).toUpperCase()} — ${s.type.toUpperCase()}`);
       for (const ex of s.exercises) {
         const setsStr = ex.sets.map((st) => `${st.weight}×${st.reps}`).join(', ');
         lines.push(`    ${ex.exerciseName}: ${setsStr}`);
       }
-      const totalSets = s.exercises.reduce((t, e) => t + e.sets.length, 0);
-      lines.push(`    → ${s.exercises.length} exos · ${totalSets} sets`);
+      const totalSets = s.exercises.reduce((acc, e) => acc + e.sets.length, 0);
+      lines.push(`    → ${s.exercises.length} ${t.exos} · ${totalSets} ${t.sets}`);
       lines.push('');
     }
   }
@@ -93,56 +200,59 @@ export function exportWeekAsText(
   lines.push('');
 
   // Course
-  lines.push(`🏃  COURSE — ${weekCourses.length} sortie${weekCourses.length !== 1 ? 's' : ''}`);
+  const runWord = weekCourses.length === 1 ? t.sortie : t.sorties;
+  lines.push(`🏃  ${t.run} — ${weekCourses.length} ${runWord}`);
   lines.push(sep2);
 
   if (weekCourses.length === 0) {
-    lines.push('  Aucune course cette semaine.');
+    lines.push(`  ${t.noRun}`);
   } else {
     for (const c of weekCourses) {
       const pace = c.distance > 0 ? (c.time / c.distance).toFixed(2) : '-';
-      lines.push(`  ${dateToFR(c.date)} — ${c.distance} km en ${c.time} min`);
-      lines.push(`    Allure: ${pace} min/km`);
-      if (c.notes) lines.push(`    Notes: ${c.notes}`);
+      const unit = lang === 'fr' ? 'min/km' : lang === 'es' ? 'min/km' : 'min/km';
+      lines.push(`  ${formatDate(c.date, lang)} — ${c.distance} km ${lang === 'fr' ? 'en' : lang === 'es' ? 'en' : 'in'} ${c.time} min`);
+      lines.push(`    ${t.pace}: ${pace} ${unit}`);
+      if (c.notes) lines.push(`    ${t.notes}: ${c.notes}`);
     }
     const total = weekCourses.reduce((s, c) => s + c.distance, 0);
-    lines.push(`  → Total: ${total.toFixed(1)} km`);
+    lines.push(`  → ${t.total}: ${total.toFixed(1)} km`);
   }
 
   lines.push('');
 
   // Natation
-  lines.push(`🏊  NATATION — ${weekNatations.length} séance${weekNatations.length !== 1 ? 's' : ''}`);
+  const swimWord = weekNatations.length === 1 ? t.swim1 : t.swimN;
+  lines.push(`🏊  ${t.swim} — ${weekNatations.length} ${swimWord}`);
   lines.push(sep2);
 
   if (weekNatations.length === 0) {
-    lines.push('  Aucune natation cette semaine.');
+    lines.push(`  ${t.noSwim}`);
   } else {
     for (const n of weekNatations) {
-      lines.push(`  ${dateToFR(n.date)} — ${n.distance} m en ${n.time} min`);
-      if (n.style) lines.push(`    Style: ${n.style}`);
-      if (n.notes) lines.push(`    Notes: ${n.notes}`);
+      lines.push(`  ${formatDate(n.date, lang)} — ${n.distance} m ${lang === 'fr' ? 'en' : lang === 'es' ? 'en' : 'in'} ${n.time} min`);
+      if (n.style) lines.push(`    ${t.style}: ${n.style}`);
+      if (n.notes) lines.push(`    ${t.notes}: ${n.notes}`);
     }
     const total = weekNatations.reduce((s, n) => s + n.distance, 0);
-    lines.push(`  → Total: ${total} m`);
+    lines.push(`  → ${t.total}: ${total} m`);
   }
 
   lines.push('');
 
   // Poids
-  lines.push('⚖️  POIDS CORPOREL');
+  lines.push(`⚖️  ${t.weight}`);
   lines.push(sep2);
 
   if (weekWeights.length === 0) {
-    lines.push('  Aucune mesure cette semaine.');
+    lines.push(`  ${t.noWeight}`);
   } else {
     for (const w of weekWeights) {
-      lines.push(`  ${dateToFR(w.date)} — ${w.weight} kg`);
+      lines.push(`  ${formatDate(w.date, lang)} — ${w.weight} kg`);
     }
     if (weekWeights.length >= 2) {
       const diff = weekWeights[weekWeights.length - 1].weight - weekWeights[0].weight;
       const sign = diff > 0 ? '+' : '';
-      lines.push(`  → Évolution: ${sign}${diff.toFixed(1)} kg sur la semaine`);
+      lines.push(`  → ${t.evolution}: ${sign}${diff.toFixed(1)} kg`);
     }
   }
 
@@ -151,45 +261,45 @@ export function exportWeekAsText(
   // Calories
   const weekCalories = calories.filter((c) => c.date >= start && c.date <= end);
   const daysWithCal = Array.from(new Set(weekCalories.map((c) => c.date))).sort();
-  lines.push('🍽️  NUTRITION');
+  lines.push(`🍽️  ${t.nutrition}`);
   lines.push(sep2);
   if (weekCalories.length === 0) {
-    lines.push('  Aucune donnée nutritionnelle cette semaine.');
+    lines.push(`  ${t.noNutrition}`);
   } else {
     for (const date of daysWithCal) {
       const dayEntries = weekCalories.filter((c) => c.date === date);
-      const totalIn = dayEntries.filter((c) => c.type === 'in').reduce((s, c) => s + c.calories, 0);
+      const totalIn  = dayEntries.filter((c) => c.type === 'in').reduce((s, c) => s + c.calories, 0);
       const totalOut = dayEntries.filter((c) => c.type === 'out').reduce((s, c) => s + c.calories, 0);
-      lines.push(`  ${dateToFR(date)} — ${totalIn} kcal ingérées${totalOut > 0 ? ` · ${totalOut} kcal dépensées` : ''}`);
+      lines.push(`  ${formatDate(date, lang)} — ${totalIn} ${t.consumed}${totalOut > 0 ? ` · ${totalOut} ${t.spent}` : ''}`);
       dayEntries.filter((c) => c.type === 'in').forEach((e) => {
         lines.push(`    ${e.label}: ${e.calories} kcal`);
       });
     }
     const avgIn = Math.round(weekCalories.filter((c) => c.type === 'in').reduce((s, c) => s + c.calories, 0) / Math.max(daysWithCal.length, 1));
-    lines.push(`  → Moy. journalière: ${avgIn} kcal`);
+    lines.push(`  → ${t.avgDaily}: ${avgIn} kcal`);
   }
 
   lines.push('');
 
   // Routine du soir
   const weekRoutine = routineCompletions.filter((r) => r.date >= start && r.date <= end).sort((a, b) => a.date.localeCompare(b.date));
-  lines.push('🌙  ROUTINE DU SOIR');
+  lines.push(`🌙  ${t.evening}`);
   lines.push(sep2);
   if (routineItems.length === 0 || weekRoutine.length === 0) {
-    lines.push('  Aucune routine enregistrée cette semaine.');
+    lines.push(`  ${t.noRoutine}`);
   } else {
     const fullDays = weekRoutine.filter((r) => r.completedItemIds.length === routineItems.length).length;
-    lines.push(`  ${weekRoutine.length} soir(s) trackés · ${fullDays} routine(s) complète(s)`);
+    lines.push(`  ${weekRoutine.length} ${t.nights} · ${fullDays} ${t.fullRoutines}`);
     for (const r of weekRoutine) {
       const checked = routineItems.filter((i) => r.completedItemIds.includes(i.id)).map((i) => `${i.emoji}${i.name}`);
-      lines.push(`  ${dateToFR(r.date)}: ${checked.join(', ') || 'rien'}`);
+      lines.push(`  ${formatDate(r.date, lang)}: ${checked.join(', ') || t.nothing}`);
     }
   }
 
   lines.push('');
   lines.push(sep);
   const now = new Date();
-  lines.push(`  Généré le ${dateToFR(now.toISOString().split('T')[0])} ${pad(now.getHours())}:${pad(now.getMinutes())}`);
+  lines.push(`  ${t.generated} ${formatDate(now.toISOString().split('T')[0], lang)} ${pad(now.getHours())}:${pad(now.getMinutes())}`);
   lines.push(sep);
 
   return lines.join('\n');

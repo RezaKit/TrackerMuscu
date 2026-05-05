@@ -120,8 +120,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const resendKey    = process.env.RESEND_API_KEY;
   const fromEmail    = process.env.REPORT_FROM_EMAIL || 'RezaKit <noreply@resakit.fr>';
 
-  // Diagnostic GET endpoint — read-only Resend status (no sensitive data exposed)
+  // Diagnostic GET endpoint — requires ?s=<CRON_SECRET> to prevent public access
   if (req.method === 'GET') {
+    const cronSecret = process.env.CRON_SECRET;
+    const qs = (req.query?.s as string | undefined) || '';
+    if (!cronSecret || qs !== cronSecret) {
+      res.status(403).json({ error: 'Forbidden' }); return;
+    }
     if (!resendKey) {
       res.status(503).json({ error: 'RESEND_API_KEY not set' }); return;
     }
