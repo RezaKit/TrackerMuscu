@@ -120,23 +120,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const resendKey    = process.env.RESEND_API_KEY;
   const fromEmail    = process.env.REPORT_FROM_EMAIL || 'RezaKit <noreply@resakit.fr>';
 
-  // Diagnostic GET endpoint — secured by a query param secret = first 8 chars of RESEND_API_KEY
+  // Diagnostic GET endpoint — read-only Resend status (no sensitive data exposed)
   if (req.method === 'GET') {
-    const secret = (req.query as Record<string, string>)['s'] || '';
-    const expectedSecret = resendKey ? resendKey.slice(0, 8) : '';
-    if (!resendKey || secret !== expectedSecret) {
-      res.status(401).json({ error: 'unauthorized' }); return;
+    if (!resendKey) {
+      res.status(503).json({ error: 'RESEND_API_KEY not set' }); return;
     }
     try {
       const [domainRes, emailRes] = await Promise.all([
         fetch('https://api.resend.com/domains', { headers: { Authorization: `Bearer ${resendKey}` } }).then(r => r.json()),
         fetch('https://api.resend.com/emails', { headers: { Authorization: `Bearer ${resendKey}` } }).then(r => r.json()),
       ]);
+      // Sanitize: show domain status + last 5 email IDs only (no link/HTML content)
+      const domains = (domainRes.data || []).map((d: Record<string, unknown>) => ({
+        name: d.name, status: d.status,
+        records: (d.records as Record<string, unknown>[] || []).map((r: Record<string, unknown>) => ({ type: r.type, name: r.name, status: r.status })),
+      }));
+      const recentEmails = (emailRes.data || []).slice(0, 5).map((e: Record<string, unknown>) => ({
+        id: e.id, from: e.from, to: e.to, subject: e.subject,
+        created_at: e.created_at, last_event: e.last_event,
+      }));
       res.status(200).json({
-        from: fromEmail,
+        from_email: fromEmail,
         env_set: { supabase_url: !!supabaseUrl, service_key: !!serviceKey, resend_key: !!resendKey },
-        resend_domains: domainRes,
-        resend_recent_emails: emailRes,
+        resend_domains: domains,
+        resend_recent_emails: recentEmails,
       });
     } catch (e) {
       res.status(500).json({ error: String(e) });
