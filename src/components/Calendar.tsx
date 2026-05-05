@@ -56,7 +56,11 @@ export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) 
     }).join('\n');
     setPendingAI({
       kind: 'session-analysis',
-      initialMessage: `Analyse cette séance ${sess.type} du ${sess.date} :\n${lines}\n\nDonne-moi ton analyse : intensité, équilibre musculaire, et 2-3 conseils concrets pour la prochaine fois.`,
+      initialMessage: tr({
+        fr: `Analyse cette séance ${sess.type} du ${sess.date} :\n${lines}\n\nDonne-moi ton analyse : intensité, équilibre musculaire, et 2-3 conseils concrets pour la prochaine fois.`,
+        en: `Analyse this ${sess.type} workout on ${sess.date}:\n${lines}\n\nGive me your analysis: intensity, muscle balance, and 2-3 concrete tips for next time.`,
+        es: `Analiza esta sesión ${sess.type} del ${sess.date}:\n${lines}\n\nDame tu análisis: intensidad, equilibrio muscular y 2-3 consejos concretos para la próxima vez.`,
+      }),
       payload: { sessionId: sess.id, type: sess.type, date: sess.date, exercises: sess.exercises },
     });
     onAskCoach?.();

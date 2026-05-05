@@ -96,13 +96,13 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
   };
 
   const handleDeleteExercise = async (id: string, name: string) => {
-    if (!confirm(`Supprimer "${name}" ?`)) return;
+    if (!confirm(tr({ fr: `Supprimer "${name}" ?`, en: `Delete "${name}"?`, es: `¿Eliminar "${name}"?` }))) return;
     await deleteExercise(id);
     showToast(tr({ fr: 'Exercice supprimé', en: 'Exercise deleted', es: 'Ejercicio eliminado' }), 'info');
   };
 
   const handleDeleteTemplate = async (id: string, name: string) => {
-    if (!confirm(`Supprimer le template "${name}" ?`)) return;
+    if (!confirm(tr({ fr: `Supprimer le template "${name}" ?`, en: `Delete template "${name}"?`, es: `¿Eliminar la plantilla "${name}"?` }))) return;
     await deleteTemplate(id);
     showToast(tr({ fr: 'Template supprimé', en: 'Template deleted', es: 'Plantilla eliminada' }), 'info');
   };
