@@ -97,16 +97,19 @@ async function sendViaResend(
   to: string,
   subject: string,
   html: string,
-): Promise<void> {
+): Promise<string> {
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ from, to, subject, html }),
   });
+  const body = await r.json().catch(() => ({})) as { id?: string; message?: string; name?: string };
   if (!r.ok) {
-    const txt = await r.text();
-    throw new Error(`Resend ${r.status}: ${txt}`);
+    console.error('[auth-email] Resend rejected:', r.status, JSON.stringify(body));
+    throw new Error(`Resend ${r.status}: ${body.message || body.name || JSON.stringify(body)}`);
   }
+  console.log('[auth-email] Resend accepted — email_id:', body.id, '| from:', from, '| to:', to);
+  return body.id || 'ok';
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
