@@ -115,14 +115,38 @@ async function sendViaResend(
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' }); return;
-  }
-
   const supabaseUrl  = process.env.SUPABASE_URL;
   const serviceKey   = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const resendKey    = process.env.RESEND_API_KEY;
   const fromEmail    = process.env.REPORT_FROM_EMAIL || 'RezaKit <noreply@resakit.fr>';
+
+  // Diagnostic GET endpoint — secured by a query param secret = first 8 chars of RESEND_API_KEY
+  if (req.method === 'GET') {
+    const secret = (req.query as Record<string, string>)['s'] || '';
+    const expectedSecret = resendKey ? resendKey.slice(0, 8) : '';
+    if (!resendKey || secret !== expectedSecret) {
+      res.status(401).json({ error: 'unauthorized' }); return;
+    }
+    try {
+      const [domainRes, emailRes] = await Promise.all([
+        fetch('https://api.resend.com/domains', { headers: { Authorization: `Bearer ${resendKey}` } }).then(r => r.json()),
+        fetch('https://api.resend.com/emails', { headers: { Authorization: `Bearer ${resendKey}` } }).then(r => r.json()),
+      ]);
+      res.status(200).json({
+        from: fromEmail,
+        env_set: { supabase_url: !!supabaseUrl, service_key: !!serviceKey, resend_key: !!resendKey },
+        resend_domains: domainRes,
+        resend_recent_emails: emailRes,
+      });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' }); return;
+  }
 
   if (!supabaseUrl || !serviceKey || !resendKey) {
     res.status(503).json({ error: 'email_not_configured' }); return;
