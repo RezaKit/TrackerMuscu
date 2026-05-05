@@ -21,6 +21,7 @@ import Navbar from './components/Navbar';
 import Toast from './components/Toast';
 import UpdateBanner from './components/UpdateBanner';
 import Params from './components/Params';
+import SharedTemplateImport from './components/SharedTemplateImport';
 
 // Heavier secondary routes — code-split into their own chunks loaded on demand.
 const Calendar     = lazy(() => import('./components/Calendar'));
@@ -309,6 +310,11 @@ export default function App() {
       {!inSession && !keyboardOpen && currentPage !== 'daily' && currentPage !== 'coach' && currentPage !== 'measurements' && currentPage !== 'legal' && (
         <Navbar currentPage={currentPage} onPageChange={setCurrentPage} />
       )}
+
+      <SharedTemplateImport
+        showToast={showToast}
+        onImported={() => setCurrentPage('calendar')}
+      />
 
       {toast && <Toast message={toast.message} type={toast.type} />}
       <UpdateBanner />

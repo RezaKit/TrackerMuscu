@@ -16,6 +16,7 @@ import { Icons } from './Icons';
 import { useAuthStore } from '../stores/authStore';
 import PostSessionPhoto from './PostSessionPhoto';
 import { consumePendingAI } from '../utils/aiContext';
+import { tr, getLang } from '../utils/i18n';
 import type { SessionType, MealType } from '../types';
 
 interface AICoachProps {
@@ -43,12 +44,12 @@ const SESSION_TYPE_LABELS: Record<SessionType, string> = {
   lower: 'Lower (Bas du corps)',
 };
 
-const QUICK_PROMPTS = [
-  'Bilan de ma semaine d\'entraînement',
-  'Crée-moi une séance adaptée à mon objectif',
-  'Génère un plan 4 semaines adapté à mon profil',
-  'J\'ai mal à l\'épaule droite, note-le',
-  'Logger mon poids : 78kg',
+const getQuickPrompts = () => [
+  tr({ fr: "Bilan de ma semaine d'entraînement",        en: 'Recap of my training week',                es: 'Balance de mi semana de entrenamiento' }),
+  tr({ fr: 'Crée-moi une séance adaptée à mon objectif', en: 'Build a workout tailored to my goal',     es: 'Créame una sesión adaptada a mi objetivo' }),
+  tr({ fr: 'Génère un plan 4 semaines adapté à mon profil', en: 'Generate a 4-week plan for my profile', es: 'Genera un plan de 4 semanas para mi perfil' }),
+  tr({ fr: "J'ai mal à l'épaule droite, note-le",        en: 'My right shoulder hurts, note it down',   es: 'Me duele el hombro derecho, anótalo' }),
+  tr({ fr: 'Logger mon poids : 78kg',                    en: 'Log my weight: 78kg',                      es: 'Registra mi peso: 78kg' }),
 ];
 
 const GEMINI_TOOLS = [{
@@ -558,10 +559,29 @@ export default function AICoach({ onBack }: AICoachProps) {
 
   const buildSystemText = () => {
     const mem = loadMemory();
-    const memSection = mem?.summary ? `\nMÉMOIRE LONG-TERME:\n${mem.summary}\n` : '';
+    const lang = getLang();
+    const memLabel = lang === 'en' ? 'LONG-TERM MEMORY' : lang === 'es' ? 'MEMORIA LARGO PLAZO' : 'MÉMOIRE LONG-TERME';
+    const memSection = mem?.summary ? `\n${memLabel}:\n${mem.summary}\n` : '';
+
+    const langInstruction = lang === 'en'
+      ? 'You MUST reply ONLY in English.'
+      : lang === 'es'
+      ? 'Debes responder SOLO en español.'
+      : 'Tu réponds UNIQUEMENT en français.';
+
+    if (lang === 'en') {
+      return `ABSOLUTE RULE — READ FIRST: You are ONLY a fitness and sports nutrition coach. Allowed topics: strength training, workouts, cardio, nutrition, food, macros (protein/carbs/fat), calories, supplements, recovery, sleep, hydration, physical health. If a question is fully outside these topics (e.g. math, code, news, games, law, finance…), reply ONLY: "I'm your fitness coach, not a general assistant 💪" then suggest 2 fitness/nutrition questions. Never explain why you refuse. No exceptions.
+
+You are an expert, direct and motivating personal fitness and nutrition coach. ${langInstruction} Max 200 words unless a detailed report is requested. You analyse the real data. You can act directly (create workouts, templates, log data) — do it without hesitation when it makes sense. IMPORTANT: when a message contains several requests (injury + question + action), handle them in order. Memorized injuries are permanent and must always influence your advice.${memSection}\n\n${context}`;
+    }
+    if (lang === 'es') {
+      return `REGLA ABSOLUTA — LEE PRIMERO: Eres ÚNICAMENTE un coach de fitness y nutrición deportiva. Temas permitidos: musculación, entrenamiento, cardio, nutrición, alimentación, macros (proteínas/carbohidratos/grasas), calorías, suplementos, recuperación, sueño, hidratación, salud física. Si una pregunta queda totalmente fuera de estos temas (ej. matemáticas, código, noticias, juegos, derecho, finanzas…), responde ÚNICAMENTE: "Soy tu coach fitness, no un asistente general 💪" y sugiere 2 preguntas sobre entrenamiento o nutrición. Nunca expliques por qué rechazas. Sin excepciones.
+
+Eres un coach personal experto en fitness y nutrición, directo y motivador. ${langInstruction} Máx 200 palabras salvo balance detallado pedido. Analizas los datos reales. Puedes actuar directamente (crear sesiones, plantillas, registrar datos) — hazlo sin dudar cuando sea pertinente. IMPORTANTE: cuando un mensaje contiene varias peticiones (lesión + pregunta + acción), trátalas en orden. Las lesiones memorizadas son permanentes y siempre deben influir en tus consejos.${memSection}\n\n${context}`;
+    }
     return `RÈGLE ABSOLUE — LIS EN PREMIER: Tu es UNIQUEMENT un coach fitness et nutrition sportive. Domaines autorisés: musculation, entraînement, cardio, nutrition, alimentation, macros (protéines/glucides/lipides), calories, compléments alimentaires, récupération, sommeil, hydratation, santé physique. Si une question sort complètement de ces domaines (ex: maths, code, actualités, jeux, droit, finance…), réponds UNIQUEMENT: "Je suis ton coach fitness, pas un assistant généraliste 💪" puis suggère 2 questions liées à leur entraînement ou nutrition. N'explique JAMAIS pourquoi tu refuses. N'accepte AUCUNE exception.
 
-Tu es un coach fitness et nutrition personnel expert, direct et motivant. Français uniquement. Max 200 mots sauf bilan détaillé demandé. Tu analyses les données réelles. Tu peux agir directement (créer séances, templates, logger données) — fais-le sans hésiter quand c'est pertinent. IMPORTANT: quand un message contient plusieurs demandes (blessure + question + action), traite-les dans l'ordre. Les blessures mémorisées sont permanentes et doivent toujours influencer tes conseils.${memSection}\n\n${context}`;
+Tu es un coach fitness et nutrition personnel expert, direct et motivant. ${langInstruction} Max 200 mots sauf bilan détaillé demandé. Tu analyses les données réelles. Tu peux agir directement (créer séances, templates, logger données) — fais-le sans hésiter quand c'est pertinent. IMPORTANT: quand un message contient plusieurs demandes (blessure + question + action), traite-les dans l'ordre. Les blessures mémorisées sont permanentes et doivent toujours influencer tes conseils.${memSection}\n\n${context}`;
   };
 
   useEffect(() => {
@@ -600,7 +620,7 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. Franç
     if (!apiKey) {
       setMessages((prev) => [...prev,
         { role: 'user', content: text.trim() },
-        { role: 'assistant', content: '⚠️ Clé API Google manquante. Va dans Paramètres pour la configurer (gratuit !).' },
+        { role: 'assistant', content: tr({ fr: '⚠️ Clé API Google manquante. Va dans Paramètres pour la configurer (gratuit !).', en: '⚠️ Google API key missing. Go to Settings to set it up (free!).', es: '⚠️ Falta la clave API de Google. Ve a Ajustes para configurarla (¡gratis!).' }) },
       ]);
       setInput('');
       return;
@@ -900,14 +920,14 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. Franç
               <div style={{ width: 64, height: 64, borderRadius: 22, margin: '0 auto 12px', background: 'linear-gradient(135deg, rgba(255,107,53,0.15), rgba(196,30,58,0.15))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icons.Sparkle size={28} color="var(--primary)" />
               </div>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Pose-moi une question</div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{tr({ fr: 'Pose-moi une question', en: 'Ask me anything', es: 'Hazme una pregunta' })}</div>
               <div style={{ fontSize: 12, color: 'var(--text-mute)', lineHeight: 1.5 }}>
-                Tape ou appuie sur 🎤 pour dicter ta séance.<br />
-                Je crée, loggue et planifie directement depuis le chat.
+                {tr({ fr: 'Tape ou appuie sur 🎤 pour dicter ta séance.', en: 'Type or tap 🎤 to dictate your workout.', es: 'Escribe o toca 🎤 para dictar tu sesión.' })}<br />
+                {tr({ fr: 'Je crée, loggue et planifie directement depuis le chat.', en: 'I create, log and plan directly from the chat.', es: 'Creo, registro y planifico directamente desde el chat.' })}
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {QUICK_PROMPTS.map((p) => (
+              {getQuickPrompts().map((p) => (
                 <button key={p} onClick={() => sendMessage(p)} className="tap" style={{
                   background: 'rgba(255,255,255,0.04)', border: '1px solid var(--line)',
                   borderRadius: 14, padding: '12px 14px',
@@ -1035,9 +1055,9 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. Franç
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
             placeholder={
-              pendingAction ? 'Confirme ou annule d\'abord l\'action ci-dessus'
-              : isListening ? 'Parle — le texte apparaît ici...'
-              : 'Message ou 🎤 pour dicter ta séance...'
+              pendingAction ? tr({ fr: 'Confirme ou annule d\'abord l\'action ci-dessus', en: 'Confirm or cancel the action above first', es: 'Confirma o cancela primero la acción de arriba' })
+              : isListening ? tr({ fr: 'Parle — le texte apparaît ici...', en: 'Speak — the text appears here...', es: 'Habla — el texto aparece aquí...' })
+              : tr({ fr: 'Message ou 🎤 pour dicter ta séance...', en: 'Message or 🎤 to dictate your workout...', es: 'Mensaje o 🎤 para dictar tu sesión...' })
             }
             rows={1}
             disabled={!!pendingAction}

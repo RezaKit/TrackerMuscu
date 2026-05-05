@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useMeasurementStore, MEASUREMENT_LABELS } from '../stores/measurementStore';
+import { useMeasurementStore, getMeasurementLabels } from '../stores/measurementStore';
 import type { MeasurementKey } from '../types';
 import { Icons } from './Icons';
+import { tr, getLang } from '../utils/i18n';
 
 interface MeasurementsProps {
   onClose: () => void;
@@ -20,6 +21,8 @@ export default function Measurements({ onClose }: MeasurementsProps) {
   const [showAdd, setShowAdd] = useState(false);
   const [values, setValues] = useState<Partial<Record<MeasurementKey, string>>>({});
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const labels = getMeasurementLabels();
+  const locale = getLang() === 'fr' ? 'fr-FR' : getLang() === 'es' ? 'es-ES' : 'en-GB';
 
   useEffect(() => { loadMeasurements(); }, []);
 
@@ -57,7 +60,7 @@ export default function Measurements({ onClose }: MeasurementsProps) {
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.16 }}>Body</div>
-          <h2 className="t-display" style={{ fontSize: 32, lineHeight: 0.9, marginTop: 2 }}>Mesures</h2>
+          <h2 className="t-display" style={{ fontSize: 32, lineHeight: 0.9, marginTop: 2 }}>{tr({ fr: 'Mesures', en: 'Measurements', es: 'Medidas' })}</h2>
         </div>
         {!showAdd && (
           <button onClick={() => setShowAdd(true)} className="tap" style={{
@@ -66,7 +69,7 @@ export default function Measurements({ onClose }: MeasurementsProps) {
             color: '#fff', fontWeight: 700, fontSize: 12,
             display: 'flex', alignItems: 'center', gap: 4,
           }}>
-            <Icons.Plus size={14} /> Ajouter
+            <Icons.Plus size={14} /> {tr({ fr: 'Ajouter', en: 'Add', es: 'Añadir' })}
           </button>
         )}
       </div>
@@ -75,12 +78,12 @@ export default function Measurements({ onClose }: MeasurementsProps) {
       {showAdd && (
         <div className="glass" style={{ borderRadius: 22, padding: 16, marginBottom: 18 }}>
           <div style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12 }}>Date</label>
+            <label style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12 }}>{tr({ fr: 'Date', en: 'Date', es: 'Fecha' })}</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input-glass" style={{ marginTop: 4 }} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
             {MEASUREMENT_ORDER.map((key) => {
-              const cfg = MEASUREMENT_LABELS[key];
+              const cfg = labels[key];
               return (
                 <div key={key}>
                   <label style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
@@ -108,12 +111,12 @@ export default function Measurements({ onClose }: MeasurementsProps) {
             <button onClick={() => { setShowAdd(false); setValues({}); }} className="tap" style={{
               flex: 1, border: 'none', borderRadius: 12, padding: '10px',
               background: 'rgba(255,255,255,0.04)', color: 'var(--text-mute)', fontWeight: 700, fontSize: 13,
-            }}>Annuler</button>
+            }}>{tr({ fr: 'Annuler', en: 'Cancel', es: 'Cancelar' })}</button>
             <button onClick={handleSave} className="tap" style={{
               flex: 2, border: 'none', borderRadius: 12, padding: '10px',
               background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
               color: '#fff', fontWeight: 700, fontSize: 13,
-            }}>Enregistrer</button>
+            }}>{tr({ fr: 'Enregistrer', en: 'Save', es: 'Guardar' })}</button>
           </div>
         </div>
       )}
@@ -123,7 +126,7 @@ export default function Measurements({ onClose }: MeasurementsProps) {
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.14 }}>
-              Dernière mesure
+              {tr({ fr: 'Dernière mesure', en: 'Latest measurement', es: 'Última medida' })}
             </div>
             <span style={{
               fontSize: 10, fontWeight: 700,
@@ -132,12 +135,12 @@ export default function Measurements({ onClose }: MeasurementsProps) {
               border: '1px solid rgba(255,107,53,0.2)',
               whiteSpace: 'nowrap',
             }}>
-              {new Date(latest.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+              {new Date(latest.date + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 22 }}>
             {MEASUREMENT_ORDER.filter(k => latest.values[k] !== undefined).map((key) => {
-              const cfg = MEASUREMENT_LABELS[key];
+              const cfg = labels[key];
               const value = latest.values[key]!;
               const delta = getDelta(key);
               return (
@@ -164,9 +167,9 @@ export default function Measurements({ onClose }: MeasurementsProps) {
       ) : !showAdd && (
         <div className="glass" style={{ borderRadius: 22, padding: '32px 20px', textAlign: 'center' }}>
           <Icons.Scale size={32} color="var(--text-faint)" />
-          <div style={{ fontSize: 14, fontWeight: 700, marginTop: 12 }}>Aucune mesure</div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginTop: 12 }}>{tr({ fr: 'Aucune mesure', en: 'No measurements', es: 'Sin medidas' })}</div>
           <div style={{ fontSize: 12, color: 'var(--text-mute)', marginTop: 4 }}>
-            Commence à tracker tes mesures pour suivre ton évolution.
+            {tr({ fr: 'Commence à tracker tes mesures pour suivre ton évolution.', en: 'Start tracking your measurements to follow your progress.', es: 'Empieza a registrar tus medidas para seguir tu progreso.' })}
           </div>
         </div>
       )}
@@ -175,7 +178,7 @@ export default function Measurements({ onClose }: MeasurementsProps) {
       {measurements.length > 1 && (
         <>
           <div style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.14, marginBottom: 8 }}>
-            Historique
+            {tr({ fr: 'Historique', en: 'History', es: 'Historial' })}
           </div>
           <div className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
             {measurements.slice(1, 10).map((m) => {
@@ -189,9 +192,9 @@ export default function Measurements({ onClose }: MeasurementsProps) {
                       background: 'rgba(255,255,255,0.06)', color: 'var(--text-soft)',
                       border: '1px solid rgba(255,255,255,0.08)',
                     }}>
-                      {new Date(m.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: '2-digit' })}
+                      {new Date(m.date + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short', year: '2-digit' })}
                     </span>
-                    <button onClick={() => { if (confirm('Supprimer cette mesure ?')) deleteMeasurement(m.id); }}
+                    <button onClick={() => { if (confirm(tr({ fr: 'Supprimer cette mesure ?', en: 'Delete this measurement?', es: '¿Eliminar esta medida?' }))) deleteMeasurement(m.id); }}
                       className="tap" style={{ background: 'none', border: 'none', color: 'rgba(196,30,58,0.6)', padding: 4 }}>
                       <Icons.Trash size={14} />
                     </button>
@@ -199,7 +202,7 @@ export default function Measurements({ onClose }: MeasurementsProps) {
                   <div style={{ fontSize: 11, color: 'var(--text-mute)', display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
                     {keys.map((k) => (
                       <span key={k}>
-                        {MEASUREMENT_LABELS[k].label}: <span style={{ color: 'var(--text-soft)', fontFamily: 'var(--mono)' }}>{m.values[k]}{MEASUREMENT_LABELS[k].unit}</span>
+                        {labels[k].label}: <span style={{ color: 'var(--text-soft)', fontFamily: 'var(--mono)' }}>{m.values[k]}{labels[k].unit}</span>
                       </span>
                     ))}
                   </div>

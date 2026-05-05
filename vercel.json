@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|assets/|icons/|.*\\.(?:js|mjs|css|map|json|png|jpg|jpeg|webp|svg|ico|woff2?|ttf|otf|mp4|webm|wasm|txt|xml|gif)$).*)", "destination": "/index.html" }
   ],
   "crons": [
     { "path": "/api/weekly-report", "schedule": "0 20 * * 0" },

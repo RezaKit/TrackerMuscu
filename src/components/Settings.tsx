@@ -7,6 +7,7 @@ import { PRESET_EXERCISES } from '../db/seedExercises';
 import { Icons } from './Icons';
 import { setPendingAI } from '../utils/aiContext';
 import { tr } from '../utils/i18n';
+import { encodeShareLink } from '../utils/templateShare';
 
 const MUSCLE_GROUPS = Object.keys(PRESET_EXERCISES);
 
@@ -43,6 +44,29 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
     loadFromTemplate(tpl.exerciseNames);
     onStartSession?.();
     showToast(tr({ fr: `▶ ${tpl.name} démarrée`, en: `▶ ${tpl.name} started`, es: `▶ ${tpl.name} iniciada` }), 'success');
+  };
+
+  const handleShareTemplate = async (tpl: typeof templates[number]) => {
+    try {
+      const profile = (() => {
+        try { return JSON.parse(localStorage.getItem('user_profile') || 'null'); }
+        catch { return null; }
+      })();
+      const url = encodeShareLink(tpl, profile?.name);
+      const shareText = tr({
+        fr: `${profile?.name || 'Quelqu\'un'} t'invite à faire la séance "${tpl.name}" sur RezaKit 💪`,
+        en: `${profile?.name || 'Someone'} invites you to try the "${tpl.name}" workout on RezaKit 💪`,
+        es: `${profile?.name || 'Alguien'} te invita a hacer la sesión "${tpl.name}" en RezaKit 💪`,
+      });
+      if (navigator.share) {
+        await navigator.share({ title: 'RezaKit', text: shareText, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      showToast(tr({ fr: 'Lien copié — partage-le à un ami !', en: 'Link copied — share it with a friend!', es: '¡Enlace copiado — compártelo!' }), 'success');
+    } catch {
+      // user cancelled share dialog — silent
+    }
   };
 
   const handleAskAITemplate = (tpl: typeof templates[number]) => {
@@ -380,6 +404,18 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
                           }}
                         >
                           🤖 {tr({ fr: 'Modifier IA', en: 'Edit AI', es: 'Editar IA' })}
+                        </button>
+                        <button
+                          onClick={() => handleShareTemplate(t)}
+                          className="tap"
+                          style={{
+                            flexShrink: 0, border: 'none', borderRadius: 12, padding: '11px 14px',
+                            background: 'rgba(74,222,128,0.12)', color: 'var(--ok)',
+                            fontWeight: 700, fontSize: 12.5,
+                          }}
+                          aria-label={tr({ fr: 'Partager', en: 'Share', es: 'Compartir' })}
+                        >
+                          <Icons.Share size={13} />
                         </button>
                         <button
                           onClick={() => handleDeleteTemplate(t.id, t.name)}

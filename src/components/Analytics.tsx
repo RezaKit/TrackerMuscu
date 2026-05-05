@@ -12,7 +12,7 @@ interface AnalyticsProps {
   showToast: (msg: string, type?: 'success' | 'info' | 'record') => void;
 }
 
-type Tab = 'muscu' | 'cardio' | 'poids' | 'photos' | 'amis';
+type Tab = 'muscu' | 'cardio' | 'poids' | 'photos';
 
 function fmtDate(iso: string) {
   const d = new Date(iso + 'T00:00:00');
@@ -99,6 +99,7 @@ export default function Analytics({ showToast }: AnalyticsProps) {
   const [tab, setTab] = useState<Tab>('muscu');
   const [selectedExo, setSelectedExo] = useState('');
   const [weightInput, setWeightInput] = useState('');
+  const [showFriends, setShowFriends] = useState(false);
 
   const allExos = useMemo(() => {
     const s = new Set<string>();
@@ -188,15 +189,60 @@ export default function Analytics({ showToast }: AnalyticsProps) {
     { id: 'cardio', label: tr({ fr: 'Cardio', en: 'Cardio', es: 'Cardio' }), Icon: Icons.Run },
     { id: 'poids',  label: tr({ fr: 'Poids',  en: 'Weight', es: 'Peso'   }), Icon: Icons.Scale },
     { id: 'photos', label: tr({ fr: 'Photos', en: 'Photos', es: 'Fotos'  }), Icon: Icons.Camera },
-    { id: 'amis',   label: tr({ fr: 'Amis',   en: 'Friends',es: 'Amigos' }), Icon: Icons.Users },
   ];
+
+  if (showFriends) {
+    return (
+      <div className="page-enter" style={{ paddingBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px 6px' }}>
+          <button onClick={() => setShowFriends(false)} className="tap glass" style={{
+            width: 36, height: 36, borderRadius: 12, border: '1px solid var(--glass-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-mute)',
+          }}>
+            <Icons.ChevronLeft size={16} />
+          </button>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>
+              {tr({ fr: 'Communauté', en: 'Community', es: 'Comunidad' })}
+            </div>
+            <h1 className="t-display" style={{ margin: '2px 0 0', fontSize: 36, lineHeight: 0.9 }}>
+              {tr({ fr: 'Amis', en: 'Friends', es: 'Amigos' })}
+            </h1>
+          </div>
+        </div>
+        <Suspense fallback={<div className="skeleton" style={{ height: 200, margin: '12px 16px', borderRadius: 18 }} />}>
+          <Leaderboard />
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div className="page-enter">
       {/* Header */}
-      <div style={{ padding: '14px 22px 14px' }}>
-        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>{tr({ fr: 'Progression', en: 'Progress', es: 'Progreso' })}</div>
-        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Stats</h1>
+      <div style={{ padding: '14px 22px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>{tr({ fr: 'Progression', en: 'Progress', es: 'Progreso' })}</div>
+          <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Stats</h1>
+        </div>
+        <button
+          onClick={() => setShowFriends(true)}
+          className="tap glass"
+          aria-label={tr({ fr: 'Amis', en: 'Friends', es: 'Amigos' })}
+          style={{
+            marginTop: 4,
+            border: '1px solid var(--glass-border)',
+            borderRadius: 14,
+            padding: '8px 12px',
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'linear-gradient(135deg, rgba(96,165,250,0.10), rgba(255,107,53,0.06))',
+            color: 'var(--text-soft)',
+            fontWeight: 700, fontSize: 12,
+          }}
+        >
+          <Icons.Users size={14} />
+          <span>{tr({ fr: 'Amis', en: 'Friends', es: 'Amigos' })}</span>
+        </button>
       </div>
 
       {/* Global stats */}
@@ -350,12 +396,6 @@ export default function Analytics({ showToast }: AnalyticsProps) {
         </div>
       )}
 
-      {/* AMIS TAB */}
-      {tab === 'amis' && (
-        <Suspense fallback={<div className="skeleton" style={{ height: 200, margin: '0 16px', borderRadius: 18 }} />}>
-          <Leaderboard />
-        </Suspense>
-      )}
 
       {/* POIDS TAB */}
       {tab === 'poids' && (

@@ -1,6 +1,11 @@
 // Generates a beautiful shareable session card as a PNG using Canvas 2D.
 // Works natively on iOS (Safari 14+) and Android without any external lib.
 
+import { bodyFront } from '../db/bodyFront';
+import { bodyBack } from '../db/bodyBack';
+import { BORDER_FRONT_PATH, BORDER_BACK_PATH, type BodySlug } from '../db/bodyTypes';
+import { tr, getLang } from './i18n';
+
 export interface ShareCardData {
   sessionType: string;
   date: string;           // ISO date string
@@ -20,14 +25,38 @@ const TYPE_COLORS: Record<string, [string, string]> = {
   lower: ['#F87171', '#DC2626'],
 };
 
-const MUSCLE_LABELS: Record<string, string> = {
-  chest: 'Pectoraux', back: 'Dos', shoulders: 'Épaules',
-  biceps: 'Biceps', triceps: 'Triceps', legs: 'Jambes',
-  core: 'Abdos', forearms: 'Avant-bras', calves: 'Mollets',
+const GROUP_TO_SLUGS: Record<string, BodySlug[]> = {
+  chest:     ['chest'],
+  back:      ['upper-back', 'lower-back', 'trapezius'],
+  shoulders: ['deltoids', 'trapezius'],
+  biceps:    ['biceps'],
+  triceps:   ['triceps'],
+  forearms:  ['forearm'],
+  legs:      ['quadriceps', 'hamstring', 'gluteal', 'adductors'],
+  calves:    ['calves', 'tibialis'],
+  core:      ['abs', 'obliques'],
 };
 
+const NON_HIGHLIGHT: ReadonlySet<BodySlug> = new Set([
+  'head', 'hair', 'neck', 'hands', 'feet', 'ankles', 'knees',
+]);
+
+const muscleLabels = () => ({
+  chest:    tr({ fr: 'Pectoraux', en: 'Chest',     es: 'Pectoral' }),
+  back:     tr({ fr: 'Dos',       en: 'Back',      es: 'Espalda'  }),
+  shoulders:tr({ fr: 'Épaules',   en: 'Shoulders', es: 'Hombros'  }),
+  biceps:   'Biceps',
+  triceps:  'Triceps',
+  legs:     tr({ fr: 'Jambes',    en: 'Legs',      es: 'Piernas'  }),
+  core:     tr({ fr: 'Abdos',     en: 'Core',      es: 'Abdomen'  }),
+  forearms: tr({ fr: 'Avant-bras',en: 'Forearms',  es: 'Antebrazos' }),
+  calves:   tr({ fr: 'Mollets',   en: 'Calves',    es: 'Pantorrillas' }),
+});
+
 function fmtDate(iso: string) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', {
+  const lang = getLang();
+  const locale = lang === 'fr' ? 'fr-FR' : lang === 'es' ? 'es-ES' : 'en-GB';
+  return new Date(iso + 'T00:00:00').toLocaleDateString(locale, {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 }
@@ -46,9 +75,89 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// Muscle map — same intensity logic as <MuscleMap>, rendered as an SVG
+// then rasterized to an Image we can drawImage onto the share canvas.
+// ──────────────────────────────────────────────────────────────────────────
+
+function intensityColor(intensity: number): string {
+  if (intensity <= 0) return 'rgba(255,255,255,0.05)';
+  const i = Math.min(1, Math.max(0, intensity));
+  const hue = 130 - 130 * i;
+  const sat = 70 + 20 * i;
+  const light = 52 - 8 * i;
+  return `hsl(${hue.toFixed(0)}, ${sat.toFixed(0)}%, ${light.toFixed(0)}%)`;
+}
+
+function computeIntensities(exercises: ShareCardData['exercises']): Partial<Record<BodySlug, number>> {
+  const volByGroup: Record<string, number> = {};
+  exercises.forEach((ex) => {
+    const vol = ex.sets.reduce((s, st) => s + (st.weight || 1) * st.reps, 0);
+    volByGroup[ex.muscleGroup] = (volByGroup[ex.muscleGroup] || 0) + Math.max(vol, 1);
+  });
+  const volBySlug: Partial<Record<BodySlug, number>> = {};
+  Object.entries(volByGroup).forEach(([group, vol]) => {
+    const slugs = GROUP_TO_SLUGS[group];
+    if (!slugs) return;
+    slugs.forEach((s) => { volBySlug[s] = (volBySlug[s] ?? 0) + vol; });
+  });
+  const max = Math.max(1, ...Object.values(volBySlug).map((v) => v ?? 0));
+  const out: Partial<Record<BodySlug, number>> = {};
+  Object.entries(volBySlug).forEach(([slug, vol]) => {
+    out[slug as BodySlug] = (vol ?? 0) / max;
+  });
+  return out;
+}
+
+function buildMuscleSvg(exercises: ShareCardData['exercises']): string {
+  const intensity = computeIntensities(exercises);
+  const stroke = 'rgba(255,255,255,0.22)';
+  const headFill = 'rgba(255,255,255,0.18)';
+  const defaultFill = 'rgba(255,255,255,0.05)';
+
+  const buildPaths = (parts: typeof bodyFront): string => {
+    let out = '';
+    for (const part of parts) {
+      const slug = part.slug;
+      if (!slug) continue;
+      const fill = (slug === 'head' || slug === 'hair')
+        ? headFill
+        : NON_HIGHLIGHT.has(slug)
+          ? defaultFill
+          : intensityColor(intensity[slug] ?? 0);
+      const draw = (d: string) => `<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="0.7" vector-effect="non-scaling-stroke"/>`;
+      part.path?.common?.forEach((d) => { out += draw(d); });
+      part.path?.left?.forEach((d) => { out += draw(d); });
+      part.path?.right?.forEach((d) => { out += draw(d); });
+    }
+    return out;
+  };
+
+  // Two SVGs side-by-side, each in its own viewBox slice.
+  // Total view: 0..1448 wide (724 + 724) × 1448 tall.
+  const front = `<g><path d="${BORDER_FRONT_PATH}" fill="rgba(255,255,255,0.025)" stroke="${stroke}" stroke-width="1.4" vector-effect="non-scaling-stroke"/>${buildPaths(bodyFront)}</g>`;
+  const back  = `<g><path d="${BORDER_BACK_PATH}" fill="rgba(255,255,255,0.025)" stroke="${stroke}" stroke-width="1.4" vector-effect="non-scaling-stroke"/>${buildPaths(bodyBack)}</g>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1448 1448" width="1448" height="1448">${front}${back}</svg>`;
+}
+
+function svgToImage(svg: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    // Use base64 data URL — bypasses tainted-canvas issues some browsers throw
+    // on Blob URLs created from cross-origin SVG content references.
+    const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = (e) => reject(e);
+    img.src = dataUrl;
+  });
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+
 export async function generateShareCard(data: ShareCardData): Promise<Blob | null> {
   try {
-    const W = 1080, H = 1350;
+    const W = 1080, H = 1620;
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
@@ -57,35 +166,32 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
 
     const [c1, c2] = TYPE_COLORS[data.sessionType] ?? ['#FF6B35', '#E14A0F'];
     const typeLabel = data.sessionType.charAt(0).toUpperCase() + data.sessionType.slice(1);
+    const labels = muscleLabels();
 
-    // ── Background ──────────────────────────────────────────────────────────
+    // ── Background ─────────────────────────────────────────
     ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, W, H);
 
-    // Ambient glow top-left
     const glow = ctx.createRadialGradient(260, 280, 0, 260, 280, 580);
     glow.addColorStop(0, c1 + '22');
     glow.addColorStop(1, 'transparent');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, W, H);
 
-    // Ambient glow bottom-right
-    const glow2 = ctx.createRadialGradient(820, 1100, 0, 820, 1100, 480);
+    const glow2 = ctx.createRadialGradient(820, 1300, 0, 820, 1300, 480);
     glow2.addColorStop(0, c2 + '18');
     glow2.addColorStop(1, 'transparent');
     ctx.fillStyle = glow2;
     ctx.fillRect(0, 0, W, H);
 
-    // ── Top accent bar ───────────────────────────────────────────────────────
     const bar = ctx.createLinearGradient(0, 0, W, 0);
     bar.addColorStop(0, c1);
     bar.addColorStop(1, c2);
     ctx.fillStyle = bar;
     ctx.fillRect(0, 0, W, 8);
 
-    // ── Logo ─────────────────────────────────────────────────────────────────
+    // ── Logo ────────────────────────────────────────────────
     ctx.font = 'bold 52px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    ctx.letterSpacing = '3px';
     ctx.fillStyle = c1;
     ctx.fillText('RezaKit', 72, 106);
 
@@ -93,7 +199,7 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
     ctx.fillStyle = 'rgba(255,255,255,0.28)';
     ctx.fillText('resakit.fr', 74, 148);
 
-    // ── Session type pill ────────────────────────────────────────────────────
+    // ── Session type pill ───────────────────────────────────
     const pillW = 200, pillH = 58, pillX = W - 72 - pillW, pillY = 72;
     const pillGrad = ctx.createLinearGradient(pillX, 0, pillX + pillW, 0);
     pillGrad.addColorStop(0, c1);
@@ -107,23 +213,22 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
     ctx.fillText(typeLabel.toUpperCase(), pillX + pillW / 2, pillY + 38);
     ctx.textAlign = 'left';
 
-    // ── Date ─────────────────────────────────────────────────────────────────
+    // ── Date ────────────────────────────────────────────────
     ctx.font = '500 30px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
     ctx.fillText(fmtDate(data.date), 72, 218);
 
-    // ── Divider ───────────────────────────────────────────────────────────────
     ctx.strokeStyle = 'rgba(255,255,255,0.07)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(72, 248); ctx.lineTo(W - 72, 248);
     ctx.stroke();
 
-    // ── Stats cards ──────────────────────────────────────────────────────────
+    // ── Stats cards ─────────────────────────────────────────
     const stats = [
-      { label: 'VOLUME', value: data.totalVolume >= 1000 ? `${(data.totalVolume / 1000).toFixed(1)}t` : `${data.totalVolume}kg` },
-      { label: 'SÉRIES',  value: String(data.totalSets)  },
-      { label: 'REPS',    value: String(data.totalReps)  },
+      { label: 'VOLUME',                                         value: data.totalVolume >= 1000 ? `${(data.totalVolume / 1000).toFixed(1)}t` : `${data.totalVolume}kg` },
+      { label: tr({ fr: 'SÉRIES', en: 'SETS', es: 'SERIES' }),   value: String(data.totalSets) },
+      { label: 'REPS',                                           value: String(data.totalReps) },
     ];
     const cardW = (W - 144 - 32) / 3;
     stats.forEach((s, i) => {
@@ -148,8 +253,50 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
       ctx.textAlign = 'left';
     });
 
-    // ── PR Banner ────────────────────────────────────────────────────────────
+    // ── Muscle map ──────────────────────────────────────────
     let yOff = 472;
+    try {
+      const svg = buildMuscleSvg(data.exercises);
+      const img = await svgToImage(svg);
+      // Card backdrop
+      const mapH = 460;
+      ctx.fillStyle = 'rgba(255,255,255,0.03)';
+      roundRect(ctx, 72, yOff, W - 144, mapH + 56, 22);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 1;
+      roundRect(ctx, 72, yOff, W - 144, mapH + 56, 22);
+      ctx.stroke();
+
+      ctx.font = '700 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.textAlign = 'left';
+      ctx.fillText(tr({ fr: 'MUSCLES TRAVAILLÉS', en: 'MUSCLES WORKED', es: 'MÚSCULOS TRABAJADOS' }), 96, yOff + 38);
+
+      // FACE / DOS labels
+      ctx.font = '800 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.textAlign = 'center';
+      const labelY = yOff + mapH + 36;
+      ctx.fillText(tr({ fr: 'FACE', en: 'FRONT', es: 'FRENTE' }), W / 2 - 200, labelY);
+      ctx.fillText(tr({ fr: 'DOS',  en: 'BACK',  es: 'ESPALDA' }), W / 2 + 200, labelY);
+      ctx.textAlign = 'left';
+
+      // Image: map's intrinsic aspect is 1448:1448 (square). We draw it square,
+      // centered in the card.
+      const imgH = mapH - 8;
+      const imgW = imgH; // 1:1
+      const imgX = (W - imgW) / 2;
+      const imgY = yOff + 50;
+      ctx.drawImage(img, imgX, imgY, imgW, imgH);
+
+      yOff += mapH + 80;
+    } catch {
+      // If SVG rasterisation fails, just skip the muscle map gracefully.
+      yOff += 8;
+    }
+
+    // ── PR Banner ───────────────────────────────────────────
     if (data.records && data.records.length > 0) {
       const prH = 56 + data.records.length * 50;
       ctx.fillStyle = 'rgba(255,107,53,0.1)';
@@ -160,9 +307,12 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
       roundRect(ctx, 72, yOff, W - 144, prH, 22);
       ctx.stroke();
 
+      const recordsLabel = tr({ fr: 'NOUVEAUX RECORDS', en: 'NEW PRS', es: 'NUEVOS RÉCORDS' });
+      const recordSingle = tr({ fr: 'NOUVEAU RECORD', en: 'NEW PR', es: 'NUEVO RÉCORD' });
+      const banner = data.records.length > 1 ? `🏆  ${data.records.length} ${recordsLabel}` : `🏆  ${recordSingle}`;
       ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.fillStyle = c1;
-      ctx.fillText(`🏆  ${data.records.length} NOUVEAU${data.records.length > 1 ? 'X' : ''} RECORD${data.records.length > 1 ? 'S' : ''}`, 108, yOff + 44);
+      ctx.fillText(banner, 108, yOff + 44);
 
       data.records.slice(0, 3).forEach((r, i) => {
         ctx.font = '600 26px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
@@ -175,23 +325,25 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
       yOff += prH + 24;
     }
 
-    // ── Exercises list ───────────────────────────────────────────────────────
+    // ── Exercises list (max 4 to leave room) ─────────────────
     ctx.font = '700 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.28)';
-    ctx.fillText('EXERCICES', 72, yOff + 8);
+    ctx.fillText(tr({ fr: 'EXERCICES', en: 'EXERCISES', es: 'EJERCICIOS' }), 72, yOff + 8);
     yOff += 36;
 
-    const maxExos = Math.min(data.exercises.length, 6);
+    const remaining = H - 80 - yOff; // leave room for footer
+    const slotH = 96;
+    const maxByRoom = Math.max(1, Math.floor(remaining / slotH));
+    const maxExos = Math.min(data.exercises.length, Math.min(5, maxByRoom));
     for (let i = 0; i < maxExos; i++) {
       const ex = data.exercises[i];
       const bestSet = ex.sets.reduce((b, s) => s.weight > b.weight ? s : b, { weight: 0, reps: 0 });
-      const musLabel = MUSCLE_LABELS[ex.muscleGroup] || ex.muscleGroup;
+      const musLabel = (labels as any)[ex.muscleGroup] || ex.muscleGroup;
 
       ctx.fillStyle = 'rgba(255,255,255,0.04)';
       roundRect(ctx, 72, yOff, W - 144, 82, 18);
       ctx.fill();
 
-      // Accent left stripe
       const stripeGrad = ctx.createLinearGradient(72, 0, 72, 82);
       stripeGrad.addColorStop(0, c1);
       stripeGrad.addColorStop(1, c2);
@@ -205,7 +357,8 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
 
       ctx.font = '500 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.32)';
-      ctx.fillText(`${musLabel}  ·  ${ex.sets.length} séries`, 102, yOff + 66);
+      const setsWord = tr({ fr: 'séries', en: 'sets', es: 'series' });
+      ctx.fillText(`${musLabel}  ·  ${ex.sets.length} ${setsWord}`, 102, yOff + 66);
 
       if (bestSet.weight > 0) {
         ctx.font = '700 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
@@ -215,25 +368,29 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob | nul
         ctx.textAlign = 'left';
       }
 
-      yOff += 96;
+      yOff += slotH;
     }
 
-    if (data.exercises.length > 6) {
+    if (data.exercises.length > maxExos) {
       ctx.font = '500 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.28)';
-      ctx.fillText(`+ ${data.exercises.length - 6} exercice${data.exercises.length - 6 > 1 ? 's' : ''}`, 72, yOff + 12);
+      const more = data.exercises.length - maxExos;
+      const exoSing = tr({ fr: 'exercice', en: 'exercise', es: 'ejercicio' });
+      const exoPlur = tr({ fr: 'exercices', en: 'exercises', es: 'ejercicios' });
+      ctx.fillText(`+ ${more} ${more > 1 ? exoPlur : exoSing}`, 72, yOff + 12);
       yOff += 48;
     }
 
-    // ── Bottom bar ────────────────────────────────────────────────────────────
+    // ── Bottom bar ──────────────────────────────────────────
     ctx.fillStyle = 'rgba(255,255,255,0.05)';
     ctx.fillRect(0, H - 80, W, 80);
 
     ctx.font = '600 26px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.28)';
-    ctx.fillText('Fait avec', 72, H - 28);
+    const madeWith = tr({ fr: 'Fait avec', en: 'Made with', es: 'Hecho con' });
+    ctx.fillText(madeWith, 72, H - 28);
     ctx.fillStyle = c1;
-    ctx.fillText(' RezaKit', 72 + ctx.measureText('Fait avec').width, H - 28);
+    ctx.fillText(' RezaKit', 72 + ctx.measureText(madeWith).width, H - 28);
 
     if (data.userName) {
       ctx.textAlign = 'right';
@@ -261,17 +418,19 @@ export async function shareSession(data: ShareCardData): Promise<'shared' | 'dow
     try {
       await navigator.share({
         files: [new File([blob], filename, { type: 'image/png' })],
-        title: `Séance ${data.sessionType} — RezaKit`,
-        text: `${data.totalSets} séries · ${Math.round(data.totalVolume)}kg volume`,
+        title: tr({ fr: `Séance ${data.sessionType} — RezaKit`, en: `${data.sessionType} workout — RezaKit`, es: `Sesión ${data.sessionType} — RezaKit` }),
+        text: tr({
+          fr: `${data.totalSets} séries · ${Math.round(data.totalVolume)}kg volume`,
+          en: `${data.totalSets} sets · ${Math.round(data.totalVolume)}kg volume`,
+          es: `${data.totalSets} series · ${Math.round(data.totalVolume)}kg volumen`,
+        }),
       });
       return 'shared';
     } catch {
-      // user cancelled — not an error
       return 'error';
     }
   }
 
-  // Fallback: download
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

@@ -21,6 +21,7 @@ const LS_KEYS = [
   'rezakit_exercise_favorites',
   'rezakit_exercise_avoided',
   'coach_profile',
+  'rezakit_lang',
 ] as const;
 
 function captureLocalStorage(): Record<string, string> {
