@@ -8,3 +8,5 @@ dist
 
 # Reference images / sketches (not part of build)
 .ref-images/
+
+.vercel
