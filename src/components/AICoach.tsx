@@ -36,13 +36,15 @@ interface PendingAction {
   contentsAtCall: any[];
 }
 
-const SESSION_TYPE_LABELS: Record<SessionType, string> = {
-  push: 'Push (Pecto / Épaules / Triceps)',
-  pull: 'Pull (Dos / Biceps)',
-  legs: 'Legs (Quadri / Ischio / Mollets)',
-  upper: 'Upper (Haut du corps)',
-  lower: 'Lower (Bas du corps)',
-};
+function getSessionTypeLabels(): Record<SessionType, string> {
+  return {
+    push:  tr({ fr: 'Push (Pecto / Épaules / Triceps)', en: 'Push (Chest / Shoulders / Triceps)', es: 'Push (Pecho / Hombros / Tríceps)' }),
+    pull:  tr({ fr: 'Pull (Dos / Biceps)',              en: 'Pull (Back / Biceps)',               es: 'Pull (Espalda / Bíceps)'          }),
+    legs:  tr({ fr: 'Legs (Quadri / Ischio / Mollets)', en: 'Legs (Quads / Hamstrings / Calves)', es: 'Legs (Cuádris / Isquios / Gemelos)'}),
+    upper: tr({ fr: 'Upper (Haut du corps)',            en: 'Upper (Upper body)',                 es: 'Upper (Tren superior)'            }),
+    lower: tr({ fr: 'Lower (Bas du corps)',             en: 'Lower (Lower body)',                 es: 'Lower (Tren inferior)'            }),
+  };
+}
 
 const getQuickPrompts = () => [
   tr({ fr: "Bilan de ma semaine d'entraînement",        en: 'Recap of my training week',                es: 'Balance de mi semana de entrenamiento' }),
@@ -216,14 +218,14 @@ function formatError(msg: string): string {
     const m = msg.match(/retry in ([\d.]+)s/i);
     const secs = m ? Math.ceil(parseFloat(m[1])) : null;
     return secs
-      ? `Serveur Gemini saturé ☕ Nouvelle tentative possible dans ${secs}s (limite gratuite atteinte).`
-      : 'Serveur Gemini saturé. Réessaie dans 1 min — limite gratuite atteinte.';
+      ? tr({ fr: `Serveur Gemini saturé ☕ Nouvelle tentative dans ${secs}s (limite gratuite atteinte).`, en: `Gemini overloaded ☕ Retry in ${secs}s (free quota reached).`, es: `Gemini saturado ☕ Reintento en ${secs}s (límite gratuito alcanzado).` })
+      : tr({ fr: 'Serveur Gemini saturé. Réessaie dans 1 min — limite gratuite atteinte.', en: 'Gemini overloaded. Retry in 1 min — free quota reached.', es: 'Gemini saturado. Reintenta en 1 min — límite gratuito alcanzado.' });
   }
-  if (msg.includes('503') || msg.toLowerCase().includes('unavailable')) return 'Serveur Gemini indisponible. Réessaie dans 30s.';
-  if ((msg.includes('401') || msg.includes('403')) && !msg.includes('API_KEY')) return 'Accès refusé. Vérifie ta clé API.';
-  if (msg.includes('400') && msg.toLowerCase().includes('api_key')) return 'Clé API invalide. Vérifie dans Paramètres → Clé API.';
-  if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('failed to fetch')) return 'Connexion impossible. Vérifie ton réseau.';
-  return 'Une erreur est survenue. Réessaie.';
+  if (msg.includes('503') || msg.toLowerCase().includes('unavailable')) return tr({ fr: 'Serveur Gemini indisponible. Réessaie dans 30s.', en: 'Gemini unavailable. Retry in 30s.', es: 'Gemini no disponible. Reintenta en 30s.' });
+  if ((msg.includes('401') || msg.includes('403')) && !msg.includes('API_KEY')) return tr({ fr: 'Accès refusé. Vérifie ta clé API.', en: 'Access denied. Check your API key.', es: 'Acceso denegado. Verifica tu clave API.' });
+  if (msg.includes('400') && msg.toLowerCase().includes('api_key')) return tr({ fr: 'Clé API invalide. Vérifie dans Paramètres → Clé API.', en: 'Invalid API key. Check in Settings → API Key.', es: 'Clave API inválida. Verifica en Ajustes → Clave API.' });
+  if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('failed to fetch')) return tr({ fr: 'Connexion impossible. Vérifie ton réseau.', en: 'Cannot connect. Check your network.', es: 'Sin conexión. Verifica tu red.' });
+  return tr({ fr: 'Une erreur est survenue. Réessaie.', en: 'An error occurred. Try again.', es: 'Ocurrió un error. Inténtalo de nuevo.' });
 }
 
 function parseInline(text: string): React.ReactNode {
@@ -432,56 +434,84 @@ async function callGemini(
 }
 
 function buildActionPreview(name: string, args: Record<string, unknown>): { label: string; preview: string } {
+  const STL = getSessionTypeLabels();
   switch (name) {
     case 'create_session': {
       const a = args as { date: string; type: SessionType; exercises?: { name: string }[]; notes?: string };
-      const exos = a.exercises?.map((e) => e.name).join(', ') || 'à définir';
-      return { label: '🏋️ Créer une séance', preview: `${SESSION_TYPE_LABELS[a.type]}\nDate : ${a.date}\nExercices : ${exos}${a.notes ? `\nNote : ${a.notes}` : ''}` };
+      const exos = a.exercises?.map((e) => e.name).join(', ') || tr({ fr: 'à définir', en: 'to define', es: 'por definir' });
+      const label = tr({ fr: 'Créer une séance', en: 'Create a workout', es: 'Crear sesión' });
+      const dateL = tr({ fr: 'Date', en: 'Date', es: 'Fecha' });
+      const exosL = tr({ fr: 'Exercices', en: 'Exercises', es: 'Ejercicios' });
+      const noteL = tr({ fr: 'Note', en: 'Note', es: 'Nota' });
+      return { label: `🏋️ ${label}`, preview: `${STL[a.type]}\n${dateL} : ${a.date}\n${exosL} : ${exos}${a.notes ? `\n${noteL} : ${a.notes}` : ''}` };
     }
     case 'create_template': {
       const a = args as { name: string; type: SessionType; exercises: { name: string }[] };
-      return { label: '📋 Créer un template', preview: `"${a.name}" — ${SESSION_TYPE_LABELS[a.type]}\nExercices : ${a.exercises.map((e) => e.name).join(', ')}` };
+      const label = tr({ fr: 'Créer un template', en: 'Create a template', es: 'Crear plantilla' });
+      const exosL = tr({ fr: 'Exercices', en: 'Exercises', es: 'Ejercicios' });
+      return { label: `📋 ${label}`, preview: `"${a.name}" — ${STL[a.type]}\n${exosL} : ${a.exercises.map((e) => e.name).join(', ')}` };
     }
     case 'delete_session': {
       const a = args as { session_date: string; session_type: string };
-      return { label: '🗑 Supprimer une séance', preview: `Séance ${a.session_type?.toUpperCase()} du ${a.session_date}` };
+      const label = tr({ fr: 'Supprimer une séance', en: 'Delete a workout', es: 'Eliminar sesión' });
+      const seanceL = tr({ fr: 'Séance', en: 'Workout', es: 'Sesión' });
+      return { label: `🗑 ${label}`, preview: `${seanceL} ${a.session_type?.toUpperCase()} — ${a.session_date}` };
     }
     case 'reschedule_session': {
       const a = args as { old_date: string; new_date: string; session_type: string };
-      return { label: '📅 Déplacer une séance', preview: `${a.session_type?.toUpperCase()} : ${a.old_date} → ${a.new_date}` };
+      const label = tr({ fr: 'Déplacer une séance', en: 'Reschedule a workout', es: 'Reprogramar sesión' });
+      return { label: `📅 ${label}`, preview: `${a.session_type?.toUpperCase()} : ${a.old_date} → ${a.new_date}` };
     }
     case 'update_session_notes': {
       const a = args as { session_date?: string; notes: string };
-      return { label: '📝 Modifier les notes', preview: `${a.session_date ? `Séance du ${a.session_date}\n` : ''}Notes : "${a.notes}"` };
+      const label = tr({ fr: 'Modifier les notes', en: 'Update notes', es: 'Actualizar notas' });
+      const seanceL = tr({ fr: 'Séance du', en: 'Workout on', es: 'Sesión del' });
+      const notesL = tr({ fr: 'Notes', en: 'Notes', es: 'Notas' });
+      return { label: `📝 ${label}`, preview: `${a.session_date ? `${seanceL} ${a.session_date}\n` : ''}${notesL} : "${a.notes}"` };
     }
     case 'log_weight': {
       const a = args as { weight: number; date?: string };
-      return { label: '⚖️ Logger le poids', preview: `${a.weight} kg${a.date ? ` — ${a.date}` : ' — aujourd\'hui'}` };
+      const label = tr({ fr: 'Logger le poids', en: 'Log weight', es: 'Registrar peso' });
+      const todayL = tr({ fr: "aujourd'hui", en: 'today', es: 'hoy' });
+      return { label: `⚖️ ${label}`, preview: `${a.weight} kg${a.date ? ` — ${a.date}` : ` — ${todayL}`}` };
     }
     case 'add_calorie': {
       const a = args as { calories: number; label: string; type: string; meal?: string };
-      return { label: `🍽 Ajouter ${a.type === 'in' ? 'calories mangées' : 'calories dépensées'}`, preview: `${a.label} — ${a.calories} kcal${a.meal ? ` (${a.meal})` : ''}` };
+      const inL = tr({ fr: 'calories mangées', en: 'calories eaten', es: 'calorías ingeridas' });
+      const outL = tr({ fr: 'calories dépensées', en: 'calories burned', es: 'calorías quemadas' });
+      const addL = tr({ fr: 'Ajouter', en: 'Add', es: 'Añadir' });
+      return { label: `🍽 ${addL} ${a.type === 'in' ? inL : outL}`, preview: `${a.label} — ${a.calories} kcal${a.meal ? ` (${a.meal})` : ''}` };
     }
     case 'add_cardio': {
       const a = args as { activity_type: string; distance: number; duration: number; date?: string };
       const unit = a.activity_type === 'run' ? 'km' : 'm';
-      return { label: `${a.activity_type === 'run' ? '🏃 Enregistrer une course' : '🏊 Enregistrer une natation'}`, preview: `${a.distance}${unit} en ${a.duration}min${a.date ? ` — ${a.date}` : ''}` };
+      const runL = tr({ fr: 'Enregistrer une course', en: 'Log a run', es: 'Registrar carrera' });
+      const swimL = tr({ fr: 'Enregistrer une natation', en: 'Log a swim', es: 'Registrar natación' });
+      return { label: `${a.activity_type === 'run' ? `🏃 ${runL}` : `🏊 ${swimL}`}`, preview: `${a.distance}${unit} — ${a.duration}min${a.date ? ` — ${a.date}` : ''}` };
     }
     case 'save_injury': {
       const a = args as { description: string };
-      return { label: '🩹 Mémoriser une blessure', preview: a.description };
+      const label = tr({ fr: 'Mémoriser une blessure', en: 'Save an injury', es: 'Guardar lesión' });
+      return { label: `🩹 ${label}`, preview: a.description };
     }
-    case 'clear_injuries':
-      return { label: '✅ Effacer les blessures', preview: 'Toutes les blessures enregistrées seront supprimées.' };
+    case 'clear_injuries': {
+      const label = tr({ fr: 'Effacer les blessures', en: 'Clear injuries', es: 'Borrar lesiones' });
+      const preview = tr({ fr: 'Toutes les blessures enregistrées seront supprimées.', en: 'All saved injuries will be deleted.', es: 'Todas las lesiones guardadas serán eliminadas.' });
+      return { label: `✅ ${label}`, preview };
+    }
     case 'create_periodization_plan': {
       const a = args as { weeks: number; sessions: { date: string; type: string }[] };
       const byWeek = new Map<string, number>();
       a.sessions.forEach((s) => {
-        const w = `Semaine du ${s.date.substring(0, 7)}`;
+        const w = s.date.substring(0, 7);
         byWeek.set(w, (byWeek.get(w) || 0) + 1);
       });
-      const summary = Array.from(byWeek.entries()).slice(0, 4).map(([w, n]) => `${w}: ${n} séances`).join('\n');
-      return { label: `📆 Plan ${a.weeks} semaine${a.weeks > 1 ? 's' : ''}`, preview: `${a.sessions.length} séances planifiées\n${summary}${a.sessions.length > 4 ? '\n...' : ''}` };
+      const weekL = tr({ fr: 'sem.', en: 'wk', es: 'sem.' });
+      const seancesL = tr({ fr: 'séances', en: 'sessions', es: 'sesiones' });
+      const totalL = tr({ fr: 'séances planifiées', en: 'sessions planned', es: 'sesiones planificadas' });
+      const planL = tr({ fr: `Plan ${a.weeks} semaine${a.weeks > 1 ? 's' : ''}`, en: `${a.weeks}-week plan`, es: `Plan de ${a.weeks} semana${a.weeks > 1 ? 's' : ''}` });
+      const summary = Array.from(byWeek.entries()).slice(0, 4).map(([w, n]) => `${weekL} ${w}: ${n} ${seancesL}`).join('\n');
+      return { label: `📆 ${planL}`, preview: `${a.sessions.length} ${totalL}\n${summary}${a.sessions.length > 4 ? '\n...' : ''}` };
     }
     default:
       return { label: name, preview: JSON.stringify(args) };
@@ -720,14 +750,14 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. ${lang
     const today = new Date().toISOString().split('T')[0];
 
     try {
-      let successMsg = '✅ Fait !';
+      let successMsg = '✅';
 
       switch (pendingAction.type) {
         case 'create_session': {
           const a = pendingAction.args as { date: string; type: SessionType; exercises?: { name: string; muscleGroup: string }[]; notes?: string };
           await planSession(a.date, a.type, a.exercises || [], a.notes);
           await loadSessions();
-          successMsg = `✅ Séance ${SESSION_TYPE_LABELS[a.type]} planifiée pour le ${a.date} — visible dans le calendrier.`;
+          successMsg = tr({ fr: `✅ Séance planifiée pour le ${a.date} — visible dans le calendrier.`, en: `✅ Workout planned for ${a.date} — visible in the calendar.`, es: `✅ Sesión planificada para el ${a.date} — visible en el calendario.` });
           // Offer posing photo if the session is for today/past and user is logged in
           const todayIso = new Date().toISOString().split('T')[0];
           if (user && a.date <= todayIso) {
@@ -739,50 +769,53 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. ${lang
           const a = pendingAction.args as { name: string; type: SessionType; exercises: { name: string; muscleGroup: string }[] };
           await createTemplate(a.name, a.type, a.exercises);
           await loadTemplates();
-          successMsg = `✅ Template "${a.name}" créé — disponible dans Config → Templates.`;
+          successMsg = tr({ fr: `✅ Template "${a.name}" créé — disponible dans Config → Templates.`, en: `✅ Template "${a.name}" created — available in Config → Templates.`, es: `✅ Plantilla "${a.name}" creada — disponible en Config → Plantillas.` });
           break;
         }
         case 'delete_session': {
           const a = pendingAction.args as { session_id: string; session_date: string };
           await deleteSession(a.session_id);
           await loadSessions();
-          successMsg = `✅ Séance du ${a.session_date} supprimée.`;
+          successMsg = tr({ fr: `✅ Séance du ${a.session_date} supprimée.`, en: `✅ Workout on ${a.session_date} deleted.`, es: `✅ Sesión del ${a.session_date} eliminada.` });
           break;
         }
         case 'reschedule_session': {
           const a = pendingAction.args as { session_id: string; old_date: string; new_date: string };
           await rescheduleSession(a.session_id, a.new_date);
           await loadSessions();
-          successMsg = `✅ Séance déplacée du ${a.old_date} au ${a.new_date}.`;
+          successMsg = tr({ fr: `✅ Séance déplacée du ${a.old_date} au ${a.new_date}.`, en: `✅ Workout moved from ${a.old_date} to ${a.new_date}.`, es: `✅ Sesión movida del ${a.old_date} al ${a.new_date}.` });
           break;
         }
         case 'update_session_notes': {
           const a = pendingAction.args as { session_id: string; notes: string; session_date?: string };
           await updateSessionNotes(a.session_id, a.notes);
           await loadSessions();
-          successMsg = `✅ Notes mises à jour.`;
+          successMsg = tr({ fr: '✅ Notes mises à jour.', en: '✅ Notes updated.', es: '✅ Notas actualizadas.' });
           break;
         }
         case 'log_weight': {
           const a = pendingAction.args as { weight: number; date?: string; notes?: string };
           await addWeight(a.weight, a.date || today, a.notes);
-          successMsg = `✅ Poids enregistré : ${a.weight} kg.`;
+          successMsg = tr({ fr: `✅ Poids enregistré : ${a.weight} kg.`, en: `✅ Weight logged: ${a.weight} kg.`, es: `✅ Peso registrado: ${a.weight} kg.` });
           break;
         }
         case 'add_calorie': {
           const a = pendingAction.args as { calories: number; label: string; type: 'in' | 'out'; meal?: MealType; date?: string };
           await addEntry(a.calories, a.label, a.type, a.date || today, a.meal);
-          successMsg = `✅ ${a.calories} kcal ${a.type === 'in' ? 'mangées' : 'dépensées'} (${a.label}) enregistrées.`;
+          const calType = a.type === 'in'
+            ? tr({ fr: 'mangées', en: 'eaten', es: 'ingeridas' })
+            : tr({ fr: 'dépensées', en: 'burned', es: 'quemadas' });
+          successMsg = `✅ ${a.calories} kcal ${calType} (${a.label}).`;
           break;
         }
         case 'add_cardio': {
           const a = pendingAction.args as { activity_type: 'run' | 'swim'; distance: number; duration: number; date?: string; notes?: string };
           if (a.activity_type === 'run') {
             await addCourse(a.distance, a.duration, a.date || today, a.notes);
-            successMsg = `✅ Course enregistrée : ${a.distance}km en ${a.duration}min.`;
+            successMsg = tr({ fr: `✅ Course enregistrée : ${a.distance}km en ${a.duration}min.`, en: `✅ Run logged: ${a.distance}km in ${a.duration}min.`, es: `✅ Carrera registrada: ${a.distance}km en ${a.duration}min.` });
           } else {
             await addNatation(a.distance, a.duration, a.date || today, 'Crawl', a.notes);
-            successMsg = `✅ Natation enregistrée : ${a.distance}m en ${a.duration}min.`;
+            successMsg = tr({ fr: `✅ Natation enregistrée : ${a.distance}m en ${a.duration}min.`, en: `✅ Swim logged: ${a.distance}m in ${a.duration}min.`, es: `✅ Natación registrada: ${a.distance}m en ${a.duration}min.` });
           }
           break;
         }
@@ -791,12 +824,12 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. ${lang
           const profile = getProfile();
           profile.injuries.push(a.description);
           saveCoachProfile(profile);
-          successMsg = `✅ Blessure mémorisée — je ferai attention dans mes futurs conseils.`;
+          successMsg = tr({ fr: '✅ Blessure mémorisée — je ferai attention dans mes futurs conseils.', en: "✅ Injury saved — I'll be careful in my future advice.", es: '✅ Lesión guardada — la tendré en cuenta en mis próximos consejos.' });
           break;
         }
         case 'clear_injuries': {
           saveCoachProfile({ injuries: [], updatedAt: new Date().toISOString() });
-          successMsg = `✅ Toutes les blessures ont été effacées.`;
+          successMsg = tr({ fr: '✅ Toutes les blessures ont été effacées.', en: '✅ All injuries cleared.', es: '✅ Todas las lesiones borradas.' });
           break;
         }
         case 'create_periodization_plan': {
@@ -805,7 +838,7 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. ${lang
             await planSession(s.date, s.type, s.exercises || []);
           }
           await loadSessions();
-          successMsg = `✅ Plan de ${a.weeks} semaine${a.weeks > 1 ? 's' : ''} créé — ${a.sessions.length} séances dans le calendrier.`;
+          successMsg = tr({ fr: `✅ Plan de ${a.weeks} semaine${a.weeks > 1 ? 's' : ''} créé — ${a.sessions.length} séances dans le calendrier.`, en: `✅ ${a.weeks}-week plan created — ${a.sessions.length} sessions in the calendar.`, es: `✅ Plan de ${a.weeks} semana${a.weeks > 1 ? 's' : ''} creado — ${a.sessions.length} sesiones en el calendario.` });
           break;
         }
       }
@@ -820,7 +853,7 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. ${lang
       await continueAfterAction(actionSnapshot, successMsg);
       return;
     } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: '❌ Erreur lors de l\'exécution. Réessaie.' }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: `❌ ${tr({ fr: "Erreur lors de l'exécution. Réessaie.", en: 'Execution error. Try again.', es: 'Error al ejecutar. Inténtalo de nuevo.' })}` }]);
     }
 
     setPendingAction(null);
@@ -829,7 +862,7 @@ Tu es un coach fitness et nutrition personnel expert, direct et motivant. ${lang
 
   const cancelAction = () => {
     setPendingAction(null);
-    setMessages((prev) => [...prev, { role: 'assistant', content: 'Pas de problème, laisse tomber. Autre chose ?' }]);
+    setMessages((prev) => [...prev, { role: 'assistant', content: tr({ fr: 'Pas de problème, laisse tomber. Autre chose ?', en: "No problem, let's forget it. Anything else?", es: '¡Sin problema, olvidado. ¿Algo más?' }) }]);
   };
 
   const hasApiKey = !!localStorage.getItem('gemini_api_key');
