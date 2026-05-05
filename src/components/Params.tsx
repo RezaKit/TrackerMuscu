@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore, formatAuthError } from '../stores/authStore';
 import { supabase } from '../db/supabase';
 import { db } from '../db/db';
 import { Icons } from './Icons';
@@ -126,31 +126,58 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
   const handleChangePassword = async () => {
     if (newPassword !== newPassword2) { showToast(tr({ fr: 'Les mots de passe ne correspondent pas', en: 'Passwords do not match', es: 'Las contraseñas no coinciden' }), 'info'); return; }
     if (newPassword.length < 6) { showToast(tr({ fr: 'Minimum 6 caractères', en: 'Minimum 6 characters', es: 'Mínimo 6 caracteres' }), 'info'); return; }
+    if (loading) return;
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    setLoading(false);
-    if (error) showToast(tr({ fr: 'Erreur : ', en: 'Error: ', es: 'Error: ' }) + error.message, 'info');
-    else { setNewPassword(''); setNewPassword2(''); showToast(tr({ fr: 'Mot de passe modifié ✓', en: 'Password updated ✓', es: 'Contraseña actualizada ✓' }), 'success'); }
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        console.error('[auth.updatePassword] error:', error);
+        showToast(tr({ fr: 'Erreur : ', en: 'Error: ', es: 'Error: ' }) + formatAuthError(error), 'info');
+      } else {
+        setNewPassword(''); setNewPassword2('');
+        showToast(tr({ fr: 'Mot de passe modifié ✓', en: 'Password updated ✓', es: 'Contraseña actualizada ✓' }), 'success');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChangeEmail = async () => {
     if (!newEmail.includes('@')) { showToast(tr({ fr: 'Email invalide', en: 'Invalid email', es: 'Email inválido' }), 'info'); return; }
+    if (loading) return;
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ email: newEmail });
-    setLoading(false);
-    if (error) showToast(tr({ fr: 'Erreur : ', en: 'Error: ', es: 'Error: ' }) + error.message, 'info');
-    else { setNewEmail(''); showToast(tr({ fr: 'Vérifie ton nouvel email pour confirmer', en: 'Check your new email to confirm', es: 'Revisa tu nuevo correo para confirmar' }), 'success'); }
+    try {
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) {
+        console.error('[auth.updateEmail] error:', error);
+        showToast(tr({ fr: 'Erreur : ', en: 'Error: ', es: 'Error: ' }) + formatAuthError(error), 'info');
+      } else {
+        setNewEmail('');
+        showToast(tr({ fr: 'Vérifie ton nouvel email pour confirmer', en: 'Check your new email to confirm', es: 'Revisa tu nuevo correo para confirmar' }), 'success');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResetPassword = async () => {
     if (!user?.email) return;
+    if (loading) return;
     setLoading(true);
-    await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: 'https://resakit.fr',
-    });
-    setLoading(false);
-    setResetSent(true);
-    showToast(tr({ fr: 'Email de réinitialisation envoyé !', en: 'Reset email sent!', es: '¡Correo de restablecimiento enviado!' }), 'success');
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: 'https://resakit.fr',
+      });
+      if (error) {
+        console.error('[auth.resetPasswordForEmail] error:', error);
+        showToast(tr({ fr: 'Erreur : ', en: 'Error: ', es: 'Error: ' }) + formatAuthError(error), 'info');
+      } else {
+        setResetSent(true);
+        showToast(tr({ fr: 'Email de réinitialisation envoyé !', en: 'Reset email sent!', es: '¡Correo de restablecimiento enviado!' }), 'success');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleStravaSync = async () => {

@@ -3,6 +3,9 @@ import { useSessionStore } from '../stores/sessionStore';
 import { Icons } from './Icons';
 import { tr, useLang } from '../utils/i18n';
 import { clearShareParam, readShareFromURL, type SharedTemplate } from '../utils/templateShare';
+import { localizeExerciseName, localizeTemplateName } from '../utils/exerciseNameLocalize';
+import MuscleMap from './MuscleMap';
+import type { ExerciseLog } from '../types';
 
 interface SharedTemplateImportProps {
   onImported: (date: string) => void;
@@ -65,18 +68,31 @@ export default function SharedTemplateImport({ onImported, showToast }: SharedTe
 
   const [c1, c2] = TYPE_COLORS[template.type] ?? ['#FF6B35', '#E14A0F'];
 
+  // Synthetic logs to feed MuscleMap (1 dummy set per exo so the body is highlighted)
+  const fakeExercises: ExerciseLog[] = template.exerciseNames.map((e, i) => ({
+    id: `fake-${i}`,
+    sessionId: 'fake',
+    exerciseName: e.name,
+    muscleGroup: e.muscleGroup,
+    sets: [{ setNumber: 1, weight: 1, reps: 10 }],
+    createdAt: new Date().toISOString(),
+  }));
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       background: 'rgba(5,5,5,0.92)', backdropFilter: 'blur(20px)',
       display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
       animation: 'fadeIn 0.2s ease-out',
+      overflow: 'hidden',
     }}>
       <div className="glass" style={{
-        width: '100%', maxWidth: 540, maxHeight: '92vh', overflowY: 'auto',
+        width: '100%', maxWidth: 540, maxHeight: '92vh',
+        overflowY: 'auto', overflowX: 'hidden',
         borderTopLeftRadius: 28, borderTopRightRadius: 28,
         background: '#0E0E10', borderTop: `2px solid ${c1}`,
         animation: 'slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
+        boxSizing: 'border-box',
       }}>
         {/* Drag handle */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
@@ -84,7 +100,7 @@ export default function SharedTemplateImport({ onImported, showToast }: SharedTe
         </div>
 
         {/* Header */}
-        <div style={{ padding: '8px 24px 18px' }}>
+        <div style={{ padding: '8px 20px 14px' }}>
           <div style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.16 }}>
             {tr({ fr: 'Séance partagée', en: 'Shared workout', es: 'Sesión compartida' })}
           </div>
@@ -96,11 +112,12 @@ export default function SharedTemplateImport({ onImported, showToast }: SharedTe
         </div>
 
         {/* Template card */}
-        <div style={{ padding: '0 16px' }}>
+        <div style={{ padding: '0 16px', boxSizing: 'border-box' }}>
           <div className="glass" style={{
-            borderRadius: 20, padding: '18px 18px',
+            borderRadius: 20, padding: '16px 16px',
             background: `linear-gradient(135deg, ${c1}1F, ${c2}10)`,
             border: `1px solid ${c1}40`,
+            boxSizing: 'border-box',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <span style={{
@@ -109,19 +126,36 @@ export default function SharedTemplateImport({ onImported, showToast }: SharedTe
                 background: c1, color: '#fff', textTransform: 'uppercase',
               }}>{template.type}</span>
             </div>
-            <h2 style={{ margin: '4px 0 4px', fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{template.name}</h2>
+            <h2 style={{ margin: '4px 0 4px', fontSize: 24, fontWeight: 800, color: 'var(--text)', wordBreak: 'break-word' }}>
+              {localizeTemplateName(template.name)}
+            </h2>
             <div style={{ fontSize: 12, color: 'var(--text-mute)' }}>
               {template.exerciseNames.length} {template.exerciseNames.length > 1
                 ? tr({ fr: 'exercices', en: 'exercises', es: 'ejercicios' })
                 : tr({ fr: 'exercice', en: 'exercise', es: 'ejercicio' })}
             </div>
 
-            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {/* Muscle map preview */}
+            <div style={{
+              marginTop: 14, padding: '12px 8px 8px',
+              background: 'rgba(255,255,255,0.03)',
+              borderRadius: 14,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-mute)', textTransform: 'uppercase', letterSpacing: 1.2 }}>
+                {tr({ fr: 'Muscles travaillés', en: 'Muscles worked', es: 'Músculos trabajados' })}
+              </div>
+              <MuscleMap exercises={fakeExercises} size={220} compact />
+            </div>
+
+            {/* Exercise list */}
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {template.exerciseNames.slice(0, 8).map((e, i) => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '8px 10px', borderRadius: 10,
                   background: 'rgba(255,255,255,0.03)',
+                  minWidth: 0,
                 }}>
                   <span style={{
                     flexShrink: 0, width: 22, height: 22, borderRadius: 6,
@@ -131,7 +165,9 @@ export default function SharedTemplateImport({ onImported, showToast }: SharedTe
                     fontFamily: 'var(--mono)',
                   }}>{i + 1}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{e.name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {localizeExerciseName(e.name)}
+                    </div>
                     <div style={{ fontSize: 10.5, color: 'var(--text-mute)', textTransform: 'capitalize' }}>{e.muscleGroup}</div>
                   </div>
                 </div>

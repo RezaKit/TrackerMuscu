@@ -8,6 +8,7 @@ import { Icons } from './Icons';
 import { setPendingAI } from '../utils/aiContext';
 import { tr, useLang } from '../utils/i18n';
 import { encodeShareLink } from '../utils/templateShare';
+import { localizeExerciseName, localizeTemplateName } from '../utils/exerciseNameLocalize';
 
 const MUSCLE_GROUPS = Object.keys(PRESET_EXERCISES);
 
@@ -71,10 +72,15 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
   };
 
   const handleAskAITemplate = (tpl: typeof templates[number]) => {
-    const exoLines = tpl.exerciseNames.map((e, i) => `  ${i + 1}. ${e.name} (${e.muscleGroup})`).join('\n');
+    const exoLines = tpl.exerciseNames.map((e, i) => `  ${i + 1}. ${localizeExerciseName(e.name)} (${e.muscleGroup})`).join('\n');
+    const initialMessage = tr({
+      fr: `Voici mon template "${tpl.name}" (${tpl.type}) :\n${exoLines}\n\nComment puis-je le modifier / l'optimiser pour mes objectifs ?`,
+      en: `Here is my template "${tpl.name}" (${tpl.type}):\n${exoLines}\n\nHow can I modify / optimise it for my goals?`,
+      es: `Aquí está mi plantilla "${tpl.name}" (${tpl.type}):\n${exoLines}\n\n¿Cómo puedo modificarla / optimizarla para mis objetivos?`,
+    });
     setPendingAI({
       kind: 'template',
-      initialMessage: `Voici mon template "${tpl.name}" (${tpl.type}) :\n${exoLines}\n\nComment puis-je le modifier / l'optimiser pour mes objectifs ?`,
+      initialMessage,
       payload: { templateId: tpl.id, name: tpl.name, type: tpl.type, exercises: tpl.exerciseNames },
     });
     onAskCoach?.();
@@ -332,7 +338,7 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</span>
+                        <span style={{ fontWeight: 700, fontSize: 14 }}>{localizeTemplateName(t.name)}</span>
                         <span style={{ fontSize: 10, background: 'rgba(255,107,53,0.12)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 999, fontWeight: 700, textTransform: 'uppercase' }}>
                           {TYPE_LABELS[t.type] || t.type}
                         </span>
@@ -373,7 +379,7 @@ export default function Settings({ showToast, onStartSession, onAskCoach }: Sett
                               fontFamily: 'var(--mono)',
                             }}>{i + 1}</span>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{e.name}</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{localizeExerciseName(e.name)}</div>
                               <div style={{ fontSize: 10.5, color: 'var(--text-mute)', textTransform: 'capitalize', marginTop: 1 }}>{e.muscleGroup}</div>
                             </div>
                           </div>

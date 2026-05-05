@@ -1,6 +1,22 @@
 import { create } from 'zustand';
-import type { User } from '@supabase/supabase-js';
+import type { User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../db/supabase';
+
+// Supabase v2 AuthError can come back with an empty message when the underlying
+// failure is SMTP-related (Resend not configured, DNS not propagated, rate limit).
+// We normalise into a string the UI can match on. The raw error stays in console.
+export function formatAuthError(err: unknown): string {
+  if (!err) return 'unknown_error';
+  if (typeof err === 'string') return err;
+  const e = err as Partial<AuthError> & { code?: string; status?: number; name?: string };
+  const msg = (e.message || '').trim();
+  if (msg) return msg;
+  if (e.code) return `auth_${e.code}`;
+  if (e.status === 429) return 'rate_limit_exceeded';
+  if (e.status === 500) return 'email_send_failed';
+  if (e.name) return e.name;
+  return 'unknown_error';
+}
 
 interface AuthStore {
   user: User | null;
@@ -39,13 +55,30 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   signUp: async (email, password) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return error?.message ?? null;
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: 'https://resakit.fr' },
+    });
+    if (error) {
+      console.error('[auth.signUp] error:', error);
+      return formatAuthError(error);
+    }
+    // Supabase returns success with empty identities array when the email already exists
+    // (anti-enumeration). Surface a clear message instead of silent success.
+    if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      return 'already registered';
+    }
+    return null;
   },
 
   signIn: async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error?.message ?? null;
+    if (error) {
+      console.error('[auth.signIn] error:', error);
+      return formatAuthError(error);
+    }
+    return null;
   },
 
   signOut: async () => {

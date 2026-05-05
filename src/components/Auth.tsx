@@ -1,8 +1,21 @@
 import { useState } from 'react';
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore, formatAuthError } from '../stores/authStore';
 import { supabase } from '../db/supabase';
 import { Icons } from './Icons';
 import { t, tr, useLang } from '../utils/i18n';
+
+function humanizeAuthError(raw: string): string {
+  const m = raw.toLowerCase();
+  if (m.includes('invalid login') || m.includes('invalid_credentials')) return tr({ fr: 'Email ou mot de passe incorrect.', en: 'Invalid email or password.', es: 'Correo o contraseña incorrectos.' });
+  if (m.includes('already registered') || m.includes('already_registered') || m.includes('user_already_exists')) return tr({ fr: 'Email déjà utilisé. Connecte-toi.', en: 'Email already in use. Sign in instead.', es: 'Correo ya en uso. Inicia sesión.' });
+  if (m.includes('weak') || m.includes('weak_password') || m.includes('password should be')) return tr({ fr: 'Mot de passe trop faible (min 6 caractères).', en: 'Password too weak (6 chars min).', es: 'Contraseña demasiado débil (mín 6 caracteres).' });
+  if (m.includes('rate') || m.includes('429') || m.includes('over_email_send') || m.includes('email_rate_limit')) return tr({ fr: 'Trop de tentatives. Réessaie dans quelques minutes.', en: 'Too many attempts. Try again in a few minutes.', es: 'Demasiados intentos. Vuelve a intentarlo en unos minutos.' });
+  if (m.includes('email_send_failed') || m.includes('email_provider_disabled') || m.includes('smtp')) return tr({ fr: "L'envoi d'email a échoué. Le serveur mail n'est pas encore configuré — réessaie plus tard ou contacte le support.", en: 'Email delivery failed. Mail server is not configured yet — try again later or contact support.', es: 'No se pudo enviar el correo. El servidor de correo no está configurado todavía — inténtalo más tarde o contacta soporte.' });
+  if (m.includes('confirmation') || m.includes('not_confirmed') || m.includes('email_not_confirmed')) return tr({ fr: 'Tu dois confirmer ton email avant de te connecter.', en: 'Please confirm your email before signing in.', es: 'Debes confirmar tu correo antes de iniciar sesión.' });
+  if (m.includes('invalid email') || m.includes('invalid_email')) return tr({ fr: 'Email invalide.', en: 'Invalid email.', es: 'Correo inválido.' });
+  if (m === 'unknown_error' || m === '{}' || !m) return tr({ fr: 'Erreur inconnue. Vérifie ta connexion et réessaie. Si le problème persiste, le serveur mail est peut-être en panne.', en: 'Unknown error. Check your connection and retry. If it persists, the mail server may be down.', es: 'Error desconocido. Verifica tu conexión y reintenta. Si persiste, el servidor de correo puede estar caído.' });
+  return raw;
+}
 
 interface AuthProps {
   onSkip: () => void;
@@ -21,46 +34,65 @@ export default function Auth({ onSkip, onShowLegal }: AuthProps) {
   const { signIn, signUp } = useAuthStore();
 
   const handleSubmit = async () => {
+    if (loading) return; // debounce double-submit (Enter + click)
+
     if (mode === 'reset') {
       if (!email.trim()) return;
       setLoading(true);
       setError('');
-      const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: 'https://resakit.fr',
-      });
-      setLoading(false);
-      if (err) setError(`${tr({ fr: 'Erreur', en: 'Error', es: 'Error' })} : ` + err.message);
-      else setSuccess(tr({
-        fr: 'Email envoyé ! Vérifie ta boîte mail pour réinitialiser ton mot de passe.',
-        en: 'Email sent! Check your inbox to reset your password.',
-        es: '¡Email enviado! Revisa tu bandeja para restablecer la contraseña.',
-      }));
+      setSuccess('');
+      try {
+        const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: 'https://resakit.fr',
+        });
+        if (err) {
+          console.error('[auth.reset] error:', err);
+          setError(humanizeAuthError(formatAuthError(err)));
+        } else {
+          setSuccess(tr({
+            fr: 'Email envoyé ! Vérifie ta boîte mail (et tes spams) pour réinitialiser ton mot de passe.',
+            en: 'Email sent! Check your inbox (and spam) to reset your password.',
+            es: '¡Email enviado! Revisa tu bandeja (y spam) para restablecer la contraseña.',
+          }));
+        }
+      } catch (e) {
+        console.error('[auth.reset] thrown:', e);
+        setError(humanizeAuthError(formatAuthError(e)));
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
     if (!email.trim() || !password.trim()) return;
+    if (mode === 'signup' && password.length < 6) {
+      setError(tr({ fr: 'Mot de passe trop faible (min 6 caractères).', en: 'Password too weak (6 chars min).', es: 'Contraseña demasiado débil (mín 6 caracteres).' }));
+      return;
+    }
     setLoading(true);
     setError('');
     setSuccess('');
 
-    const err = mode === 'login'
-      ? await signIn(email.trim(), password)
-      : await signUp(email.trim(), password);
+    try {
+      const err = mode === 'login'
+        ? await signIn(email.trim(), password)
+        : await signUp(email.trim(), password);
 
-    setLoading(false);
-
-    if (err) {
-      if (err.includes('Invalid login')) setError(tr({ fr: 'Email ou mot de passe incorrect.', en: 'Invalid email or password.', es: 'Correo o contraseña incorrectos.' }));
-      else if (err.includes('already registered')) setError(tr({ fr: 'Email déjà utilisé. Connecte-toi.', en: 'Email already in use. Sign in instead.', es: 'Correo ya en uso. Inicia sesión.' }));
-      else if (err.includes('weak')) setError(tr({ fr: 'Mot de passe trop faible (min 6 caractères).', en: 'Password too weak (6 chars min).', es: 'Contraseña demasiado débil (mín 6 caracteres).' }));
-      else setError(err);
-    } else if (mode === 'signup') {
-      setSuccess(tr({
-        fr: 'Compte créé ! Vérifie tes emails pour confirmer, puis connecte-toi.',
-        en: 'Account created! Check your email to confirm, then sign in.',
-        es: '¡Cuenta creada! Revisa tu correo para confirmar e inicia sesión.',
-      }));
-      setMode('login');
+      if (err) {
+        setError(humanizeAuthError(err));
+      } else if (mode === 'signup') {
+        setSuccess(tr({
+          fr: 'Compte créé ! Vérifie tes emails (et tes spams) pour confirmer, puis connecte-toi.',
+          en: 'Account created! Check your inbox (and spam) to confirm, then sign in.',
+          es: '¡Cuenta creada! Revisa tu correo (y spam) para confirmar e inicia sesión.',
+        }));
+        setMode('login');
+      }
+    } catch (e) {
+      console.error('[auth.submit] thrown:', e);
+      setError(humanizeAuthError(formatAuthError(e)));
+    } finally {
+      setLoading(false);
     }
   };
 
