@@ -55,21 +55,23 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   signUp: async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: 'https://resakit.fr' },
-    });
-    if (error) {
-      console.error('[auth.signUp] error:', error);
-      return formatAuthError(error);
+    // Call our Vercel API endpoint — this bypasses Supabase SMTP entirely.
+    // The server creates the user via admin API and sends the confirmation
+    // email through Resend. No Supabase SMTP rate-limit can interfere.
+    try {
+      const r = await fetch('/api/auth-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'confirm', email, password }),
+      });
+      if (r.ok) return null;
+      const body = await r.json().catch(() => ({})) as { error?: string };
+      console.error('[auth.signUp] /api/auth-email error:', body);
+      return body.error || 'unknown_error';
+    } catch (e) {
+      console.error('[auth.signUp] network error:', e);
+      return formatAuthError(e);
     }
-    // Supabase returns success with empty identities array when the email already exists
-    // (anti-enumeration). Surface a clear message instead of silent success.
-    if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-      return 'already registered';
-    }
-    return null;
   },
 
   signIn: async (email, password) => {

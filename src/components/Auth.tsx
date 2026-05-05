@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useAuthStore, formatAuthError } from '../stores/authStore';
-import { supabase } from '../db/supabase';
 import { Icons } from './Icons';
 import { t, tr, useLang } from '../utils/i18n';
 
@@ -10,7 +9,7 @@ function humanizeAuthError(raw: string): string {
   if (m.includes('already registered') || m.includes('already_registered') || m.includes('user_already_exists')) return tr({ fr: 'Email déjà utilisé. Connecte-toi.', en: 'Email already in use. Sign in instead.', es: 'Correo ya en uso. Inicia sesión.' });
   if (m.includes('weak') || m.includes('weak_password') || m.includes('password should be')) return tr({ fr: 'Mot de passe trop faible (min 6 caractères).', en: 'Password too weak (6 chars min).', es: 'Contraseña demasiado débil (mín 6 caracteres).' });
   if (m.includes('rate') || m.includes('429') || m.includes('over_email_send') || m.includes('email_rate_limit')) return tr({ fr: 'Trop de tentatives. Réessaie dans quelques minutes.', en: 'Too many attempts. Try again in a few minutes.', es: 'Demasiados intentos. Vuelve a intentarlo en unos minutos.' });
-  if (m.includes('email_send_failed') || m.includes('email_provider_disabled') || m.includes('smtp')) return tr({ fr: "L'envoi d'email a échoué. Le serveur mail n'est pas encore configuré — réessaie plus tard ou contacte le support.", en: 'Email delivery failed. Mail server is not configured yet — try again later or contact support.', es: 'No se pudo enviar el correo. El servidor de correo no está configurado todavía — inténtalo más tarde o contacta soporte.' });
+  if (m.includes('email_send_failed') || m.includes('email_provider_disabled') || m.includes('smtp') || m.includes('email_not_configured')) return tr({ fr: "L'envoi d'email a échoué. Assure-toi que RESEND_API_KEY est bien configuré dans Vercel.", en: 'Email delivery failed. Make sure RESEND_API_KEY is set in Vercel.', es: 'Error al enviar. Asegúrate de que RESEND_API_KEY esté en Vercel.' });
   if (m.includes('confirmation') || m.includes('not_confirmed') || m.includes('email_not_confirmed')) return tr({ fr: 'Tu dois confirmer ton email avant de te connecter.', en: 'Please confirm your email before signing in.', es: 'Debes confirmar tu correo antes de iniciar sesión.' });
   if (m.includes('invalid email') || m.includes('invalid_email')) return tr({ fr: 'Email invalide.', en: 'Invalid email.', es: 'Correo inválido.' });
   if (m === 'unknown_error' || m === '{}' || !m) return tr({ fr: 'Erreur inconnue. Vérifie ta connexion et réessaie. Si le problème persiste, le serveur mail est peut-être en panne.', en: 'Unknown error. Check your connection and retry. If it persists, the mail server may be down.', es: 'Error desconocido. Verifica tu conexión y reintenta. Si persiste, el servidor de correo puede estar caído.' });
@@ -42,21 +41,32 @@ export default function Auth({ onSkip, onShowLegal }: AuthProps) {
       setError('');
       setSuccess('');
       try {
-        const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: 'https://resakit.fr',
+        const r = await fetch('/api/auth-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'reset', email: email.trim() }),
         });
-        if (err) {
-          console.error('[auth.reset] error:', err);
-          setError(humanizeAuthError(formatAuthError(err)));
-        } else {
+        if (r.ok) {
           setSuccess(tr({
             fr: 'Email envoyé ! Vérifie ta boîte mail (et tes spams) pour réinitialiser ton mot de passe.',
             en: 'Email sent! Check your inbox (and spam) to reset your password.',
             es: '¡Email enviado! Revisa tu bandeja (y spam) para restablecer la contraseña.',
           }));
+        } else {
+          const body = await r.json().catch(() => ({})) as { error?: string };
+          console.error('[auth.reset] /api/auth-email error:', body);
+          if (r.status === 503) {
+            setError(tr({
+              fr: "Le service email n'est pas encore configuré. Contacte l'admin.",
+              en: "Email service not configured yet. Contact the admin.",
+              es: "Servicio de correo no configurado aún. Contacta al administrador.",
+            }));
+          } else {
+            setError(humanizeAuthError(body.error || 'unknown_error'));
+          }
         }
       } catch (e) {
-        console.error('[auth.reset] thrown:', e);
+        console.error('[auth.reset] network error:', e);
         setError(humanizeAuthError(formatAuthError(e)));
       } finally {
         setLoading(false);
