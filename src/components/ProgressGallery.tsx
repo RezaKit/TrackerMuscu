@@ -3,13 +3,15 @@ import { createPortal } from 'react-dom';
 import { fetchProgressPhotos, deleteProgressPhoto, type ProgressPhoto } from '../stores/progressPhotoStore';
 import { useAuthStore } from '../stores/authStore';
 import { Icons } from './Icons';
+import { tr, getLang, useLang } from '../utils/i18n';
 
 const SESSION_COLORS: Record<string, string> = {
   push: '#FF6B35', pull: '#C41E3A', legs: '#A78BFA', upper: '#FB923C', lower: '#F87171',
 };
 
 function fmtDate(iso: string) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+  const locale = getLang() === 'fr' ? 'fr-FR' : getLang() === 'es' ? 'es-ES' : 'en-GB';
+  return new Date(iso + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 interface ProgressGalleryProps {
@@ -17,6 +19,7 @@ interface ProgressGalleryProps {
 }
 
 export default function ProgressGallery({ showToast }: ProgressGalleryProps) {
+  useLang();
   const { user } = useAuthStore();
   const [photos, setPhotos] = useState<ProgressPhoto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,12 +32,12 @@ export default function ProgressGallery({ showToast }: ProgressGalleryProps) {
 
   const handleDelete = async (photo: ProgressPhoto, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (!confirm('Supprimer cette photo définitivement ?')) return;
+    if (!confirm(tr({ fr: 'Supprimer cette photo définitivement ?', en: 'Delete this photo permanently?', es: '¿Eliminar esta foto definitivamente?' }))) return;
     const ok = await deleteProgressPhoto(photo);
     if (ok) {
       setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
       setFullscreen(null);
-      showToast('Photo supprimée', 'info');
+      showToast(tr({ fr: 'Photo supprimée', en: 'Photo deleted', es: 'Foto eliminada' }), 'info');
     }
   };
 
@@ -42,9 +45,9 @@ export default function ProgressGallery({ showToast }: ProgressGalleryProps) {
     return (
       <div className="glass" style={{ borderRadius: 22, padding: '32px', textAlign: 'center' }}>
         <div style={{ fontSize: 36, marginBottom: 12 }}>📷</div>
-        <div style={{ fontWeight: 700, fontSize: 14 }}>Photos de progression</div>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>{tr({ fr: 'Photos de progression', en: 'Progress photos', es: 'Fotos de progreso' })}</div>
         <div style={{ fontSize: 12, color: 'var(--text-mute)', marginTop: 6, lineHeight: 1.6 }}>
-          Connecte-toi pour sauvegarder<br/>tes photos de posing dans le cloud.
+          {tr({ fr: 'Connecte-toi pour sauvegarder tes photos de posing dans le cloud.', en: 'Sign in to save your posing photos in the cloud.', es: 'Inicia sesión para guardar tus fotos de posing en la nube.' })}
         </div>
       </div>
     );
@@ -53,7 +56,7 @@ export default function ProgressGallery({ showToast }: ProgressGalleryProps) {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-mute)', fontSize: 13 }}>
-        Chargement...
+        {tr({ fr: 'Chargement...', en: 'Loading...', es: 'Cargando...' })}
       </div>
     );
   }
@@ -62,9 +65,9 @@ export default function ProgressGallery({ showToast }: ProgressGalleryProps) {
     return (
       <div className="glass" style={{ borderRadius: 22, padding: '40px 24px', textAlign: 'center' }}>
         <div style={{ fontSize: 44, marginBottom: 14 }}>📸</div>
-        <div style={{ fontWeight: 700, fontSize: 15 }}>Aucune photo pour l'instant</div>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>{tr({ fr: 'Aucune photo pour l\'instant', en: 'No photos yet', es: 'Sin fotos por ahora' })}</div>
         <div style={{ fontSize: 12, color: 'var(--text-mute)', marginTop: 8, lineHeight: 1.6 }}>
-          À la fin de ta prochaine séance,<br/>tu pourras prendre un posing photo.
+          {tr({ fr: 'À la fin de ta prochaine séance, tu pourras prendre un posing photo.', en: 'At the end of your next workout, take a posing photo.', es: 'Al final de tu próxima sesión, podrás tomar una foto de posing.' })}
         </div>
       </div>
     );

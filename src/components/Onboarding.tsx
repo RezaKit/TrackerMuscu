@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Icons } from './Icons';
 import { scheduleSync } from '../utils/cloudSync';
+import { tr, useLang } from '../utils/i18n';
 
 export type GoalType = 'muscle' | 'cut' | 'endurance' | 'health' | 'recomposition' | 'strength';
 
@@ -16,29 +17,48 @@ interface OnboardingProps {
   onDone: (profile: UserProfile) => void;
 }
 
-export const GOALS = [
-  { id: 'muscle' as const,        emoji: '💪', label: 'Prise de masse',       desc: 'Gagner du muscle et du volume' },
-  { id: 'strength' as const,      emoji: '🏋️', label: 'Force',                desc: 'Squat, développé, soulevé de terre' },
-  { id: 'cut' as const,           emoji: '🔥', label: 'Sèche',                desc: 'Perdre du gras, conserver le muscle' },
-  { id: 'recomposition' as const, emoji: '⚖️', label: 'Recomposition',        desc: 'Perdre du gras ET gagner du muscle' },
-  { id: 'endurance' as const,     emoji: '🏃', label: 'Endurance',            desc: 'Courir plus loin, nager plus vite' },
-  { id: 'health' as const,        emoji: '✨', label: 'Santé générale',        desc: 'Rester actif et en forme' },
-];
+// Getters re-evaluate every render so the active locale is always picked up.
+export function getGoals() {
+  return [
+    { id: 'muscle' as const,        emoji: '💪', label: tr({ fr: 'Prise de masse',  en: 'Muscle gain',    es: 'Ganar músculo'    }), desc: tr({ fr: 'Gagner du muscle et du volume',          en: 'Build muscle and size',                    es: 'Ganar músculo y volumen'           }) },
+    { id: 'strength' as const,      emoji: '🏋️', label: tr({ fr: 'Force',           en: 'Strength',       es: 'Fuerza'           }), desc: tr({ fr: 'Squat, développé, soulevé de terre',    en: 'Squat, bench press, deadlift',             es: 'Sentadilla, press, peso muerto'    }) },
+    { id: 'cut' as const,           emoji: '🔥', label: tr({ fr: 'Sèche',           en: 'Cut',            es: 'Definición'       }), desc: tr({ fr: 'Perdre du gras, conserver le muscle',   en: 'Lose fat, keep muscle',                    es: 'Perder grasa, conservar músculo'   }) },
+    { id: 'recomposition' as const, emoji: '⚖️', label: tr({ fr: 'Recomposition',   en: 'Recomposition',  es: 'Recomposición'    }), desc: tr({ fr: 'Perdre du gras ET gagner du muscle',    en: 'Lose fat AND build muscle',                es: 'Perder grasa Y ganar músculo'      }) },
+    { id: 'endurance' as const,     emoji: '🏃', label: tr({ fr: 'Endurance',       en: 'Endurance',      es: 'Resistencia'      }), desc: tr({ fr: 'Courir plus loin, nager plus vite',     en: 'Run further, swim faster',                 es: 'Correr más, nadar más rápido'      }) },
+    { id: 'health' as const,        emoji: '✨', label: tr({ fr: 'Santé générale',   en: 'General health', es: 'Salud general'    }), desc: tr({ fr: 'Rester actif et en forme',              en: 'Stay active and fit',                      es: 'Mantenerse activo y en forma'      }) },
+  ];
+}
 
-const LEVELS = [
-  { id: 'beginner' as const,     label: 'Débutant',       desc: '< 1 an de pratique' },
-  { id: 'intermediate' as const, label: 'Intermédiaire',  desc: '1 – 3 ans' },
-  { id: 'advanced' as const,     label: 'Avancé',         desc: '3+ ans de pratique' },
-];
+/** @deprecated Use getGoals() so labels react to language changes. */
+export const GOALS = new Proxy([] as ReturnType<typeof getGoals>, {
+  get(_t, prop: string | symbol): any {
+    const list = getGoals();
+    if (prop === 'length') return list.length;
+    if (prop === Symbol.iterator) return list[Symbol.iterator].bind(list);
+    if (typeof prop === 'string' && /^\d+$/.test(prop)) return list[Number(prop)];
+    const value = (list as any)[prop];
+    return typeof value === 'function' ? value.bind(list) : value;
+  },
+});
 
-const DEVICES = [
-  { id: 'garmin',  emoji: '⌚', label: 'Garmin' },
-  { id: 'apple',   emoji: '⌚', label: 'Apple Watch' },
-  { id: 'polar',   emoji: '⌚', label: 'Polar / Suunto' },
-  { id: 'strava',  emoji: '🏃', label: 'Strava' },
-  { id: 'fitbit',  emoji: '⌚', label: 'Fitbit' },
-  { id: 'none',    emoji: '📱', label: 'Aucun' },
-];
+function getLevels() {
+  return [
+    { id: 'beginner' as const,     label: tr({ fr: 'Débutant',      en: 'Beginner',      es: 'Principiante'  }), desc: tr({ fr: '< 1 an de pratique',  en: '< 1 year of training', es: '< 1 año de entrenamiento' }) },
+    { id: 'intermediate' as const, label: tr({ fr: 'Intermédiaire', en: 'Intermediate',  es: 'Intermedio'    }), desc: tr({ fr: '1 – 3 ans',            en: '1 – 3 years',          es: '1 – 3 años'               }) },
+    { id: 'advanced' as const,     label: tr({ fr: 'Avancé',        en: 'Advanced',      es: 'Avanzado'      }), desc: tr({ fr: '3+ ans de pratique',   en: '3+ years of training', es: '3+ años de entrenamiento' }) },
+  ];
+}
+
+function getDevices() {
+  return [
+    { id: 'garmin',  emoji: '⌚', label: 'Garmin' },
+    { id: 'apple',   emoji: '⌚', label: 'Apple Watch' },
+    { id: 'polar',   emoji: '⌚', label: 'Polar / Suunto' },
+    { id: 'strava',  emoji: '🏃', label: 'Strava' },
+    { id: 'fitbit',  emoji: '⌚', label: 'Fitbit' },
+    { id: 'none',    emoji: '📱', label: tr({ fr: 'Aucun', en: 'None', es: 'Ninguno' }) },
+  ];
+}
 
 export const GOAL_COLORS: Record<string, string> = {
   muscle:        'rgba(255,107,53,0.35)',
@@ -52,6 +72,7 @@ export const GOAL_COLORS: Record<string, string> = {
 const TOTAL_SLIDES = 5;
 
 export default function Onboarding({ onDone }: OnboardingProps) {
+  useLang();
   const [slide, setSlide] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [dir, setDir] = useState<'fwd' | 'back'>('fwd');
@@ -62,6 +83,9 @@ export default function Onboarding({ onDone }: OnboardingProps) {
   const [weeklyDays, setWeeklyDays] = useState(0);
   const [devices, setDevices] = useState<string[]>([]);
 
+  const goals = getGoals();
+  const levels = getLevels();
+  const devicesList = getDevices();
   const glowColor = goal ? GOAL_COLORS[goal] : 'rgba(255,107,53,0.25)';
 
   const goTo = (next: number) => {
@@ -138,7 +162,7 @@ export default function Onboarding({ onDone }: OnboardingProps) {
             fontSize: 13, fontWeight: 600, cursor: 'pointer',
             padding: '4px 8px 4px 0',
             display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
-          }}>← Retour</button>
+          }}>← {tr({ fr: 'Retour', en: 'Back', es: 'Volver' })}</button>
         ) : (
           <div style={{ width: 60, flexShrink: 0 }} />
         )}
@@ -153,6 +177,8 @@ export default function Onboarding({ onDone }: OnboardingProps) {
         </div>
         <div style={{ width: 60, flexShrink: 0 }} />
       </div>
+
+
 
       {/* Slide content */}
       <div style={{
@@ -177,18 +203,18 @@ export default function Onboarding({ onDone }: OnboardingProps) {
               <Icons.Dumbbell size={42} color="#fff" stroke={2} />
             </div>
             <div className="t-display" style={{ fontSize: 44, textAlign: 'center', lineHeight: 0.95, marginBottom: 10 }}>
-              BIENVENUE
+              {tr({ fr: 'BIENVENUE', en: 'WELCOME', es: 'BIENVENIDO' })}
             </div>
             <div style={{ fontSize: 13, color: 'var(--text-mute)', textAlign: 'center', marginBottom: 36, lineHeight: 1.5 }}>
-              Quelques questions rapides pour personnaliser ton expérience et briefer ton coach IA.
+              {tr({ fr: 'Quelques questions rapides pour personnaliser ton expérience et briefer ton coach IA.', en: 'A few quick questions to personalise your experience and brief your AI coach.', es: 'Unas preguntas rápidas para personalizar tu experiencia y configurar tu coach IA.' })}
             </div>
             <div style={{ width: '100%', marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, color: 'var(--text-mute)', marginBottom: 10 }}>
-                Comment tu t'appelles ?
+                {tr({ fr: "Comment tu t'appelles ?", en: "What's your name?", es: '¿Cómo te llamas?' })}
               </div>
               <input
                 type="text"
-                placeholder="Ton prénom"
+                placeholder={tr({ fr: 'Ton prénom', en: 'Your first name', es: 'Tu nombre' })}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && name.trim() && next()}
@@ -205,13 +231,13 @@ export default function Onboarding({ onDone }: OnboardingProps) {
         {slide === 1 && (
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, color: 'var(--text-mute)', marginBottom: 10 }}>
-              Ton objectif principal
+              {tr({ fr: 'Ton objectif principal', en: 'Your main goal', es: 'Tu objetivo principal' })}
             </div>
             <div className="t-display" style={{ fontSize: 40, lineHeight: 0.95, marginBottom: 28 }}>
-              Pourquoi tu t'entraînes ?
+              {tr({ fr: "Pourquoi tu t'entraînes ?", en: 'Why do you train?', es: '¿Por qué entrenas?' })}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {GOALS.map((g) => (
+              {goals.map((g) => (
                 <button key={g.id} onClick={() => setGoal(g.id)} className="tap" style={{
                   borderRadius: 20, padding: '16px 18px',
                   background: goal === g.id ? 'rgba(255,107,53,0.15)' : 'rgba(255,255,255,0.04)',
@@ -239,13 +265,13 @@ export default function Onboarding({ onDone }: OnboardingProps) {
         {slide === 2 && (
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, color: 'var(--text-mute)', marginBottom: 10 }}>
-              Expérience en salle
+              {tr({ fr: 'Expérience en salle', en: 'Gym experience', es: 'Experiencia en gimnasio' })}
             </div>
             <div className="t-display" style={{ fontSize: 40, lineHeight: 0.95, marginBottom: 28 }}>
-              Ton niveau ?
+              {tr({ fr: 'Ton niveau ?', en: 'Your level?', es: '¿Tu nivel?' })}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {LEVELS.map((l) => (
+              {levels.map((l) => (
                 <button key={l.id} onClick={() => setLevel(l.id)} className="tap" style={{
                   borderRadius: 20, padding: '20px 18px',
                   background: level === l.id ? 'rgba(255,107,53,0.15)' : 'rgba(255,255,255,0.04)',
@@ -272,13 +298,13 @@ export default function Onboarding({ onDone }: OnboardingProps) {
         {slide === 3 && (
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, color: 'var(--text-mute)', marginBottom: 10 }}>
-              Fréquence d'entraînement
+              {tr({ fr: "Fréquence d'entraînement", en: 'Training frequency', es: 'Frecuencia de entrenamiento' })}
             </div>
             <div className="t-display" style={{ fontSize: 40, lineHeight: 0.95, marginBottom: 12 }}>
-              Combien de fois par semaine ?
+              {tr({ fr: 'Combien de fois par semaine ?', en: 'How many times per week?', es: '¿Cuántas veces por semana?' })}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-mute)', marginBottom: 28, lineHeight: 1.5 }}>
-              Toutes activités confondues — salle, course, natation.
+              {tr({ fr: 'Toutes activités confondues — salle, course, natation.', en: 'All activities combined — gym, running, swimming.', es: 'Todas las actividades — gimnasio, carrera, natación.' })}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {[2, 3, 4, 5, 6, 7].map((d) => (
@@ -290,7 +316,7 @@ export default function Onboarding({ onDone }: OnboardingProps) {
                   transition: 'all 0.2s',
                 }}>
                   <span className="t-num" style={{ fontSize: 36, color: weeklyDays === d ? 'var(--primary)' : 'var(--text)' }}>{d}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 600 }}>{d === 7 ? 'tous les jours' : d === 1 ? 'jour' : 'jours'}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 600 }}>{d === 7 ? tr({ fr: 'tous les jours', en: 'every day', es: 'cada día' }) : tr({ fr: 'jours', en: 'days', es: 'días' })}</span>
                 </button>
               ))}
             </div>
@@ -301,16 +327,16 @@ export default function Onboarding({ onDone }: OnboardingProps) {
         {slide === 4 && (
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, color: 'var(--text-mute)', marginBottom: 10 }}>
-              Appareils connectés
+              {tr({ fr: 'Appareils connectés', en: 'Connected devices', es: 'Dispositivos conectados' })}
             </div>
             <div className="t-display" style={{ fontSize: 40, lineHeight: 0.95, marginBottom: 8 }}>
-              Tu as une montre ou une appli ?
+              {tr({ fr: 'Tu as une montre ou une appli ?', en: 'Got a watch or an app?', es: '¿Tienes un reloj o una app?' })}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-mute)', marginBottom: 24, lineHeight: 1.5 }}>
-              On pourra importer tes activités automatiquement. Tu peux en sélectionner plusieurs.
+              {tr({ fr: 'On pourra importer tes activités automatiquement. Tu peux en sélectionner plusieurs.', en: 'We can import your activities automatically. You can select multiple.', es: 'Podemos importar tus actividades automáticamente. Puedes seleccionar varios.' })}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
-              {DEVICES.map((d) => {
+              {devicesList.map((d) => {
                 const on = devices.includes(d.id);
                 return (
                   <button key={d.id} onClick={() => toggleDevice(d.id)} className="tap" style={{
@@ -330,10 +356,10 @@ export default function Onboarding({ onDone }: OnboardingProps) {
             {/* Recap */}
             {name && goal && level && weeklyDays > 0 && (
               <div className="glass" style={{ borderRadius: 18, padding: '14px 16px', marginBottom: 16 }}>
-                <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 8 }}>Ton profil</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 8 }}>{tr({ fr: 'Ton profil', en: 'Your profile', es: 'Tu perfil' })}</div>
                 <div style={{ fontSize: 13, color: 'var(--text-soft)', lineHeight: 1.6 }}>
-                  <strong style={{ color: 'var(--text)' }}>{name}</strong> · {GOALS.find(g => g.id === goal)?.label} ·{' '}
-                  {LEVELS.find(l => l.id === level)?.label} · {weeklyDays}j/semaine
+                  <strong style={{ color: 'var(--text)' }}>{name}</strong> · {goals.find(g => g.id === goal)?.label} ·{' '}
+                  {levels.find(l => l.id === level)?.label} · {weeklyDays}{tr({ fr: 'j/semaine', en: 'd/week', es: 'd/semana' })}
                 </div>
               </div>
             )}
@@ -372,7 +398,7 @@ export default function Onboarding({ onDone }: OnboardingProps) {
               transition: 'all 0.25s',
             }}
           >
-            Continuer →
+            {tr({ fr: 'Continuer →', en: 'Continue →', es: 'Continuar →' })}
           </button>
         ) : (
           <button
@@ -385,7 +411,7 @@ export default function Onboarding({ onDone }: OnboardingProps) {
               boxShadow: '0 12px 36px rgba(255,107,53,0.45)',
             }}
           >
-            C'est parti 🏋️
+            {tr({ fr: "C'est parti 🏋️", en: "Let's go 🏋️", es: '¡Vamos 🏋️' })}
           </button>
         )}
 
@@ -394,7 +420,7 @@ export default function Onboarding({ onDone }: OnboardingProps) {
             width: '100%', background: 'none', border: 'none',
             color: 'var(--text-mute)', fontSize: 12, marginTop: 12, cursor: 'pointer', padding: '6px',
           }}>
-            Passer cette étape
+            {tr({ fr: 'Passer cette étape', en: 'Skip this step', es: 'Omitir este paso' })}
           </button>
         )}
       </div>

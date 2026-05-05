@@ -1,6 +1,8 @@
 import { createPortal } from 'react-dom';
 import { useTemplateStore } from '../stores/templateStore';
 import { Icons } from './Icons';
+import { tr, useLang } from '../utils/i18n';
+import { encodeShareLink } from '../utils/templateShare';
 import type { SessionType } from '../types';
 
 interface TemplateModalProps {
@@ -10,6 +12,7 @@ interface TemplateModalProps {
 }
 
 export default function TemplateModal({ sessionType, onSelect, onClose }: TemplateModalProps) {
+  useLang();
   const { templates, deleteTemplate } = useTemplateStore();
   const filtered = templates.filter((t) => t.type === sessionType);
 
@@ -33,7 +36,7 @@ export default function TemplateModal({ sessionType, onSelect, onClose }: Templa
       }}>
         <div style={{ width: 40, height: 5, borderRadius: 999, background: 'rgba(255,255,255,0.2)', margin: '10px auto 4px' }} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 22px 10px' }}>
-          <h2 className="t-display" style={{ margin: 0, fontSize: 28 }}>Templates {sessionType.toUpperCase()}</h2>
+          <h2 className="t-display" style={{ margin: 0, fontSize: 28 }}>{tr({fr:'Templates',en:'Templates',es:'Plantillas'})} {sessionType.toUpperCase()}</h2>
           <button onClick={onClose} className="tap" style={{
             background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 999,
             width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)',
@@ -47,7 +50,7 @@ export default function TemplateModal({ sessionType, onSelect, onClose }: Templa
         }}>
           {filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-mute)', fontSize: 13 }}>
-              Aucun template pour ce type.<br />Crée-en un en fin de séance!
+              {tr({fr:'Aucun template pour ce type.',en:'No template for this type.',es:'Sin plantillas para este tipo.'})}<br />{tr({fr:'Crée-en un en fin de séance!',en:'Create one at the end of a workout!',es:'¡Crea una al final del entreno!'})}
             </div>
           ) : (
             filtered.map((t) => (
@@ -58,7 +61,7 @@ export default function TemplateModal({ sessionType, onSelect, onClose }: Templa
                     <Icons.Trash size={14} />
                   </button>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-mute)', marginBottom: 10 }}>{t.exerciseNames.length} exercices</div>
+                <div style={{ fontSize: 11, color: 'var(--text-mute)', marginBottom: 10 }}>{t.exerciseNames.length} {tr({fr:'exercices',en:'exercises',es:'ejercicios'})}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
                   {t.exerciseNames.slice(0, 4).map((e) => (
                     <span key={e.name} style={{ fontSize: 10, background: 'rgba(255,107,53,0.1)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 999, fontWeight: 600 }}>
@@ -69,10 +72,24 @@ export default function TemplateModal({ sessionType, onSelect, onClose }: Templa
                     <span style={{ fontSize: 10, color: 'var(--text-mute)', padding: '3px 8px' }}>+{t.exerciseNames.length - 4}</span>
                   )}
                 </div>
-                <button onClick={() => onSelect(t.exerciseNames)} className="tap" style={{
-                  width: '100%', border: 'none', borderRadius: 12, padding: '10px',
-                  background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: 13,
-                }}>Charger</button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => onSelect(t.exerciseNames)} className="tap" style={{
+                    flex: 2, border: 'none', borderRadius: 12, padding: '10px',
+                    background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: 13,
+                  }}>{tr({fr:'Charger',en:'Load',es:'Cargar'})}</button>
+                  <button onClick={async () => {
+                    let from: string | undefined;
+                    try { from = JSON.parse(localStorage.getItem('user_profile') || 'null')?.name; } catch {}
+                    const url = encodeShareLink(t, from);
+                    if (navigator.share) navigator.share({ title: 'RezaKit', text: t.name, url }).catch(() => {});
+                    else navigator.clipboard.writeText(url);
+                  }} className="tap" style={{
+                    flexShrink: 0, border: 'none', borderRadius: 12, padding: '10px 14px',
+                    background: 'rgba(74,222,128,0.15)', color: 'var(--ok)', fontWeight: 700, fontSize: 13,
+                  }} aria-label={tr({fr:'Partager',en:'Share',es:'Compartir'})}>
+                    <Icons.Share size={14} />
+                  </button>
+                </div>
               </div>
             ))
           )}

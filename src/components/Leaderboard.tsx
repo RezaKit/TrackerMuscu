@@ -3,7 +3,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { supabase } from '../db/supabase';
 import { Icons } from './Icons';
-import { tr } from '../utils/i18n';
+import { tr, useLang } from '../utils/i18n';
 import { getDateString } from '../utils/export';
 
 interface Profile {
@@ -30,6 +30,7 @@ function getMonday(date: Date): string {
 }
 
 export default function Leaderboard() {
+  useLang();
   const { user } = useAuthStore();
   const { sessions } = useSessionStore();
 
@@ -168,17 +169,37 @@ export default function Leaderboard() {
     setAddingFriend(true);
     setError('');
     try {
-      // Look up profile by username
-      const { data: target, error: lookupErr } = await supabase
-        .from('profiles')
-        .select('user_id, username')
-        .eq('username', friendCode.trim())
-        .single();
+      const raw = friendCode.trim().toLowerCase().replace(/^#/, '');
 
-      if (lookupErr || !target) {
-        setError(tr({ fr: 'Utilisateur introuvable', en: 'User not found', es: 'Usuario no encontrado' }));
-        return;
+      // Try as #FRIEND_CODE first (last 4 hex chars of user_id)
+      let target: { user_id: string; username: string } | null = null;
+      if (/^[0-9a-f]{4}$/.test(raw)) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('user_id, username')
+          .like('user_id', `%${raw}`)
+          .limit(2);
+        if (data && data.length === 1) target = data[0];
+        else if (data && data.length > 1) {
+          setError(tr({ fr: 'Code ambigu — utilise le pseudo', en: 'Ambiguous code — use the username', es: 'Código ambiguo — usa el nombre' }));
+          return;
+        }
       }
+
+      // Fall back to username lookup
+      if (!target) {
+        const { data, error: lookupErr } = await supabase
+          .from('profiles')
+          .select('user_id, username')
+          .eq('username', raw)
+          .single();
+        if (lookupErr || !data) {
+          setError(tr({ fr: 'Utilisateur introuvable', en: 'User not found', es: 'Usuario no encontrado' }));
+          return;
+        }
+        target = data;
+      }
+
       if (target.user_id === user.id) {
         setError(tr({ fr: 'Tu ne peux pas t\'ajouter toi-même', en: 'You cannot add yourself', es: 'No puedes añadirte a ti mismo' }));
         return;
@@ -196,6 +217,15 @@ export default function Leaderboard() {
     } finally {
       setAddingFriend(false);
     }
+  };
+
+  const friendCodeOf = (uid: string) => '#' + uid.slice(-4).toUpperCase();
+  const myFriendCode = user ? friendCodeOf(user.id) : '';
+
+  const copyMyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(myFriendCode);
+    } catch { /* noop */ }
   };
 
   const handleAcceptInvite = async (requesterId: string) => {
@@ -278,22 +308,39 @@ export default function Leaderboard() {
           </div>
         </div>
       ) : (
-        /* Profile chip */
+        /* Profile chip with friend code */
         <div style={{ padding: '0 16px 14px' }}>
-          <div className="glass" style={{ borderRadius: 18, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontSize: 28, lineHeight: 1 }}>{profile.avatar}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>{profile.username}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>
-                {tr({ fr: 'Cette semaine', en: 'This week', es: 'Esta semana' })} · {ownSessions.length} {tr({ fr: 'séances', en: 'sessions', es: 'sesiones' })} · {Math.round(ownVolume / 1000)}t
+          <div className="glass" style={{ borderRadius: 18, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 28, lineHeight: 1 }}>{profile.avatar}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{profile.username}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>
+                  {tr({ fr: 'Cette semaine', en: 'This week', es: 'Esta semana' })} · {ownSessions.length} {tr({ fr: 'séances', en: 'sessions', es: 'sesiones' })} · {Math.round(ownVolume / 1000)}t
+                </div>
               </div>
+              <button onClick={() => setEditMode(true)} className="tap" style={{
+                background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 10,
+                padding: '6px 10px', color: 'var(--text-mute)', fontSize: 12,
+              }}>
+                <Icons.Edit size={13} />
+              </button>
             </div>
-            <button onClick={() => setEditMode(true)} className="tap" style={{
-              background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 10,
-              padding: '6px 10px', color: 'var(--text-mute)', fontSize: 12,
+            {/* Friend code: shareable ID */}
+            <div onClick={copyMyCode} className="tap" style={{
+              marginTop: 12, padding: '10px 14px', borderRadius: 12,
+              background: 'rgba(255,107,53,0.10)',
+              border: '1px dashed rgba(255,107,53,0.35)',
+              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
             }}>
-              <Icons.Edit size={13} />
-            </button>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-mute)', textTransform: 'uppercase', letterSpacing: 0.16 }}>
+                {tr({ fr: 'Ton code ami', en: 'Your friend code', es: 'Tu código de amigo' })}
+              </div>
+              <div className="t-mono" style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)', letterSpacing: 1, marginLeft: 'auto' }}>
+                {myFriendCode}
+              </div>
+              <span style={{ fontSize: 14, color: 'var(--text-mute)' }}>📋</span>
+            </div>
           </div>
         </div>
       )}
@@ -328,7 +375,7 @@ export default function Leaderboard() {
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               type="text"
-              placeholder={tr({ fr: 'Pseudo exact', en: 'Exact username', es: 'Nombre exacto' })}
+              placeholder={tr({ fr: 'Code #A3F9 ou pseudo', en: 'Code #A3F9 or username', es: 'Código #A3F9 o nombre' })}
               value={friendCode}
               onChange={(e) => { setFriendCode(e.target.value); setError(''); }}
               className="input-glass"

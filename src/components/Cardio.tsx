@@ -4,7 +4,7 @@ import { getDateString } from '../utils/export';
 import { Icons } from './Icons';
 import { scheduleSync } from '../utils/cloudSync';
 import { getCurrentWeek, getDaysUntilRace, PLAN } from '../utils/runningPlan';
-import { tr, getLang } from '../utils/i18n';
+import { tr, getLang, useLang } from '../utils/i18n';
 
 const RunningProgram = lazy(() => import('./RunningProgram'));
 
@@ -20,6 +20,7 @@ function fmtDate(iso: string) {
 }
 
 export default function Cardio({ showToast }: CardioProps) {
+  useLang();
   const [tab, setTab] = useState<Tab>('course');
   const [showForm, setShowForm] = useState(false);
   const [showProgram, setShowProgram] = useState(false);

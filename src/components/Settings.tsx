@@ -6,7 +6,7 @@ import { useSessionStore } from '../stores/sessionStore';
 import { PRESET_EXERCISES } from '../db/seedExercises';
 import { Icons } from './Icons';
 import { setPendingAI } from '../utils/aiContext';
-import { tr } from '../utils/i18n';
+import { tr, useLang } from '../utils/i18n';
 import { encodeShareLink } from '../utils/templateShare';
 
 const MUSCLE_GROUPS = Object.keys(PRESET_EXERCISES);
@@ -26,6 +26,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function Settings({ showToast, onStartSession, onAskCoach }: SettingsProps) {
+  useLang();
   const [tab, setTab] = useState<Tab>('exercises');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');

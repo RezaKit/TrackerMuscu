@@ -4,6 +4,7 @@ import { useCardioStore } from '../stores/cardioStore';
 import { getDateString } from '../utils/export';
 import { Icons } from './Icons';
 import { setPendingAI } from '../utils/aiContext';
+import { tr, getLang, useLang } from '../utils/i18n';
 import type { Session } from '../types';
 
 interface CalendarProps {
@@ -19,15 +20,22 @@ const SESSION_CFG: Record<string, { color: string; dim: string }> = {
   lower: { color: '#F87171',          dim: 'rgba(248,113,113,0.18)' },
 };
 
-const DAY_NAMES = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+function getDayNames() {
+  const lang = getLang();
+  if (lang === 'en') return ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  if (lang === 'es') return ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  return ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+}
 
 function fmtDateLong(iso: string) {
   const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const locale = getLang() === 'fr' ? 'fr-FR' : getLang() === 'es' ? 'es-ES' : 'en-GB';
+  return d.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 
 export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) {
+  useLang();
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState<string | null>(getDateString());
   const { sessions, deleteSession, startPlannedSession, createSession, loadFromTemplate } = useSessionStore();
@@ -85,7 +93,9 @@ export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) 
   }, [sessions, courses, natations]);
 
   const today = getDateString();
-  const monthLabel = month.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const DAY_NAMES = getDayNames();
+  const locale = getLang() === 'fr' ? 'fr-FR' : getLang() === 'es' ? 'es-ES' : 'en-GB';
+  const monthLabel = month.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 
   const monthSessionCount = sessions.filter((s) =>
     s.date.startsWith(`${year}-${String(mo + 1).padStart(2, '0')}`)
@@ -103,12 +113,12 @@ export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) 
     <div className="page-enter" style={{ paddingBottom: 20 }}>
       {/* Header */}
       <div style={{ padding: '14px 22px 14px' }}>
-        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Historique</div>
-        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Calendrier</h1>
+        <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>{tr({ fr: 'Historique', en: 'History', es: 'Historial' })}</div>
+        <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>{tr({ fr: 'Calendrier', en: 'Calendar', es: 'Calendario' })}</h1>
         <div style={{ display: 'flex', gap: 18, marginTop: 12 }}>
           <div>
             <span className="t-num" style={{ fontSize: 22, color: 'var(--primary)' }}>{monthSessionCount}</span>
-            <span style={{ fontSize: 12, color: 'var(--text-mute)', marginLeft: 4, fontWeight: 600 }}>séances</span>
+            <span style={{ fontSize: 12, color: 'var(--text-mute)', marginLeft: 4, fontWeight: 600 }}>{tr({ fr: 'séances', en: 'workouts', es: 'sesiones' })}</span>
           </div>
           <div style={{ width: 1, background: 'var(--line)' }} />
           <div>
@@ -189,11 +199,11 @@ export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) 
         ))}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)' }} />
-          <span style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 600, letterSpacing: 0.06, textTransform: 'uppercase' }}>Course</span>
+          <span style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 600, letterSpacing: 0.06, textTransform: 'uppercase' }}>{tr({ fr: 'Course', en: 'Run', es: 'Carrera' })}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--cyan)' }} />
-          <span style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 600, letterSpacing: 0.06, textTransform: 'uppercase' }}>Natation</span>
+          <span style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 600, letterSpacing: 0.06, textTransform: 'uppercase' }}>{tr({ fr: 'Natation', en: 'Swim', es: 'Natación' })}</span>
         </div>
       </div>
 
@@ -226,11 +236,11 @@ export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) 
                           background: 'rgba(255,255,255,0.06)', color: 'var(--text-mute)',
                           border: '1px dashed rgba(255,255,255,0.2)',
                           textTransform: 'uppercase',
-                        }}>À faire</span>
+                        }}>{tr({ fr: 'À faire', en: 'To do', es: 'Pendiente' })}</span>
                       )}
                     </div>
                     <button className="tap" onClick={() => {
-                      if (confirm('Supprimer cette séance ?')) deleteSession(sess.id);
+                      if (confirm(tr({ fr: 'Supprimer cette séance ?', en: 'Delete this workout?', es: '¿Eliminar esta sesión?' }))) deleteSession(sess.id);
                     }} style={{ background: 'transparent', border: 'none', color: 'var(--text-mute)' }}>
                       <Icons.Trash size={14} />
                     </button>
@@ -260,7 +270,7 @@ export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) 
                         color: '#fff', fontWeight: 800, fontSize: 13,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                       }}>
-                      <Icons.Play size={14} /> Lancer cette séance
+                      <Icons.Play size={14} /> {tr({ fr: 'Lancer cette séance', en: 'Start this workout', es: 'Iniciar esta sesión' })}
                     </button>
                   )}
 
@@ -277,7 +287,7 @@ export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) 
                           color: 'var(--primary)', fontWeight: 700, fontSize: 12,
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         }}>
-                        <Icons.Play size={12} /> Refaire
+                        <Icons.Play size={12} /> {tr({ fr: 'Refaire', en: 'Redo', es: 'Repetir' })}
                       </button>
                       <button
                         onClick={() => handleAnalyzeSession(sess)}
@@ -289,7 +299,7 @@ export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) 
                           borderRadius: 12, padding: '10px',
                           color: 'var(--info)', fontWeight: 700, fontSize: 12,
                         }}>
-                        🤖 Analyser IA
+                        {tr({ fr: '🤖 Analyser IA', en: '🤖 Analyse AI', es: '🤖 Analizar IA' })}
                       </button>
                     </div>
                   )}
@@ -301,14 +311,14 @@ export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) 
               <div key={c.id} className="glass" style={{ borderRadius: 22, padding: '14px 16px', borderLeft: '3px solid var(--info)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Icons.Run size={18} color="var(--info)" />
-                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.16, color: 'var(--info)', textTransform: 'uppercase' }}>Course</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.16, color: 'var(--info)', textTransform: 'uppercase' }}>{tr({ fr: 'Course', en: 'Run', es: 'Carrera' })}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
                   <div><div className="t-num" style={{ fontSize: 26 }}>{c.distance}</div><div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>km</div></div>
                   <div><div className="t-num" style={{ fontSize: 26 }}>{c.time}</div><div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>min</div></div>
                   <div>
                     <div className="t-num" style={{ fontSize: 26 }}>{c.distance > 0 ? (c.time / c.distance).toFixed(2) : '--'}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>min/km</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>{tr({ fr: 'min/km', en: 'min/km', es: 'min/km' })}</div>
                   </div>
                 </div>
                 {typeof c.notes === 'string' && c.notes && (
@@ -322,11 +332,11 @@ export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Icons.Swim size={18} color="var(--cyan)" />
                   <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.16, color: 'var(--cyan)', textTransform: 'uppercase' }}>
-                    Natation{(n as any).style ? ` · ${(n as any).style}` : ''}
+                    {tr({ fr: 'Natation', en: 'Swim', es: 'Natación' })}{(n as any).style ? ` · ${(n as any).style}` : ''}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-                  <div><div className="t-num" style={{ fontSize: 26 }}>{n.distance}</div><div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>m</div></div>
+                  <div><div className="t-num" style={{ fontSize: 26 }}>{n.distance}</div><div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>{tr({ fr: 'm', en: 'm', es: 'm' })}</div></div>
                   <div><div className="t-num" style={{ fontSize: 26 }}>{n.time}</div><div style={{ fontSize: 10, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase' }}>min</div></div>
                 </div>
                 {typeof (n as any).notes === 'string' && (n as any).notes && (
@@ -337,7 +347,7 @@ export default function Calendar({ onStartSession, onAskCoach }: CalendarProps) 
 
             {!selInfo?.sessions.length && !selCourses.length && !selNatations.length && (
               <div style={{ textAlign: 'center', color: 'var(--text-mute)', fontSize: 13, padding: '20px 0' }}>
-                Aucune activité ce jour.
+                {tr({ fr: 'Aucune activité ce jour.', en: 'No activity this day.', es: 'Sin actividad este día.' })}
               </div>
             )}
           </div>

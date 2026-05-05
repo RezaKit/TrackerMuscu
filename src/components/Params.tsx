@@ -86,7 +86,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
     setProfile(updated);
     setShowGoalPicker(false);
     scheduleSync();
-    showToast('Objectif mis à jour', 'success');
+    showToast(tr({ fr: 'Objectif mis à jour', en: 'Goal updated', es: 'Objetivo actualizado' }), 'success');
   };
 
   const handleResetAccount = async () => {
@@ -114,32 +114,32 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
       if (user) {
         await supabase.from('user_data').delete().eq('user_id', user.id);
       }
-      showToast('Compte réinitialisé — toutes les données supprimées', 'info');
+      showToast(tr({ fr: 'Compte réinitialisé — toutes les données supprimées', en: 'Account reset — all data deleted', es: 'Cuenta restablecida — todos los datos eliminados' }), 'info');
       setShowResetConfirm(false);
       window.location.reload();
     } catch {
-      showToast('Erreur lors de la réinitialisation', 'info');
+      showToast(tr({ fr: 'Erreur lors de la réinitialisation', en: 'Reset error', es: 'Error al restablecer' }), 'info');
     }
     setResetting(false);
   };
 
   const handleChangePassword = async () => {
-    if (newPassword !== newPassword2) { showToast('Les mots de passe ne correspondent pas', 'info'); return; }
-    if (newPassword.length < 6) { showToast('Minimum 6 caractères', 'info'); return; }
+    if (newPassword !== newPassword2) { showToast(tr({ fr: 'Les mots de passe ne correspondent pas', en: 'Passwords do not match', es: 'Las contraseñas no coinciden' }), 'info'); return; }
+    if (newPassword.length < 6) { showToast(tr({ fr: 'Minimum 6 caractères', en: 'Minimum 6 characters', es: 'Mínimo 6 caracteres' }), 'info'); return; }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setLoading(false);
-    if (error) showToast('Erreur : ' + error.message, 'info');
-    else { setNewPassword(''); setNewPassword2(''); showToast('Mot de passe modifié ✓', 'success'); }
+    if (error) showToast(tr({ fr: 'Erreur : ', en: 'Error: ', es: 'Error: ' }) + error.message, 'info');
+    else { setNewPassword(''); setNewPassword2(''); showToast(tr({ fr: 'Mot de passe modifié ✓', en: 'Password updated ✓', es: 'Contraseña actualizada ✓' }), 'success'); }
   };
 
   const handleChangeEmail = async () => {
-    if (!newEmail.includes('@')) { showToast('Email invalide', 'info'); return; }
+    if (!newEmail.includes('@')) { showToast(tr({ fr: 'Email invalide', en: 'Invalid email', es: 'Email inválido' }), 'info'); return; }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ email: newEmail });
     setLoading(false);
-    if (error) showToast('Erreur : ' + error.message, 'info');
-    else { setNewEmail(''); showToast('Vérifie ton nouvel email pour confirmer', 'success'); }
+    if (error) showToast(tr({ fr: 'Erreur : ', en: 'Error: ', es: 'Error: ' }) + error.message, 'info');
+    else { setNewEmail(''); showToast(tr({ fr: 'Vérifie ton nouvel email pour confirmer', en: 'Check your new email to confirm', es: 'Revisa tu nuevo correo para confirmar' }), 'success'); }
   };
 
   const handleResetPassword = async () => {
@@ -150,7 +150,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
     });
     setLoading(false);
     setResetSent(true);
-    showToast('Email de réinitialisation envoyé !', 'success');
+    showToast(tr({ fr: 'Email de réinitialisation envoyé !', en: 'Reset email sent!', es: '¡Correo de restablecimiento enviado!' }), 'success');
   };
 
   const handleStravaSync = async () => {
@@ -161,9 +161,9 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
       const parts = [];
       if (imported > 0) parts.push(`${imported} activité${imported > 1 ? 's' : ''}`);
       if (caloriesImported > 0) parts.push(`${caloriesImported} kcal`);
-      showToast(`Strava : ${parts.join(' · ')} importés !`, 'success');
+      showToast(`Strava : ${parts.join(' · ')} ${tr({ fr: 'importés !', en: 'imported!', es: '¡importados!' })}`, 'success');
     } else {
-      showToast(`Aucune nouvelle activité (${skipped} déjà importées)`, 'info');
+      showToast(`${tr({ fr: 'Aucune nouvelle activité', en: 'No new activity', es: 'Sin nueva actividad' })} (${skipped} ${tr({ fr: 'déjà importées', en: 'already imported', es: 'ya importadas' })})`, 'info');
     }
   };
 
@@ -171,14 +171,14 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
     setGarminSyncing(true);
     const cal = await syncGarminCalories();
     setGarminSyncing(false);
-    if (cal > 0) showToast(`Garmin : ${cal} kcal actives importées !`, 'success');
-    else showToast('Garmin : déjà à jour pour aujourd\'hui', 'info');
+    if (cal > 0) showToast(`Garmin : ${cal} kcal ${tr({ fr: 'actives importées !', en: 'active calories imported!', es: '¡calorías activas importadas!' })}`, 'success');
+    else showToast(tr({ fr: "Garmin : déjà à jour pour aujourd'hui", en: "Garmin: already up to date for today", es: "Garmin: ya actualizado para hoy" }), 'info');
   };
 
   const handleStravaDisconnect = () => {
     disconnectStrava();
     setStravaConnected(false);
-    showToast('Strava déconnecté', 'info');
+    showToast(tr({ fr: 'Strava déconnecté', en: 'Strava disconnected', es: 'Strava desconectado' }), 'info');
   };
 
   const handleGarminConnect = async () => {
@@ -186,23 +186,23 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
       const res = await fetch('/api/garmin/request-token');
       if (!res.ok) {
         const err = await res.json() as { error: string };
-        showToast(err.error || 'Garmin non disponible', 'info');
+        showToast(err.error || tr({ fr: 'Garmin non disponible', en: 'Garmin unavailable', es: 'Garmin no disponible' }), 'info');
         return;
       }
       const data = await res.json() as { authorize_url: string };
       window.location.href = data.authorize_url;
     } catch {
-      showToast('Erreur de connexion Garmin', 'info');
+      showToast(tr({ fr: 'Erreur de connexion Garmin', en: 'Garmin connection error', es: 'Error de conexión Garmin' }), 'info');
     }
   };
 
   const handleShare = () => {
     const url = 'https://resakit.fr';
-    const text = 'Essaie RezaKit — ton kit fitness complet : séances, cardio, nutrition et coach IA';
+    const text = tr({ fr: 'Essaie RezaKit — ton kit fitness complet : séances, cardio, nutrition et coach IA', en: 'Try RezaKit — your complete fitness kit: workouts, cardio, nutrition and AI coach', es: 'Prueba RezaKit — tu kit fitness completo: sesiones, cardio, nutrición y coach IA' });
     if (navigator.share) {
       navigator.share({ title: 'RezaKit', text, url }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(url).then(() => showToast('Lien copié !', 'success'));
+      navigator.clipboard.writeText(url).then(() => showToast(tr({ fr: 'Lien copié !', en: 'Link copied!', es: '¡Enlace copiado!' }), 'success'));
     }
   };
 
@@ -281,20 +281,20 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>{t('params.changePassword')}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ position: 'relative' }}>
-                  <input type={showPwd ? 'text' : 'password'} placeholder="Nouveau mot de passe"
+                  <input type={showPwd ? 'text' : 'password'} placeholder={tr({ fr: 'Nouveau mot de passe', en: 'New password', es: 'Nueva contraseña' })}
                     value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
                     className="input-glass" style={{ paddingRight: 52 }} />
                   <button onClick={() => setShowPwd(s => !s)} style={{
                     position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
                     background: 'none', border: 'none', color: 'var(--text-mute)', fontSize: 12, cursor: 'pointer',
-                  }}>{showPwd ? 'Cacher' : 'Voir'}</button>
+                  }}>{showPwd ? tr({ fr: 'Cacher', en: 'Hide', es: 'Ocultar' }) : tr({ fr: 'Voir', en: 'Show', es: 'Ver' })}</button>
                 </div>
-                <input type={showPwd ? 'text' : 'password'} placeholder="Confirmer le mot de passe"
+                <input type={showPwd ? 'text' : 'password'} placeholder={tr({ fr: 'Confirmer le mot de passe', en: 'Confirm password', es: 'Confirmar contraseña' })}
                   value={newPassword2} onChange={(e) => setNewPassword2(e.target.value)}
                   className="input-glass" />
                 {newPassword && newPassword2 && newPassword !== newPassword2 && (
                   <div style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 600 }}>
-                    ❌ Les mots de passe ne correspondent pas
+                    ❌ {tr({ fr: 'Les mots de passe ne correspondent pas', en: 'Passwords do not match', es: 'Las contraseñas no coinciden' })}
                   </div>
                 )}
                 <button onClick={handleChangePassword}
@@ -304,7 +304,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
                     color: '#fff', fontWeight: 700, fontSize: 13,
                     opacity: newPassword && newPassword === newPassword2 && !loading ? 1 : 0.4,
                   }}>
-                  {loading ? '...' : 'Modifier le mot de passe'}
+                  {loading ? '...' : tr({ fr: 'Modifier le mot de passe', en: 'Update password', es: 'Actualizar contraseña' })}
                 </button>
               </div>
             </div>
@@ -312,10 +312,10 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
             <div className="glass" style={{ borderRadius: 22, padding: '18px 16px' }}>
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{t('params.changeEmail')}</div>
               <div style={{ fontSize: 11, color: 'var(--text-mute)', marginBottom: 14 }}>
-                Un email de confirmation sera envoyé aux deux adresses.
+                {tr({ fr: 'Un email de confirmation sera envoyé aux deux adresses.', en: 'A confirmation email will be sent to both addresses.', es: 'Se enviará un correo de confirmación a ambas direcciones.' })}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <input type="email" placeholder="Nouvel email" value={newEmail}
+                <input type="email" placeholder={tr({ fr: 'Nouvel email', en: 'New email', es: 'Nuevo correo' })} value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   className="input-glass" autoCapitalize="none" />
                 <button onClick={handleChangeEmail} disabled={loading || !newEmail.includes('@')} className="tap" style={{
@@ -325,7 +325,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
                   fontWeight: 700, fontSize: 13,
                   opacity: newEmail.includes('@') && !loading ? 1 : 0.4,
                 }}>
-                  {loading ? '...' : "Modifier l'email"}
+                  {loading ? '...' : tr({ fr: "Modifier l'email", en: 'Update email', es: 'Actualizar correo' })}
                 </button>
               </div>
             </div>
@@ -333,7 +333,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
             <div className="glass" style={{ borderRadius: 22, padding: '16px 16px' }}>
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{t('params.forgotPassword')}</div>
               <div style={{ fontSize: 11, color: 'var(--text-mute)', marginBottom: 12, lineHeight: 1.5 }}>
-                Envoie un lien de réinitialisation sur{' '}
+                {tr({ fr: 'Envoie un lien de réinitialisation sur', en: 'Send a reset link to', es: 'Enviar un enlace de restablecimiento a' })}{' '}
                 <strong style={{ color: 'var(--text-soft)' }}>{user.email}</strong>
               </div>
               <button onClick={handleResetPassword} disabled={loading || resetSent} className="tap" style={{
@@ -342,7 +342,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
                 color: resetSent ? 'var(--ok)' : 'var(--text-mute)',
                 fontWeight: 700, fontSize: 13, opacity: loading ? 0.4 : 1,
               }}>
-                {resetSent ? '✓ Email envoyé !' : loading ? '...' : 'Envoyer le lien de réinitialisation'}
+                {resetSent ? tr({ fr: '✓ Email envoyé !', en: '✓ Email sent!', es: '✓ ¡Correo enviado!' }) : loading ? '...' : tr({ fr: 'Envoyer le lien de réinitialisation', en: 'Send reset link', es: 'Enviar enlace de restablecimiento' })}
               </button>
             </div>
           </>
@@ -351,7 +351,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
             <Icons.Settings size={28} color="var(--text-faint)" />
             <div style={{ marginTop: 10, fontWeight: 700, fontSize: 14 }}>{t('params.notLoggedIn')}</div>
             <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-mute)', marginBottom: 16 }}>
-              Connecte-toi pour synchroniser tes données et gérer ton compte.
+              {tr({ fr: 'Connecte-toi pour synchroniser tes données et gérer ton compte.', en: 'Sign in to sync your data and manage your account.', es: 'Inicia sesión para sincronizar tus datos y gestionar tu cuenta.' })}
             </div>
             <button onClick={onShowAuth} className="tap" style={{
               border: 'none', borderRadius: 14, padding: '12px 24px',
@@ -374,9 +374,9 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
               <Icons.Bot size={18} color={apiKey ? 'var(--ok)' : 'var(--primary)'} />
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>{apiKey ? 'Coach IA activé ✓' : 'Clé API Coach IA'}</div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{apiKey ? tr({ fr: 'Coach IA activé ✓', en: 'AI Coach enabled ✓', es: 'Coach IA activado ✓' }) : tr({ fr: 'Clé API Coach IA', en: 'AI Coach API Key', es: 'Clave API Coach IA' })}</div>
               <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>
-                {apiKey ? 'Gemini 2.5 Flash · Gratuit' : 'aistudio.google.com · Gratuit'}
+                {apiKey ? tr({ fr: 'Gemini 2.5 Flash · Gratuit', en: 'Gemini 2.5 Flash · Free', es: 'Gemini 2.5 Flash · Gratuito' }) : tr({ fr: 'aistudio.google.com · Gratuit', en: 'aistudio.google.com · Free', es: 'aistudio.google.com · Gratuito' })}
               </div>
             </div>
           </div>
@@ -398,29 +398,29 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
               position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', color: 'var(--text-mute)', fontSize: 12, cursor: 'pointer',
             }}>
-              {showKey ? 'Cacher' : 'Voir'}
+              {showKey ? tr({ fr: 'Cacher', en: 'Hide', es: 'Ocultar' }) : tr({ fr: 'Voir', en: 'Show', es: 'Ver' })}
             </button>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => {
-              if (apiKey.trim()) { localStorage.setItem('gemini_api_key', apiKey.trim()); scheduleSync(); showToast('Coach IA activé !', 'success'); }
+              if (apiKey.trim()) { localStorage.setItem('gemini_api_key', apiKey.trim()); scheduleSync(); showToast(tr({ fr: 'Coach IA activé !', en: 'AI Coach enabled!', es: '¡Coach IA activado!' }), 'success'); }
             }} disabled={!apiKey.trim()} className="tap" style={{
               flex: 1, border: 'none', borderRadius: 12, padding: '11px',
               background: apiKey.trim() ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
               color: '#fff', fontWeight: 700, fontSize: 13, opacity: apiKey.trim() ? 1 : 0.4,
             }}>
-              Activer le Coach IA
+              {tr({ fr: 'Activer le Coach IA', en: 'Enable AI Coach', es: 'Activar Coach IA' })}
             </button>
             {localStorage.getItem('gemini_api_key') && (
               <button onClick={() => {
                 localStorage.removeItem('gemini_api_key');
                 setApiKey('');
-                showToast('Clé supprimée', 'info');
+                showToast(tr({ fr: 'Clé supprimée', en: 'Key deleted', es: 'Clave eliminada' }), 'info');
               }} className="tap" style={{
                 border: 'none', borderRadius: 12, padding: '10px 14px',
                 background: 'rgba(196,30,58,0.15)', color: 'var(--secondary)', fontWeight: 700, fontSize: 13,
               }}>
-                Effacer
+                {tr({ fr: 'Effacer', en: 'Remove', es: 'Eliminar' })}
               </button>
             )}
           </div>
@@ -428,29 +428,29 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
           {/* Guide obtenir la clé */}
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 12 }}>
-              Comment obtenir la clé (2 min)
+              {tr({ fr: 'Comment obtenir la clé (2 min)', en: 'How to get your API key (2 min)', es: 'Cómo obtener la clave (2 min)' })}
             </div>
             {[
               {
                 n: '1',
-                text: 'Va sur aistudio.google.com',
-                sub: 'Connecte-toi avec ton compte Google (gratuit)',
+                text: tr({ fr: 'Va sur aistudio.google.com', en: 'Go to aistudio.google.com', es: 'Ve a aistudio.google.com' }),
+                sub: tr({ fr: 'Connecte-toi avec ton compte Google (gratuit)', en: 'Sign in with your Google account (free)', es: 'Inicia sesión con tu cuenta Google (gratis)' }),
                 link: 'https://aistudio.google.com/apikey',
               },
               {
                 n: '2',
-                text: 'Clique « Create API key »',
-                sub: 'Si on te demande un projet : choisis « Gemini API » ou crée un nouveau projet, peu importe',
+                text: tr({ fr: 'Clique « Create API key »', en: 'Click "Create API key"', es: 'Haz clic en "Create API key"' }),
+                sub: tr({ fr: "Si on te demande un projet : choisis « Gemini API » ou crée un nouveau projet, peu importe", en: 'If asked for a project: choose "Gemini API" or create a new one, it does not matter', es: 'Si te piden proyecto: elige "Gemini API" o crea uno nuevo, no importa' }),
               },
               {
                 n: '3',
-                text: 'Vérifie le plan : Free tier',
-                sub: 'En haut tu dois voir « Free » — pas de carte bancaire requise. C\'est ce qu\'il faut.',
+                text: tr({ fr: 'Vérifie le plan : Free tier', en: 'Check the plan: Free tier', es: 'Verifica el plan: Free tier' }),
+                sub: tr({ fr: "En haut tu dois voir « Free » — pas de carte bancaire requise. C'est ce qu'il faut.", en: 'You should see "Free" at the top — no credit card required. That is what you need.', es: 'Debes ver "Free" arriba — sin tarjeta bancaria requerida. Es lo que necesitas.' }),
               },
               {
                 n: '4',
-                text: 'Copie la clé (commence par AIzaSy…)',
-                sub: 'Colle-la dans le champ ci-dessus puis clique « Activer le Coach IA »',
+                text: tr({ fr: 'Copie la clé (commence par AIzaSy…)', en: 'Copy the key (starts with AIzaSy…)', es: 'Copia la clave (empieza con AIzaSy…)' }),
+                sub: tr({ fr: 'Colle-la dans le champ ci-dessus puis clique « Activer le Coach IA »', en: 'Paste it in the field above then click "Enable AI Coach"', es: 'Pégala en el campo de arriba y haz clic en "Activar Coach IA"' }),
               },
             ].map(({ n, text, sub, link }) => (
               <div key={n} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
@@ -472,11 +472,11 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
             ))}
             <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.12)', marginTop: 4 }}>
               <div style={{ fontSize: 11, color: 'var(--ok)', fontWeight: 700, marginBottom: 4 }}>
-                ✓ Free tier — pas de carte bancaire requise
+                {tr({ fr: '✓ Free tier — pas de carte bancaire requise', en: '✓ Free tier — no credit card required', es: '✓ Free tier — sin tarjeta bancaria requerida' })}
               </div>
               <div style={{ fontSize: 10.5, color: 'var(--text-mute)', lineHeight: 1.5 }}>
-                Modèle utilisé : <strong style={{ color: 'var(--text-soft)' }}>gemini-2.5-flash</strong>
-                <br />Limite : ~10 requêtes/min, 250/jour. Largement suffisant pour discuter avec ton coach.
+                {tr({ fr: 'Modèle utilisé :', en: 'Model used:', es: 'Modelo usado:' })} <strong style={{ color: 'var(--text-soft)' }}>gemini-2.5-flash</strong>
+                <br />{tr({ fr: 'Limite : ~10 requêtes/min, 250/jour. Largement suffisant pour discuter avec ton coach.', en: 'Limit: ~10 requests/min, 250/day. More than enough to chat with your coach.', es: 'Límite: ~10 solicitudes/min, 250/día. Más que suficiente para chatear con tu coach.' })}
               </div>
             </div>
           </div>
@@ -497,8 +497,8 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>
                 {stravaConnected
-                  ? `Connecté${stravaAthlete ? ` · ${stravaAthlete.name}` : ''}`
-                  : 'Importe tes courses et natations automatiquement'}
+                  ? `${tr({ fr: 'Connecté', en: 'Connected', es: 'Conectado' })}${stravaAthlete ? ` · ${stravaAthlete.name}` : ''}`
+                  : tr({ fr: 'Importe tes courses et natations automatiquement', en: 'Automatically import your runs and swims', es: 'Importa tus carreras y nataciones automáticamente' })}
               </div>
             </div>
           </div>
@@ -510,13 +510,13 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
                 background: 'rgba(252,76,2,0.15)', color: '#FC4C02', fontWeight: 700, fontSize: 13,
                 opacity: stravaSyncing ? 0.5 : 1,
               }}>
-                {stravaSyncing ? '⟳ Sync...' : '↓ Synchroniser'}
+                {stravaSyncing ? `⟳ ${tr({ fr: 'Sync...', en: 'Sync...', es: 'Sincron...' })}` : `↓ ${tr({ fr: 'Synchroniser', en: 'Sync', es: 'Sincronizar' })}`}
               </button>
               <button onClick={handleStravaDisconnect} className="tap" style={{
                 border: 'none', borderRadius: 12, padding: '10px 14px',
                 background: 'rgba(196,30,58,0.12)', color: 'var(--secondary)', fontWeight: 700, fontSize: 13,
               }}>
-                Déconnecter
+                {tr({ fr: 'Déconnecter', en: 'Disconnect', es: 'Desconectar' })}
               </button>
             </div>
           ) : (
@@ -524,7 +524,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
               width: '100%', border: 'none', borderRadius: 12, padding: '12px',
               background: '#FC4C02', color: '#fff', fontWeight: 700, fontSize: 13,
             }}>
-              Connecter Strava
+              {tr({ fr: 'Connecter Strava', en: 'Connect Strava', es: 'Conectar Strava' })}
             </button>
           )}
         </div>
@@ -544,8 +544,8 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>
                 {garminConnected
-                  ? 'Connecté · calories importées automatiquement'
-                  : 'Montre Garmin → calories brûlées auto'}
+                  ? tr({ fr: 'Connecté · calories importées automatiquement', en: 'Connected · calories imported automatically', es: 'Conectado · calorías importadas automáticamente' })
+                  : tr({ fr: 'Montre Garmin → calories brûlées auto', en: 'Garmin watch → burned calories auto', es: 'Reloj Garmin → calorías quemadas auto' })}
               </div>
             </div>
           </div>
@@ -557,17 +557,17 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
                 background: 'rgba(0,168,107,0.15)', color: '#00A86B', fontWeight: 700, fontSize: 13,
                 opacity: garminSyncing ? 0.5 : 1,
               }}>
-                {garminSyncing ? '⟳ Sync...' : '↓ Calories du jour'}
+                {garminSyncing ? `⟳ ${tr({ fr: 'Sync...', en: 'Sync...', es: 'Sincron...' })}` : `↓ ${tr({ fr: 'Calories du jour', en: "Today's calories", es: 'Calorías de hoy' })}`}
               </button>
               <button onClick={() => {
                 localStorage.removeItem('garmin_token');
                 localStorage.removeItem('garmin_secret');
-                showToast('Garmin déconnecté', 'info');
+                showToast(tr({ fr: 'Garmin déconnecté', en: 'Garmin disconnected', es: 'Garmin desconectado' }), 'info');
               }} className="tap" style={{
                 border: 'none', borderRadius: 12, padding: '10px 14px',
                 background: 'rgba(196,30,58,0.12)', color: 'var(--secondary)', fontWeight: 700, fontSize: 13,
               }}>
-                Déconnecter
+                {tr({ fr: 'Déconnecter', en: 'Disconnect', es: 'Desconectar' })}
               </button>
             </div>
           ) : (
@@ -577,11 +577,11 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
                 background: 'rgba(0,168,107,0.15)', color: '#00A86B', fontWeight: 700, fontSize: 13,
                 marginBottom: 8,
               }}>
-                Connecter Garmin
+                {tr({ fr: 'Connecter Garmin', en: 'Connect Garmin', es: 'Conectar Garmin' })}
               </button>
               <div style={{ fontSize: 10.5, color: 'var(--text-faint)', lineHeight: 1.5, textAlign: 'center' }}>
-                Nécessite un compte développeur Garmin Health API approuvé.{'\n'}
-                Compatible Forerunner, Fenix, Venu, Vivoactive...
+                {tr({ fr: 'Nécessite un compte développeur Garmin Health API approuvé.', en: 'Requires an approved Garmin Health API developer account.', es: 'Requiere una cuenta de desarrollador Garmin Health API aprobada.' })}{'\n'}
+                {tr({ fr: 'Compatible Forerunner, Fenix, Venu, Vivoactive...', en: 'Compatible with Forerunner, Fenix, Venu, Vivoactive...', es: 'Compatible con Forerunner, Fenix, Venu, Vivoactive...' })}
               </div>
             </>
           )}
@@ -589,9 +589,9 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
 
         {/* ── Inviter un ami ────────────────────── */}
         <div className="glass" style={{ borderRadius: 22, padding: '18px 16px' }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Inviter un ami</div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{tr({ fr: 'Inviter un ami', en: 'Invite a friend', es: 'Invitar a un amigo' })}</div>
           <div style={{ fontSize: 11, color: 'var(--text-mute)', marginBottom: 14 }}>
-            Partage l'app — compte gratuit, toutes les fonctionnalités incluses.
+            {tr({ fr: "Partage l'app — compte gratuit, toutes les fonctionnalités incluses.", en: 'Share the app — free account, all features included.', es: 'Comparte la app — cuenta gratuita, todas las funciones incluidas.' })}
           </div>
           <button onClick={handleShare} className="tap" style={{
             width: '100%', borderRadius: 14, padding: '12px',
@@ -599,15 +599,15 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
             color: 'var(--primary)', fontWeight: 700, fontSize: 13,
             border: '1px solid rgba(255,107,53,0.25)',
           }}>
-            Partager l'app 🏋️
+            {tr({ fr: "Partager l'app 🏋️", en: 'Share the app 🏋️', es: 'Compartir la app 🏋️' })}
           </button>
           <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: 'var(--mono)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               resakit.fr
             </div>
-            <button onClick={() => navigator.clipboard.writeText('https://resakit.fr').then(() => showToast('Lien copié !', 'success'))}
+            <button onClick={() => navigator.clipboard.writeText('https://resakit.fr').then(() => showToast(tr({ fr: 'Lien copié !', en: 'Link copied!', es: '¡Enlace copiado!' }), 'success'))}
               className="tap" style={{ background: 'none', border: 'none', color: 'var(--text-mute)', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-              Copier
+              {tr({ fr: 'Copier', en: 'Copy', es: 'Copiar' })}
             </button>
           </div>
         </div>
@@ -615,9 +615,9 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
         {/* ── Objectif ──────────────────────────── */}
         {profile && (
           <div className="glass" style={{ borderRadius: 22, padding: '18px 16px' }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Objectif principal</div>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{tr({ fr: 'Objectif principal', en: 'Main goal', es: 'Objetivo principal' })}</div>
             <div style={{ fontSize: 11, color: 'var(--text-mute)', marginBottom: 14 }}>
-              L'IA adapte tous ses conseils à ton objectif.
+              {tr({ fr: "L'IA adapte tous ses conseils à ton objectif.", en: 'The AI adapts all advice to your goal.', es: 'La IA adapta todos sus consejos a tu objetivo.' })}
             </div>
             {!showGoalPicker ? (
               <button onClick={() => setShowGoalPicker(true)} className="tap" style={{
@@ -637,7 +637,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
                     </div>
                   </div>
                 </div>
-                <span style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 600 }}>Modifier</span>
+                <span style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 600 }}>{tr({ fr: 'Modifier', en: 'Edit', es: 'Modificar' })}</span>
               </button>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -661,7 +661,7 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
                   </button>
                 ))}
                 <button onClick={() => setShowGoalPicker(false)} style={{ background: 'none', border: 'none', color: 'var(--text-mute)', fontSize: 12, padding: '4px', cursor: 'pointer' }}>
-                  Annuler
+                  {tr({ fr: 'Annuler', en: 'Cancel', es: 'Cancelar' })}
                 </button>
               </div>
             )}
@@ -714,9 +714,9 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
               color: 'var(--info)', fontSize: 18,
             }}>🛡️</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Confidentialité & Légal</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{tr({ fr: 'Confidentialité & Légal', en: 'Privacy & Legal', es: 'Privacidad y legal' })}</div>
               <div style={{ fontSize: 11, color: 'var(--text-mute)', marginTop: 2 }}>
-                RGPD, mentions légales, CGU
+                {tr({ fr: 'RGPD, mentions légales, CGU', en: 'GDPR, legal notices, terms', es: 'RGPD, avisos legales, términos' })}
               </div>
             </div>
             <span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}>
@@ -732,13 +732,13 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
             padding: '13px', background: 'transparent',
             color: 'var(--text-mute)', fontWeight: 600, fontSize: 13,
           }}>
-            Réinitialiser toutes mes données
+            {tr({ fr: 'Réinitialiser toutes mes données', en: 'Reset all my data', es: 'Restablecer todos mis datos' })}
           </button>
         ) : (
           <div className="glass" style={{ borderRadius: 22, padding: '18px 16px', border: '1px solid rgba(196,30,58,0.3)' }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6, color: 'var(--secondary)' }}>⚠️ Réinitialisation totale</div>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6, color: 'var(--secondary)' }}>⚠️ {tr({ fr: 'Réinitialisation totale', en: 'Full reset', es: 'Restablecimiento total' })}</div>
             <div style={{ fontSize: 12, color: 'var(--text-mute)', marginBottom: 16, lineHeight: 1.6 }}>
-              Toutes tes séances, templates, cardio, calories, poids, routine et historique IA seront supprimés définitivement. Le compte Supabase reste actif.
+              {tr({ fr: 'Toutes tes séances, templates, cardio, calories, poids, routine et historique IA seront supprimés définitivement. Le compte Supabase reste actif.', en: 'All your workouts, templates, cardio, calories, weight, routine and AI history will be permanently deleted. Your Supabase account remains active.', es: 'Todas tus sesiones, plantillas, cardio, calorías, peso, rutina e historial IA serán eliminados permanentemente. La cuenta Supabase permanece activa.' })}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={handleResetAccount} disabled={resetting} className="tap" style={{
@@ -746,13 +746,13 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
                 background: 'rgba(196,30,58,0.15)', color: 'var(--secondary)', fontWeight: 700, fontSize: 13,
                 opacity: resetting ? 0.5 : 1,
               }}>
-                {resetting ? '⟳ Suppression...' : 'Confirmer la suppression'}
+                {resetting ? `⟳ ${tr({ fr: 'Suppression...', en: 'Deleting...', es: 'Eliminando...' })}` : tr({ fr: 'Confirmer la suppression', en: 'Confirm deletion', es: 'Confirmar eliminación' })}
               </button>
               <button onClick={() => setShowResetConfirm(false)} className="tap" style={{
                 border: 'none', borderRadius: 12, padding: '10px 14px',
                 background: 'rgba(255,255,255,0.06)', color: 'var(--text-mute)', fontWeight: 700, fontSize: 13,
               }}>
-                Annuler
+                {tr({ fr: 'Annuler', en: 'Cancel', es: 'Cancelar' })}
               </button>
             </div>
           </div>
@@ -760,13 +760,13 @@ export default function Params({ showToast, onShowAuth, onShowLegal }: ParamsPro
 
         {/* ── Déconnexion ───────────────────────── */}
         {user && (
-          <button onClick={async () => { await signOut(); showToast('Déconnecté', 'info'); }}
+          <button onClick={async () => { await signOut(); showToast(tr({ fr: 'Déconnecté', en: 'Signed out', es: 'Sesión cerrada' }), 'info'); }}
             className="tap" style={{
               width: '100%', border: '1px solid rgba(196,30,58,0.3)', borderRadius: 18,
               padding: '14px', background: 'rgba(196,30,58,0.08)',
               color: 'var(--secondary)', fontWeight: 700, fontSize: 14,
             }}>
-            Se déconnecter
+            {tr({ fr: 'Se déconnecter', en: 'Sign out', es: 'Cerrar sesión' })}
           </button>
         )}
 

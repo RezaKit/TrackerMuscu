@@ -4,15 +4,16 @@ import { useRoutineStore } from '../stores/routineStore';
 import { getDateString } from '../utils/export';
 import { Icons } from './Icons';
 import type { MealType } from '../types';
+import { tr, useLang } from '../utils/i18n';
 
 type Tab = 'calories' | 'routine';
 
-const MEAL_LABELS: Record<MealType, string> = {
-  'petit-dej': 'Petit-déj',
-  dejeuner: 'Déjeuner',
-  diner: 'Dîner',
-  collation: 'Collation',
-};
+const getMealLabels = (): Record<MealType, string> => ({
+  'petit-dej': tr({ fr: 'Petit-déj',  en: 'Breakfast', es: 'Desayuno'  }),
+  dejeuner:    tr({ fr: 'Déjeuner',   en: 'Lunch',     es: 'Almuerzo'  }),
+  diner:       tr({ fr: 'Dîner',      en: 'Dinner',    es: 'Cena'      }),
+  collation:   tr({ fr: 'Collation',  en: 'Snack',     es: 'Merienda'  }),
+});
 
 const MEAL_COLORS: Record<MealType, string> = {
   'petit-dej': '#FBBF24',
@@ -27,6 +28,7 @@ interface DailyProps {
 }
 
 export default function Daily({ showToast, onBack }: DailyProps) {
+  useLang();
   const [tab, setTab] = useState<Tab>('calories');
   const today = getDateString();
 
@@ -34,7 +36,7 @@ export default function Daily({ showToast, onBack }: DailyProps) {
     <div className="page-enter">
       <div style={{ padding: '16px 22px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>Suivi quotidien</div>
+          <div style={{ fontSize: 11, color: 'var(--text-mute)', letterSpacing: 0.16, fontWeight: 700, textTransform: 'uppercase' }}>{tr({ fr: 'Suivi quotidien', en: 'Daily tracking', es: 'Seguimiento diario' })}</div>
           <h1 className="t-display" style={{ margin: '4px 0 0', fontSize: 52, lineHeight: 0.88 }}>Daily</h1>
         </div>
         {onBack && (
@@ -44,7 +46,7 @@ export default function Daily({ showToast, onBack }: DailyProps) {
             color: 'var(--text-mute)', fontSize: 13, fontWeight: 700,
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
-            <Icons.ChevronLeft size={16} /> Retour
+            <Icons.ChevronLeft size={16} /> {tr({ fr: 'Retour', en: 'Back', es: 'Volver' })}
           </button>
         )}
       </div>
@@ -52,8 +54,8 @@ export default function Daily({ showToast, onBack }: DailyProps) {
       <div style={{ padding: '6px 16px 14px' }}>
         <div className="glass" style={{ borderRadius: 16, padding: 4, display: 'flex' }}>
           {([
-            { id: 'calories' as const, label: 'Calories', Icon: Icons.Flame },
-            { id: 'routine' as const, label: 'Routine', Icon: Icons.Moon },
+            { id: 'calories' as const, label: tr({ fr: 'Calories', en: 'Calories', es: 'Calorías' }), Icon: Icons.Flame },
+            { id: 'routine' as const, label: tr({ fr: 'Routine', en: 'Routine', es: 'Rutina' }), Icon: Icons.Moon },
           ]).map(({ id, label, Icon }) => {
             const on = tab === id;
             return (
@@ -122,7 +124,7 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
     setCalories('');
     setLabel('');
     setShowForm(false);
-    showToast(`${cal} kcal enregistré`, 'success');
+    showToast(`${cal} kcal ${tr({ fr: 'enregistré', en: 'logged', es: 'registrado' })}`, 'success');
   };
 
   return (
@@ -134,7 +136,7 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
           <button onClick={() => setViewDate(today)} className="tap" style={{
             background: 'rgba(255,107,53,0.12)', border: 'none', borderRadius: 10, padding: '10px 14px',
             color: 'var(--primary)', fontSize: 12, fontWeight: 700,
-          }}>Aujourd'hui</button>
+          }}>{tr({ fr: "Aujourd'hui", en: 'Today', es: 'Hoy' })}</button>
         )}
       </div>
 
@@ -142,13 +144,13 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
       <div className="glass" style={{ borderRadius: 22, padding: '16px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div>
-            <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 2 }}>Ingérées</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 2 }}>{tr({ fr: 'Ingérées', en: 'Consumed', es: 'Consumidas' })}</div>
             <div className="t-num" style={{ fontSize: 36, color: 'var(--primary)', lineHeight: 1 }}>
               {dayStats.in}<span style={{ fontSize: 13, color: 'var(--text-mute)', fontWeight: 400, marginLeft: 4 }}>kcal</span>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 2 }}>Objectif</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 2 }}>{tr({ fr: 'Objectif', en: 'Goal', es: 'Objetivo' })}</div>
             <button onClick={() => setShowGoalForm(!showGoalForm)} className="tap" style={{ background: 'none', border: 'none', padding: 0 }}>
               <div className="t-num" style={{ fontSize: 22, color: showGoalForm ? 'var(--primary)' : 'var(--text-soft)' }}>{calorieGoal} kcal</div>
             </button>
@@ -176,7 +178,7 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-mute)' }}>
           <span>{progressPct}%</span>
           <span style={{ color: remaining < 0 ? 'var(--secondary)' : 'var(--text-mute)' }}>
-            {remaining >= 0 ? `${remaining} kcal restantes` : `${Math.abs(remaining)} kcal dépassées`}
+            {remaining >= 0 ? `${remaining} kcal ${tr({ fr: 'restantes', en: 'remaining', es: 'restantes' })}` : `${Math.abs(remaining)} kcal ${tr({ fr: 'dépassées', en: 'over goal', es: 'de más' })}`}
           </span>
         </div>
 
@@ -184,12 +186,12 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
           <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
               <span style={{ color: 'var(--text-mute)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Icons.Flame size={12} color="var(--primary)" /> Dépensées
+                <Icons.Flame size={12} color="var(--primary)" /> {tr({ fr: 'Dépensées', en: 'Burned', es: 'Quemadas' })}
               </span>
               <span style={{ color: 'var(--primary)', fontWeight: 700 }}>−{dayStats.out} kcal</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-              <span style={{ color: 'var(--text-mute)' }}>Net</span>
+              <span style={{ color: 'var(--text-mute)' }}>{tr({ fr: 'Net', en: 'Net', es: 'Neto' })}</span>
               <span style={{ fontWeight: 700, color: dayStats.net > calorieGoal ? 'var(--secondary)' : 'var(--ok)' }}>
                 {dayStats.net} kcal
               </span>
@@ -200,7 +202,7 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
 
       {/* Weekly chart */}
       <div className="glass" style={{ borderRadius: 22, padding: '16px 16px' }}>
-        <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 12 }}>7 derniers jours</div>
+        <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 12 }}>{tr({ fr: '7 derniers jours', en: 'Last 7 days', es: 'Últimos 7 días' })}</div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 60 }}>
           {weekStats.map((d) => {
             const h = d.in > 0 ? Math.max(6, Math.round((d.in / maxCal) * 52)) : 3;
@@ -225,7 +227,7 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
           })}
         </div>
         <div style={{ marginTop: 8, fontSize: 10, color: 'var(--text-faint)', textAlign: 'right' }}>
-          Objectif: {calorieGoal} kcal
+          {tr({ fr: 'Objectif', en: 'Goal', es: 'Objetivo' })}: {calorieGoal} kcal
         </div>
       </div>
 
@@ -236,11 +238,11 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
           background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
           color: '#fff', fontWeight: 700, fontSize: 15,
           boxShadow: '0 8px 28px rgba(255,107,53,0.35)',
-        }}>+ Enregistrer des calories</button>
+        }}>+ {tr({ fr: 'Enregistrer des calories', en: 'Log calories', es: 'Registrar calorías' })}</button>
       ) : (
         <div className="glass" style={{ borderRadius: 22, padding: '16px 16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>Nouvelle entrée</span>
+            <span style={{ fontWeight: 700, fontSize: 14 }}>{tr({ fr: 'Nouvelle entrée', en: 'New entry', es: 'Nueva entrada' })}</span>
             <button onClick={() => setShowForm(false)} className="tap" style={{ background: 'none', border: 'none', color: 'var(--text-mute)' }}>
               <Icons.X size={18} />
             </button>
@@ -256,14 +258,14 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 }}>
                   {t === 'in' ? <Icons.Apple size={13} /> : <Icons.Flame size={13} />}
-                  {t === 'in' ? 'Mangées' : 'Dépensées'}
+                  {t === 'in' ? tr({ fr: 'Mangées', en: 'Eaten', es: 'Consumidas' }) : tr({ fr: 'Dépensées', en: 'Burned', es: 'Quemadas' })}
                 </button>
               ))}
             </div>
 
             {type === 'in' && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                {(Object.entries(MEAL_LABELS) as [MealType, string][]).map(([key, lbl]) => (
+                {(Object.entries(getMealLabels()) as [MealType, string][]).map(([key, lbl]) => (
                   <button key={key} onClick={() => setMeal(key)} className="tap" style={{
                     border: meal === key ? `1px solid ${MEAL_COLORS[key]}` : '1px solid transparent',
                     borderRadius: 10, padding: '8px 10px',
@@ -275,11 +277,11 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
               </div>
             )}
 
-            <input type="text" placeholder={type === 'in' ? 'Ex: Riz + poulet, Pizza...' : 'Ex: Séance muscu, Cardio...'}
+            <input type="text" placeholder={type === 'in' ? tr({ fr: 'Ex: Riz + poulet, Pizza...', en: 'E.g. Rice + chicken, Pizza...', es: 'Ej: Arroz + pollo, Pizza...' }) : tr({ fr: 'Ex: Séance muscu, Cardio...', en: 'E.g. Gym session, Cardio...', es: 'Ej: Sesión musculación, Cardio...' })}
               value={label} onChange={(e) => setLabel(e.target.value)} className="input-glass" />
 
             <div style={{ display: 'flex', gap: 8 }}>
-              <input type="number" inputMode="numeric" placeholder="Calories (kcal)"
+              <input type="number" inputMode="numeric" placeholder={tr({ fr: 'Calories (kcal)', en: 'Calories (kcal)', es: 'Calorías (kcal)' })}
                 value={calories} onChange={(e) => setCalories(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                 className="input-glass" style={{ flex: 1 }} />
@@ -292,7 +294,7 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
               background: calories && label.trim() ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
               color: '#fff', fontWeight: 700, fontSize: 14,
               opacity: calories && label.trim() ? 1 : 0.4,
-            }}>Enregistrer</button>
+            }}>{tr({ fr: 'Enregistrer', en: 'Save', es: 'Guardar' })}</button>
           </div>
         </div>
       )}
@@ -300,7 +302,7 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
       {/* Entries */}
       {dayEntries.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 16 }}>
-          <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 2 }}>Entrées du jour</div>
+          <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 2 }}>{tr({ fr: 'Entrées du jour', en: "Today's entries", es: 'Entradas del día' })}</div>
           {dayEntries.map((e) => {
             const mealColor = e.meal ? MEAL_COLORS[e.meal] : 'var(--primary)';
             return (
@@ -312,7 +314,7 @@ function CaloriesTab({ today, showToast }: { today: string; showToast: DailyProp
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{e.label}</div>
                   {e.meal && (
-                    <div style={{ fontSize: 10.5, color: mealColor, marginTop: 1, fontWeight: 600 }}>{MEAL_LABELS[e.meal]}</div>
+                    <div style={{ fontSize: 10.5, color: mealColor, marginTop: 1, fontWeight: 600 }}>{getMealLabels()[e.meal]}</div>
                   )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -364,7 +366,7 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
     setNewName('');
     setNewEmoji('⭐');
     setShowAddForm(false);
-    showToast('Habitude ajoutée', 'success');
+    showToast(tr({ fr: 'Habitude ajoutée', en: 'Habit added', es: 'Hábito añadido' }), 'success');
   };
 
   return (
@@ -376,7 +378,7 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
           <button onClick={() => setViewDate(today)} className="tap" style={{
             background: 'rgba(255,107,53,0.12)', border: 'none', borderRadius: 10, padding: '10px 14px',
             color: 'var(--primary)', fontSize: 12, fontWeight: 700,
-          }}>Aujourd'hui</button>
+          }}>{tr({ fr: "Aujourd'hui", en: 'Today', es: 'Hoy' })}</button>
         )}
       </div>
 
@@ -388,7 +390,7 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div>
-            <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 2 }}>Routine du soir</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 2 }}>{tr({ fr: 'Routine du soir', en: 'Evening routine', es: 'Rutina nocturna' })}</div>
             <div className="t-num" style={{ fontSize: 36, color: isFullDone ? 'var(--ok)' : 'var(--primary)', lineHeight: 1 }}>
               {doneCount}<span style={{ fontSize: 20, color: 'var(--text-mute)', fontWeight: 400 }}>/{totalCount}</span>
             </div>
@@ -399,7 +401,7 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
                 <Icons.Flame size={16} color="var(--primary)" />
                 <span className="t-num" style={{ fontSize: 28, color: 'var(--primary)' }}>{streak}</span>
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text-mute)' }}>jours consécutifs</div>
+              <div style={{ fontSize: 10, color: 'var(--text-mute)' }}>{tr({ fr: 'jours consécutifs', en: 'day streak', es: 'días seguidos' })}</div>
             </div>
           )}
         </div>
@@ -413,14 +415,14 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
         </div>
         {isFullDone && (
           <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--ok)', fontWeight: 700, marginTop: 4 }}>
-            Routine complète ! GG
+            {tr({ fr: 'Routine complète ! GG', en: 'Routine complete! GG', es: '¡Rutina completa! GG' })}
           </div>
         )}
       </div>
 
       {/* 7-day history */}
       <div className="glass" style={{ borderRadius: 22, padding: '14px 16px' }}>
-        <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 10 }}>7 derniers jours</div>
+        <div style={{ fontSize: 10.5, color: 'var(--text-mute)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.12, marginBottom: 10 }}>{tr({ fr: '7 derniers jours', en: 'Last 7 days', es: 'Últimos 7 días' })}</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 5 }}>
           {weekHistory.map((d) => {
             const full = d.total > 0 && d.done === d.total;
@@ -475,7 +477,7 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
               }}>{item.name}</span>
               <button onClick={(e) => {
                 e.stopPropagation();
-                if (confirm(`Supprimer "${item.name}" ?`)) deleteItem(item.id);
+                if (confirm(`${tr({ fr: 'Supprimer', en: 'Delete', es: 'Eliminar' })} "${item.name}" ?`)) deleteItem(item.id);
               }} className="tap" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', padding: '2px 4px' }}>
                 <Icons.X size={14} />
               </button>
@@ -489,7 +491,7 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
         <button onClick={() => setShowAddForm(true)} className="tap" style={{
           width: '100%', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 16,
           padding: '14px', background: 'none', color: 'var(--text-mute)', fontSize: 13, fontWeight: 600,
-        }}>+ Ajouter une habitude</button>
+        }}>+ {tr({ fr: 'Ajouter une habitude', en: 'Add a habit', es: 'Añadir un hábito' })}</button>
       ) : (
         <div className="glass" style={{ borderRadius: 18, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -497,7 +499,7 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
               onChange={(e) => setNewEmoji(e.target.value)}
               className="input-glass" style={{ width: 56, textAlign: 'center', fontSize: 18 }} />
             <div style={{ flex: 1, position: 'relative' }}>
-              <input type="text" placeholder="Nom de l'habitude" value={newName}
+              <input type="text" placeholder={tr({ fr: "Nom de l'habitude", en: 'Habit name', es: 'Nombre del hábito' })} value={newName}
                 onChange={(e) => setNewName(e.target.value.slice(0, 15))}
                 onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                 maxLength={15}
@@ -515,12 +517,12 @@ function RoutineTab({ today, showToast }: { today: string; showToast: DailyProps
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => setShowAddForm(false)} className="tap" style={{
               flex: 1, background: 'none', border: 'none', color: 'var(--text-mute)', padding: '10px', fontSize: 13, fontWeight: 600,
-            }}>Annuler</button>
+            }}>{tr({ fr: 'Annuler', en: 'Cancel', es: 'Cancelar' })}</button>
             <button onClick={handleAdd} disabled={!newName.trim()} className="tap" style={{
               flex: 1, border: 'none', borderRadius: 12, padding: '10px',
               background: newName.trim() ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
               color: '#fff', fontWeight: 700, fontSize: 13, opacity: newName.trim() ? 1 : 0.4,
-            }}>Ajouter</button>
+            }}>{tr({ fr: 'Ajouter', en: 'Add', es: 'Añadir' })}</button>
           </div>
         </div>
       )}

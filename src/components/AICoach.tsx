@@ -16,7 +16,7 @@ import { Icons } from './Icons';
 import { useAuthStore } from '../stores/authStore';
 import PostSessionPhoto from './PostSessionPhoto';
 import { consumePendingAI } from '../utils/aiContext';
-import { tr, getLang } from '../utils/i18n';
+import { tr, getLang, useLang } from '../utils/i18n';
 import type { SessionType, MealType } from '../types';
 
 interface AICoachProps {
@@ -489,6 +489,7 @@ function buildActionPreview(name: string, args: Record<string, unknown>): { labe
 }
 
 export default function AICoach({ onBack }: AICoachProps) {
+  useLang();
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const saved = localStorage.getItem('ai_chat_history');

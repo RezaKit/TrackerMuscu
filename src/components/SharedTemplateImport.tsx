@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 import { Icons } from './Icons';
-import { tr } from '../utils/i18n';
+import { tr, useLang } from '../utils/i18n';
 import { clearShareParam, readShareFromURL, type SharedTemplate } from '../utils/templateShare';
 
 interface SharedTemplateImportProps {
@@ -26,6 +26,7 @@ function todayIso(): string {
  * The user picks a date and we plan the session for that day.
  */
 export default function SharedTemplateImport({ onImported, showToast }: SharedTemplateImportProps) {
+  useLang();
   const [template, setTemplate] = useState<SharedTemplate | null>(null);
   const [date, setDate] = useState<string>(todayIso());
   const [importing, setImporting] = useState(false);

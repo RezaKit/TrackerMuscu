@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { tr } from '../utils/i18n';
+import { tr, useLang } from '../utils/i18n';
 
 interface ExerciseMediaProps {
   fxId?: string;
@@ -39,6 +39,7 @@ function initMode(hasVideoBase: boolean, gifUrl?: string, fallbackCount = 0): Mo
 }
 
 export default function ExerciseMedia({ name, gifUrl, fallbackImages = [], flipSpeed = 1100 }: ExerciseMediaProps) {
+  useLang();
   const hasVideoBase = VIDEO_BASE.length > 0;
   const [mode, setMode] = useState<Mode>(() => initMode(hasVideoBase, gifUrl, fallbackImages.length));
   const [frame, setFrame] = useState(0);

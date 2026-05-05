@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { tr, useLang } from '../utils/i18n';
 
 const PRESETS = [
   { label: '30s', s: 30 },
@@ -13,6 +14,7 @@ interface RestTimerProps {
 }
 
 export default function RestTimer({ trigger }: RestTimerProps) {
+  useLang();
   const [target, setTarget] = useState(90);
   const [seconds, setSeconds] = useState(90);
   const [running, setRunning] = useState(false);
@@ -101,7 +103,7 @@ export default function RestTimer({ trigger }: RestTimerProps) {
             fontSize: 10, color: done ? 'var(--ok)' : 'var(--text-mute)',
             fontWeight: 700, textTransform: 'uppercase', textAlign: 'center', letterSpacing: 0.12,
           }}>
-            {done ? '✓ Repos terminé — relance ?' : 'Durée de repos'}
+            {done ? tr({fr:'✓ Repos terminé — relance ?',en:'✓ Rest done — restart?',es:'✓ Descanso listo — reiniciar?'}) : tr({fr:'Durée de repos',en:'Rest duration',es:'Duración del descanso'})}
           </div>
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
             {PRESETS.map((p) => (
@@ -122,14 +124,14 @@ export default function RestTimer({ trigger }: RestTimerProps) {
               color: running ? 'var(--secondary)' : 'var(--ok)',
               fontWeight: 700, fontSize: 12, cursor: 'pointer',
             }}>
-              {running ? 'Pause' : 'Reprendre'}
+              {running ? tr({fr:'Pause',en:'Pause',es:'Pausa'}) : tr({fr:'Reprendre',en:'Resume',es:'Reanudar'})}
             </button>
             <button onClick={() => setExpanded(false)} style={{
               flex: 1, border: 'none', borderRadius: 12, padding: '9px',
               background: 'rgba(255,255,255,0.06)', color: 'var(--text-mute)',
               fontWeight: 700, fontSize: 12, cursor: 'pointer',
             }}>
-              Fermer
+              {tr({fr:'Fermer',en:'Close',es:'Cerrar'})}
             </button>
           </div>
         </div>
@@ -174,7 +176,7 @@ export default function RestTimer({ trigger }: RestTimerProps) {
           fontSize: 11, color: done ? 'var(--ok)' : running ? 'var(--text-mute)' : '#FB923C',
           fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.1,
         }}>
-          {done ? 'C\'est bon !' : running ? 'Repos' : 'Pause'}
+          {done ? tr({fr:"C'est bon !",en:'Good to go!',es:'¡Listo!'}) : running ? tr({fr:'Repos',en:'Rest',es:'Descanso'}) : tr({fr:'Pausa',en:'Paused',es:'En pausa'})}
         </span>
       </button>
     </div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMeasurementStore, getMeasurementLabels } from '../stores/measurementStore';
 import type { MeasurementKey } from '../types';
 import { Icons } from './Icons';
-import { tr, getLang } from '../utils/i18n';
+import { tr, getLang, useLang } from '../utils/i18n';
 
 interface MeasurementsProps {
   onClose: () => void;
@@ -17,6 +17,7 @@ const MEASUREMENT_ORDER: MeasurementKey[] = [
 ];
 
 export default function Measurements({ onClose }: MeasurementsProps) {
+  useLang();
   const { measurements, loadMeasurements, addMeasurement, deleteMeasurement } = useMeasurementStore();
   const [showAdd, setShowAdd] = useState(false);
   const [values, setValues] = useState<Partial<Record<MeasurementKey, string>>>({});

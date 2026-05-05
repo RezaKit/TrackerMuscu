@@ -4,7 +4,7 @@ import { useCardioStore } from '../stores/cardioStore';
 import { useBodyWeightStore } from '../stores/bodyweightStore';
 import { Icons } from './Icons';
 import ProgressGallery from './ProgressGallery';
-import { tr, getLang } from '../utils/i18n';
+import { tr, getLang, useLang } from '../utils/i18n';
 
 const Leaderboard = lazy(() => import('./Leaderboard'));
 
@@ -92,6 +92,7 @@ function StatCard({ label, value, unit, accent, icon }: {
 }
 
 export default function Analytics({ showToast }: AnalyticsProps) {
+  useLang();
   const { sessions } = useSessionStore();
   const { courses, natations } = useCardioStore();
   const { weights, addWeight } = useBodyWeightStore();

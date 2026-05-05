@@ -3,6 +3,7 @@ import { bodyFront } from '../db/bodyFront';
 import { bodyBack } from '../db/bodyBack';
 import { BORDER_FRONT_PATH, BORDER_BACK_PATH, type BodyPart, type BodySlug } from '../db/bodyTypes';
 import type { ExerciseLog } from '../types';
+import { tr, useLang } from '../utils/i18n';
 
 interface MuscleMapProps {
   exercises: ExerciseLog[];
@@ -24,16 +25,37 @@ const GROUP_TO_SLUGS: Record<string, BodySlug[]> = {
   core:      ['abs', 'obliques'],
 };
 
-const SLUG_FR: Record<BodySlug, string> = {
-  abs: 'Abdominaux', adductors: 'Adducteurs', ankles: 'Chevilles',
-  biceps: 'Biceps', calves: 'Mollets', chest: 'Pectoraux',
-  deltoids: 'Deltoïdes', feet: 'Pieds', forearm: 'Avant-bras',
-  gluteal: 'Fessiers', hair: 'Cheveux', hamstring: 'Ischio-jambiers',
-  hands: 'Mains', head: 'Tête', knees: 'Genoux',
-  'lower-back': 'Bas du dos', neck: 'Cou', obliques: 'Obliques',
-  quadriceps: 'Quadriceps', tibialis: 'Tibial', trapezius: 'Trapèzes',
-  triceps: 'Triceps', 'upper-back': 'Haut du dos',
+const SLUG_LABELS: Record<BodySlug, { fr: string; en: string; es: string }> = {
+  abs:          { fr: 'Abdominaux',        en: 'Abs',              es: 'Abdominales'      },
+  adductors:    { fr: 'Adducteurs',        en: 'Adductors',        es: 'Aductores'        },
+  ankles:       { fr: 'Chevilles',         en: 'Ankles',           es: 'Tobillos'         },
+  biceps:       { fr: 'Biceps',            en: 'Biceps',           es: 'Bíceps'           },
+  calves:       { fr: 'Mollets',           en: 'Calves',           es: 'Pantorrillas'     },
+  chest:        { fr: 'Pectoraux',         en: 'Chest',            es: 'Pectorales'       },
+  deltoids:     { fr: 'Deltoïdes',         en: 'Deltoids',         es: 'Deltoides'        },
+  feet:         { fr: 'Pieds',             en: 'Feet',             es: 'Pies'             },
+  forearm:      { fr: 'Avant-bras',        en: 'Forearms',         es: 'Antebrazos'       },
+  gluteal:      { fr: 'Fessiers',          en: 'Glutes',           es: 'Glúteos'          },
+  hair:         { fr: 'Cheveux',           en: 'Hair',             es: 'Cabello'          },
+  hamstring:    { fr: 'Ischio-jambiers',   en: 'Hamstrings',       es: 'Isquiotibiales'   },
+  hands:        { fr: 'Mains',             en: 'Hands',            es: 'Manos'            },
+  head:         { fr: 'Tête',              en: 'Head',             es: 'Cabeza'           },
+  knees:        { fr: 'Genoux',            en: 'Knees',            es: 'Rodillas'         },
+  'lower-back': { fr: 'Bas du dos',        en: 'Lower back',       es: 'Zona lumbar'      },
+  neck:         { fr: 'Cou',               en: 'Neck',             es: 'Cuello'           },
+  obliques:     { fr: 'Obliques',          en: 'Obliques',         es: 'Oblicuos'         },
+  quadriceps:   { fr: 'Quadriceps',        en: 'Quads',            es: 'Cuádriceps'       },
+  tibialis:     { fr: 'Tibial',            en: 'Tibialis',         es: 'Tibial'           },
+  trapezius:    { fr: 'Trapèzes',          en: 'Trapezius',        es: 'Trapecios'        },
+  triceps:      { fr: 'Triceps',           en: 'Triceps',          es: 'Tríceps'          },
+  'upper-back': { fr: 'Haut du dos',       en: 'Upper back',       es: 'Espalda alta'     },
 };
+
+function getSlugLabel(slug: BodySlug): string {
+  const entry = SLUG_LABELS[slug];
+  if (!entry) return slug;
+  return tr(entry);
+}
 
 // Slugs we never highlight (decorative or non-trainable)
 const NON_HIGHLIGHT: ReadonlySet<BodySlug> = new Set([
@@ -61,6 +83,7 @@ function legendStop(t: number) {
 }
 
 export default function MuscleMap({ exercises, size = 280, compact = false }: MuscleMapProps) {
+  useLang();
   const [selected, setSelected] = useState<BodySlug | null>(null);
 
   // Aggregate volume per muscle slug
@@ -134,7 +157,7 @@ export default function MuscleMap({ exercises, size = 280, compact = false }: Mu
   const h = size;
 
   // Tooltip card content
-  const selectedLabel = selected ? SLUG_FR[selected] : null;
+  const selectedLabel = selected ? getSlugLabel(selected) : null;
   const selectedVolume = selected ? volumeBySlug[selected] ?? 0 : 0;
   const selectedIntensity = selected ? Math.round((intensityBySlug[selected] ?? 0) * 100) : 0;
 
@@ -148,7 +171,7 @@ export default function MuscleMap({ exercises, size = 280, compact = false }: Mu
           <path d={BORDER_FRONT_PATH} fill="rgba(255,255,255,0.025)" stroke={STROKE} strokeWidth={1.4} vectorEffect="non-scaling-stroke" />
           {renderPaths(bodyFront)}
           {!compact && (
-            <text x={362} y={1430} textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize={28} fontWeight={800} letterSpacing={4} fontFamily="system-ui">FACE</text>
+            <text x={362} y={1430} textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize={28} fontWeight={800} letterSpacing={4} fontFamily="system-ui">{tr({ fr: 'FACE', en: 'FRONT', es: 'FRENTE' })}</text>
           )}
         </svg>
 
@@ -158,7 +181,7 @@ export default function MuscleMap({ exercises, size = 280, compact = false }: Mu
           <path d={BORDER_BACK_PATH} fill="rgba(255,255,255,0.025)" stroke={STROKE} strokeWidth={1.4} vectorEffect="non-scaling-stroke" />
           {renderPaths(bodyBack)}
           {!compact && (
-            <text x={1086} y={1430} textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize={28} fontWeight={800} letterSpacing={4} fontFamily="system-ui">DOS</text>
+            <text x={1086} y={1430} textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize={28} fontWeight={800} letterSpacing={4} fontFamily="system-ui">{tr({ fr: 'DOS', en: 'BACK', es: 'ESPALDA' })}</text>
           )}
         </svg>
       </div>
@@ -183,14 +206,14 @@ export default function MuscleMap({ exercises, size = 280, compact = false }: Mu
                 <span className="t-num" style={{ fontSize: 22, color: intensityColor(selectedIntensity / 100) }}>
                   {selectedIntensity}%
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--text-mute)' }}>intensité</span>
+                <span style={{ fontSize: 11, color: 'var(--text-mute)' }}>{tr({ fr: 'intensité', en: 'intensity', es: 'intensidad' })}</span>
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-soft)', marginTop: 2 }}>
-                Volume : <span className="t-mono">{Math.round(selectedVolume)}</span>
+                {tr({ fr: 'Volume :', en: 'Volume:', es: 'Volumen:' })} <span className="t-mono">{Math.round(selectedVolume)}</span>
               </div>
             </>
           ) : (
-            <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>Pas encore travaillé</div>
+            <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>{tr({ fr: 'Pas encore travaillé', en: 'Not trained yet', es: 'Aún no entrenado' })}</div>
           )}
         </div>
       )}
@@ -198,13 +221,13 @@ export default function MuscleMap({ exercises, size = 280, compact = false }: Mu
       {/* Gradient legend */}
       {!compact && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: selected ? 0 : 4 }}>
-          <span style={{ fontSize: 9.5, color: 'var(--text-faint)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>Léger</span>
+          <span style={{ fontSize: 9.5, color: 'var(--text-faint)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>{tr({ fr: 'Léger', en: 'Light', es: 'Leve' })}</span>
           <div style={{
             width: 140, height: 6, borderRadius: 999,
             background: `linear-gradient(to right, ${legendStop(0.05)}, ${legendStop(0.3)}, ${legendStop(0.6)}, ${legendStop(0.85)}, ${legendStop(1)})`,
             boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
           }} />
-          <span style={{ fontSize: 9.5, color: 'var(--text-faint)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>Intense</span>
+          <span style={{ fontSize: 9.5, color: 'var(--text-faint)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>{tr({ fr: 'Intense', en: 'Intense', es: 'Intenso' })}</span>
         </div>
       )}
     </div>

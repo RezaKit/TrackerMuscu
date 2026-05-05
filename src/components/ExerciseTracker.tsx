@@ -281,10 +281,31 @@ export default function ExerciseTracker({ exercises, showToast, onSetAdded }: Ex
               </div>
             )}
 
-            {/* Description courte custom (si on en a une dans EXERCISE_INFO) */}
-            {EXERCISE_INFO[infoName!] && !fxInfo && (
-              <p style={{ fontSize: 14, color: 'var(--text-soft)', lineHeight: 1.6, marginBottom: 16 }}>
-                {EXERCISE_INFO[infoName!]}
+            {/* Description courte custom (en plus de fxInfo) — toujours visible si dispo */}
+            {EXERCISE_INFO[infoName!] && (
+              <div style={{
+                marginBottom: 16, padding: '12px 14px',
+                background: 'rgba(96,165,250,0.06)',
+                border: '1px solid rgba(96,165,250,0.18)',
+                borderRadius: 12,
+              }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--info)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                  💡 {tr({ fr: 'Note du coach', en: "Coach's note", es: 'Nota del coach' })}
+                </div>
+                <p style={{ fontSize: 13, color: 'var(--text-soft)', lineHeight: 1.55, margin: 0 }}>
+                  {EXERCISE_INFO[infoName!]}
+                </p>
+              </div>
+            )}
+
+            {/* Si rien d'autre n'a matché, message explicite */}
+            {!fxLoading && !fxInfo && !EXERCISE_INFO[infoName!] && (
+              <p style={{ fontSize: 13, color: 'var(--text-mute)', lineHeight: 1.6, marginBottom: 16, textAlign: 'center', padding: '20px 0' }}>
+                {tr({
+                  fr: "Pas d'explication pour cet exercice. Demande au coach IA pour des conseils personnalisés !",
+                  en: 'No explanation for this exercise. Ask the AI coach for personalised advice!',
+                  es: 'Sin explicación para este ejercicio. ¡Pregunta al coach IA para consejos personalizados!',
+                })}
               </p>
             )}
 
